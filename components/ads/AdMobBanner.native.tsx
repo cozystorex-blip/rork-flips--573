@@ -5,9 +5,18 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
-import { getBannerUnitId, isAdsInitialized, onAdsInitialized } from '@/services/adService';
+import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable } from '@/services/adService';
 import { usePremium } from '@/contexts/PremiumContext';
+
+let BannerAd: any = null;
+let BannerAdSize: any = {};
+try {
+  const mod = require('react-native-google-mobile-ads');
+  BannerAd = mod.BannerAd;
+  BannerAdSize = mod.BannerAdSize ?? {};
+} catch (e) {
+  console.warn('[AdMobBanner] react-native-google-mobile-ads not available:', e);
+}
 
 export default function AdMobBanner() {
   const { isPremium } = usePremium();
@@ -17,6 +26,7 @@ export default function AdMobBanner() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (!isAdModuleAvailable() || !BannerAd) return;
     if (isAdsInitialized()) {
       setSdkReady(true);
       return;
@@ -51,17 +61,13 @@ export default function AdMobBanner() {
   }, []);
 
   if (isPremium) return null;
-
-  if (!sdkReady) {
-    return null;
-  }
+  if (!isAdModuleAvailable() || !BannerAd) return null;
+  if (!sdkReady) return null;
 
   const unitId = getBannerUnitId();
   console.log('[AdMobBanner] Rendering banner with unit ID:', unitId);
 
-  if (adError) {
-    return null;
-  }
+  if (adError) return null;
 
   return (
     <Animated.View

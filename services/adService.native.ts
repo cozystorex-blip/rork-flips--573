@@ -1,15 +1,30 @@
 import { Platform } from 'react-native';
-import mobileAds, {
-  BannerAd as RNBannerAd,
-  BannerAdSize,
-  InterstitialAd,
-  AdEventType,
-  TestIds,
-} from 'react-native-google-mobile-ads';
+
+let mobileAds: any = null;
+let RNBannerAd: any = null;
+let BannerAdSize: any = {};
+let InterstitialAd: any = null;
+let AdEventType: any = {};
+let TestIds: any = { BANNER: 'ca-app-pub-3940256099942544/6300978111', INTERSTITIAL: 'ca-app-pub-3940256099942544/1033173712' };
+
+let nativeModuleAvailable = false;
+try {
+  const mod = require('react-native-google-mobile-ads');
+  mobileAds = mod.default ?? mod;
+  RNBannerAd = mod.BannerAd;
+  BannerAdSize = mod.BannerAdSize ?? {};
+  InterstitialAd = mod.InterstitialAd;
+  AdEventType = mod.AdEventType ?? {};
+  TestIds = mod.TestIds ?? TestIds;
+  nativeModuleAvailable = true;
+  console.log('[AdService] react-native-google-mobile-ads module loaded');
+} catch (e) {
+  console.warn('[AdService] react-native-google-mobile-ads not available:', e);
+}
 
 let adsInitialized = false;
 const adInitListeners: Array<() => void> = [];
-let interstitialAd: InterstitialAd | null = null;
+let interstitialAd: any = null;
 let interstitialLoaded = false;
 
 const IOS_BANNER_ID = process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_ID || TestIds.BANNER;
@@ -18,7 +33,7 @@ const IOS_INTERSTITIAL_ID = process.env.EXPO_PUBLIC_ADMOB_IOS_INTERSTITIAL_ID ||
 const ANDROID_INTERSTITIAL_ID = process.env.EXPO_PUBLIC_ADMOB_ANDROID_INTERSTITIAL_ID || TestIds.INTERSTITIAL;
 
 export function isAdModuleAvailable(): boolean {
-  return true;
+  return nativeModuleAvailable;
 }
 
 export function isAdsInitialized(): boolean {
@@ -46,6 +61,10 @@ export function getInterstitialUnitId(): string {
 }
 
 function loadInterstitial(): void {
+  if (!nativeModuleAvailable || !InterstitialAd) {
+    console.log('[AdService] Interstitial not available — native module missing');
+    return;
+  }
   try {
     const unitId = getInterstitialUnitId();
     console.log('[AdService] Loading interstitial with unit ID:', unitId);
@@ -63,7 +82,7 @@ function loadInterstitial(): void {
       setTimeout(() => loadInterstitial(), 1000);
     });
 
-    interstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
+    interstitialAd.addAdEventListener(AdEventType.ERROR, (error: any) => {
       console.log('[AdService] Interstitial error:', error);
       interstitialLoaded = false;
       setTimeout(() => loadInterstitial(), 30000);
@@ -76,6 +95,10 @@ function loadInterstitial(): void {
 }
 
 export async function initializeAds(): Promise<void> {
+  if (!nativeModuleAvailable || !mobileAds) {
+    console.log('[AdService] Native ads module not available — skipping initialization');
+    return;
+  }
   try {
     console.log('[AdService] Initializing mobile ads SDK...');
     console.log('[AdService] Banner ID:', getBannerUnitId());
@@ -119,4 +142,4 @@ export function associateAdProfile(userId: string | null): void {
   console.log('[AdService] Associate ad profile:', userId ? userId.substring(0, 8) + '...' : 'anonymous');
 }
 
-export { RNBannerAd as BannerAd, BannerAdSize };
+export { RNBannerAd as BannerAd, BannerAdSize, nativeModuleAvailable as isNativeAdsAvailable };

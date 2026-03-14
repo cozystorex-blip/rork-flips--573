@@ -30,14 +30,16 @@ export function getInterstitialUnitId(): string {
 }
 
 export async function initializeAds(): Promise<void> {
-  console.log('[AdService] Ads module not available — skipping initialization');
+  console.log('[AdService] Web platform — ads not available, skipping initialization');
 }
 
 export async function showInterstitialIfReady(): Promise<boolean> {
-  console.log('[AdService] Interstitial not available');
+  console.log('[AdService] Interstitial not available on web');
   return false;
 }
 
 export function associateAdProfile(userId: string | null): void {
-  console.log('[AdService] Associate ad profile:', userId ? userId.substring(0, 8) + '...' : 'anonymous');
+  console.log('[AdService] Associate ad profile (web):', userId ? userId.substring(0, 8) + '...' : 'anonymous');
 }
+
+export const isNativeAdsAvailable = false;

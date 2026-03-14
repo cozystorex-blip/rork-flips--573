@@ -2,18 +2,35 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Platform, Alert } from 'react-native';
-import Purchases, {
-  type CustomerInfo,
-  type PurchasesPackage,
-  type PurchasesError,
-  LOG_LEVEL,
-  PURCHASES_ERROR_CODE,
-} from 'react-native-purchases';
+
+let Purchases: any = null;
+let LOG_LEVEL: any = {};
+let PURCHASES_ERROR_CODE: any = {};
+type CustomerInfo = any;
+type PurchasesPackage = any;
+type PurchasesError = any;
+
+let purchasesModuleLoaded = false;
+if (Platform.OS !== 'web') {
+  try {
+    const mod = require('react-native-purchases');
+    Purchases = mod.default ?? mod;
+    LOG_LEVEL = mod.LOG_LEVEL ?? {};
+    PURCHASES_ERROR_CODE = mod.PURCHASES_ERROR_CODE ?? {};
+    purchasesModuleLoaded = true;
+    console.log('[PremiumContext] react-native-purchases module loaded successfully');
+  } catch (e) {
+    console.warn('[PremiumContext] react-native-purchases module not available:', e);
+  }
+} else {
+  console.log('[PremiumContext] Skipping react-native-purchases on web');
+}
 
 const ENTITLEMENT_ID = 'premium';
 
 function getRCApiKey(): string {
-  if (__DEV__ || Platform.OS === 'web') {
+  if (Platform.OS === 'web') return '';
+  if (__DEV__) {
     return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? '';
   }
   return Platform.select({
@@ -24,22 +41,26 @@ function getRCApiKey(): string {
 }
 
 let rcConfigured = false;
-const apiKey = getRCApiKey();
-if (apiKey) {
-  try {
-    const storeLabel = __DEV__ ? 'Test Store (dev)' : Platform.OS === 'ios' ? 'App Store' : Platform.OS === 'android' ? 'Play Store' : 'Test Store (web)';
-    console.log('[PremiumContext] Platform:', Platform.OS, '__DEV__:', __DEV__);
-    console.log('[PremiumContext] Configuring RevenueCat with key:', apiKey.substring(0, 8) + '...', 'store:', storeLabel);
-    Purchases.configure({ apiKey });
-    rcConfigured = true;
-    if (__DEV__) {
-      void Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+if (purchasesModuleLoaded && Purchases) {
+  const apiKey = getRCApiKey();
+  if (apiKey) {
+    try {
+      const storeLabel = __DEV__ ? 'Test Store (dev)' : Platform.OS === 'ios' ? 'App Store' : Platform.OS === 'android' ? 'Play Store' : 'Unknown';
+      console.log('[PremiumContext] Platform:', Platform.OS, '__DEV__:', __DEV__);
+      console.log('[PremiumContext] Configuring RevenueCat with key:', apiKey.substring(0, 8) + '...', 'store:', storeLabel);
+      Purchases.configure({ apiKey });
+      rcConfigured = true;
+      if (__DEV__ && LOG_LEVEL.DEBUG !== undefined) {
+        void Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+      }
+    } catch (e) {
+      console.warn('[PremiumContext] RevenueCat configure failed:', e);
     }
-  } catch (e) {
-    console.warn('[PremiumContext] RevenueCat configure failed:', e);
+  } else {
+    console.warn('[PremiumContext] No RevenueCat API key found for platform:', Platform.OS);
   }
-} else {
-  console.warn('[PremiumContext] No RevenueCat API key found for platform:', Platform.OS);
+} else if (Platform.OS !== 'web') {
+  console.warn('[PremiumContext] RevenueCat module not loaded, premium features disabled');
 }
 
 export type PlanType = 'annual' | 'monthly';
@@ -76,7 +97,7 @@ export const [PremiumProvider, usePremium] = createContextHook(() => {
         const offerings = await Purchases.getOfferings();
         console.log('[PremiumContext] Offerings loaded:', offerings.current?.identifier);
         if (offerings.current) {
-          console.log('[PremiumContext] Available packages:', offerings.current.availablePackages.map(p => `${p.identifier} (${p.product.priceString})`));
+          console.log('[PremiumContext] Available packages:', offerings.current.availablePackages.map((p: any) => `${p.identifier} (${p.product.priceString})`));
         } else {
           console.warn('[PremiumContext] No current offering found — check RevenueCat dashboard');
         }
@@ -129,7 +150,7 @@ export const [PremiumProvider, usePremium] = createContextHook(() => {
     const targetType = plan === 'annual' ? 'ANNUAL' : 'MONTHLY';
 
     const pkg = offering.availablePackages.find(
-      (p) => p.packageType === targetType || p.identifier === targetId
+      (p: any) => p.packageType === targetType || p.identifier === targetId
     ) ?? offering.availablePackages[0];
 
     if (!pkg) {
@@ -235,7 +256,7 @@ export const [PremiumProvider, usePremium] = createContextHook(() => {
   const annualPrice = useMemo(() => {
     if (!currentOffering) return '$29.99/year';
     const pkg = currentOffering.availablePackages.find(
-      (p) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual'
+      (p: any) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual'
     ) ?? currentOffering.availablePackages[0];
     if (!pkg) return '$29.99/year';
     return `${pkg.product.priceString}/year`;
@@ -244,7 +265,7 @@ export const [PremiumProvider, usePremium] = createContextHook(() => {
   const monthlyPrice = useMemo(() => {
     if (!currentOffering) return '$4.99/mo';
     const pkg = currentOffering.availablePackages.find(
-      (p) => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly'
+      (p: any) => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly'
     );
     if (!pkg) return '$4.99/mo';
     return `${pkg.product.priceString}/mo`;
@@ -253,7 +274,7 @@ export const [PremiumProvider, usePremium] = createContextHook(() => {
   const annualPriceRaw = useMemo(() => {
     if (!currentOffering) return '$29.99';
     const pkg = currentOffering.availablePackages.find(
-      (p) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual'
+      (p: any) => p.packageType === 'ANNUAL' || p.identifier === '$rc_annual'
     );
     if (!pkg) return '$29.99';
     return pkg.product.priceString;
@@ -262,7 +283,7 @@ export const [PremiumProvider, usePremium] = createContextHook(() => {
   const monthlyPriceRaw = useMemo(() => {
     if (!currentOffering) return '$4.99';
     const pkg = currentOffering.availablePackages.find(
-      (p) => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly'
+      (p: any) => p.packageType === 'MONTHLY' || p.identifier === '$rc_monthly'
     );
     if (!pkg) return '$4.99';
     return pkg.product.priceString;
