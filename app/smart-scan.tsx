@@ -36,7 +36,7 @@ import {
   Scan,
   Lamp,
   Dumbbell,
-  AlertTriangle,
+  Sparkles,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -170,8 +170,6 @@ function getTimeAgo(dateStr: string): string {
   if (diffDay < 7) return `${diffDay}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
-
 
 export default function SmartScanScreen() {
   const insets = useSafeAreaInsets();
@@ -388,9 +386,6 @@ export default function SmartScanScreen() {
 
   const typeConfig = result ? TYPE_CONFIG[result.item_type] : null;
 
-  const isLowConfidence = useMemo(() => result ? result.confidence < 0.4 : false, [result]);
-  const isMedConfidence = useMemo(() => result ? result.confidence >= 0.4 && result.confidence < 0.6 : false, [result]);
-
   const confidenceLabel = useMemo(() => {
     if (!result) return '';
     if (result.confidence >= 0.8) return 'High confidence';
@@ -402,31 +397,10 @@ export default function SmartScanScreen() {
   const confidenceColor = useMemo(() => {
     if (!result) return '#6B7280';
     if (result.confidence >= 0.8) return '#059669';
-    if (result.confidence >= 0.6) return '#2563EB';
+    if (result.confidence >= 0.6) return '#3B82F6';
     if (result.confidence >= 0.4) return '#D97706';
-    return '#DC2626';
+    return '#EF4444';
   }, [result]);
-
-  const scanStatusLabel = useMemo(() => {
-    if (!result) return '';
-    if (isLowConfidence) return 'LOW CONFIDENCE SCAN';
-    if (isMedConfidence) return 'PARTIAL MATCH';
-    return 'ITEM IDENTIFIED';
-  }, [result, isLowConfidence, isMedConfidence]);
-
-  const scanStatusColor = useMemo(() => {
-    if (isLowConfidence) return '#DC2626';
-    if (isMedConfidence) return '#D97706';
-    return '#1B7A3D';
-  }, [isLowConfidence, isMedConfidence]);
-
-  const lowConfidenceReason = useMemo(() => {
-    if (!result || !isLowConfidence) return '';
-    if (result.confidence < 0.2) return 'The image was too blurry, dark, or unclear for reliable identification.';
-    if (result.item_type === 'general' || result.item_type === 'unknown') return 'Could not confidently match this to a known product category.';
-    return 'The item was partially visible or at an angle that limited analysis accuracy.';
-  }, [result, isLowConfidence]);
-
 
   const resultSection = useMemo(() => {
     if (!result) return null;
@@ -639,175 +613,82 @@ export default function SmartScanScreen() {
 
         {result && (
           <Animated.View style={{ opacity: resultFade }}>
-            <View style={st.receiptContainer}>
-              <View style={st.receiptZigzagTop} />
-
-              <View style={st.receiptBody}>
-                <View style={st.receiptHeader}>
-                  <Text style={st.receiptStoreName}>FLIPS SCANNER</Text>
-                  <Text style={st.receiptStoreAddr}>Smart Item Analysis</Text>
-                  <Text style={st.receiptDate}>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
-                </View>
-
-                <View style={st.receiptDblLine}>
-                  <View style={st.receiptDblLineInner} />
-                  <View style={[st.receiptDblLineInner, { marginTop: 2 }]} />
-                </View>
-
-                {(scannedImageUri || referenceImageUrl) && (
-                  <View style={st.receiptImageSection}>
-                    {scannedImageUri && referenceImageUrl ? (
-                      <View style={st.receiptDualImages}>
-                        <View style={st.receiptImgWrap}>
-                          <ExpoImage source={{ uri: scannedImageUri }} style={st.receiptImg} contentFit="cover" cachePolicy="memory-disk" />
-                          <Text style={st.receiptImgLabel}>SCANNED</Text>
-                        </View>
-                        <View style={st.receiptImgWrap}>
-                          <ExpoImage source={{ uri: referenceImageUrl }} style={st.receiptImg} contentFit="contain" cachePolicy="memory-disk" />
-                          <Text style={st.receiptImgLabel}>AI MATCH</Text>
-                        </View>
-                      </View>
-                    ) : scannedImageUri ? (
-                      <View style={st.receiptSoloImgWrap}>
-                        <ExpoImage source={{ uri: scannedImageUri }} style={st.receiptSoloImg} contentFit="cover" cachePolicy="memory-disk" />
-                        {generatingImage && (
-                          <View style={st.receiptImgOverlay}>
-                            <ActivityIndicator size="small" color="#1A1A1A" />
-                            <Text style={st.receiptImgOverlayText}>Generating AI ref...</Text>
-                          </View>
-                        )}
-                      </View>
-                    ) : referenceImageUrl ? (
-                      <View style={st.receiptSoloImgWrap}>
-                        <ExpoImage source={{ uri: referenceImageUrl }} style={st.receiptSoloImg} contentFit="contain" cachePolicy="memory-disk" />
-                      </View>
-                    ) : null}
+            <View style={st.imageGallery}>
+              {scannedImageUri && (
+                <View style={st.scannedImageContainer}>
+                  <ExpoImage
+                    source={{ uri: scannedImageUri }}
+                    style={st.scannedImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
+                  <View style={st.scannedImageBadge}>
+                    <Camera size={10} color="#FFFFFF" />
+                    <Text style={st.scannedImageBadgeText}>Your Scan</Text>
                   </View>
-                )}
-
-                <View style={st.receiptDashLine}>
-                  <Text style={st.receiptDashText}>{'- - - - - - - - - - - - - - - - - - - - - - - -'}</Text>
                 </View>
-
-                <View style={[st.scanStatusBanner, { backgroundColor: `${scanStatusColor}12` }]}>
-                  <View style={[st.scanStatusDot, { backgroundColor: scanStatusColor }]} />
-                  <Text style={[st.scanStatusText, { color: scanStatusColor }]}>{scanStatusLabel}</Text>
-                </View>
-
-                <View style={st.receiptItemHeader}>
-                  <Text style={st.receiptItemName}>{isLowConfidence ? (result.item_name || 'Unidentified Item') : result.item_name}</Text>
-                  <Text style={st.receiptItemCategory}>{result.category}</Text>
-                </View>
-
-                <View style={st.receiptMetaRow}>
-                  {typeConfig && !isLowConfidence && (
-                    <View style={st.receiptTypeBadge}>
-                      <Text style={st.receiptTypeBadgeText}>{typeConfig.label}</Text>
+              )}
+              {(referenceImageUrl || generatingImage) && (
+                <View style={st.referenceImageContainer}>
+                  {referenceImageUrl ? (
+                    <ExpoImage
+                      source={{ uri: referenceImageUrl }}
+                      style={scannedImageUri ? st.referenceImageSmall : st.referenceImage}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={scannedImageUri ? st.referenceImagePlaceholderSmall : st.referenceImagePlaceholder}>
+                      <ActivityIndicator size="small" color="#3B82F6" />
+                      <Text style={st.referenceImageLoadingText}>Creating reference...</Text>
                     </View>
                   )}
-                  {isLowConfidence && (
-                    <View style={[st.receiptTypeBadge, { borderColor: '#DC2626' }]}>
-                      <Text style={[st.receiptTypeBadgeText, { color: '#DC2626' }]}>NEEDS RESCAN</Text>
-                    </View>
-                  )}
-                  <View style={st.receiptConfBadge}>
-                    <View style={[st.receiptConfDot, { backgroundColor: confidenceColor }]} />
-                    <Text style={[st.receiptConfText, { color: confidenceColor }]}>{Math.round(result.confidence * 100)}% — {confidenceLabel}</Text>
+                  <View style={st.referenceImageBadge}>
+                    <Sparkles size={10} color="#3B82F6" />
+                    <Text style={st.referenceImageBadgeText}>AI Reference</Text>
                   </View>
                 </View>
+              )}
+            </View>
 
-                {isLowConfidence && lowConfidenceReason ? (
-                  <View style={st.lowConfNotice}>
-                    <AlertTriangle size={13} color="#DC2626" />
-                    <Text style={st.lowConfNoticeText}>{lowConfidenceReason}</Text>
-                  </View>
-                ) : null}
-
-                {result.short_summary && !isLowConfidence ? (
-                  <View style={st.receiptSummary}>
-                    <Text style={st.receiptSummaryText}>{result.short_summary}</Text>
-                  </View>
-                ) : null}
-
-                {isLowConfidence && result.category && result.category !== 'unknown' && result.category !== 'General' ? (
-                  <View style={st.possibleCategoryRow}>
-                    <Text style={st.possibleCategoryLabel}>POSSIBLE CATEGORY</Text>
-                    <Text style={st.possibleCategoryValue}>{result.category}</Text>
-                  </View>
-                ) : null}
-
-                <View style={st.receiptDashLine}>
-                  <Text style={st.receiptDashText}>{'- - - - - - - - - - - - - - - - - - - - - - - -'}</Text>
-                </View>
-
-                {isLowConfidence ? (
-                  <View style={st.lowConfActionsSection}>
-                    <Text style={st.lowConfActionsTitle}>RECOMMENDED ACTIONS</Text>
-                    <Text style={st.lowConfActionsDesc}>Try one of the following for a better result:</Text>
-
-                    <Pressable
-                      style={st.lowConfActionBtn}
-                      onPress={() => { resetScan(); setTimeout(() => void handleCapture('camera'), 300); }}
-                      testID="low-conf-rescan"
-                    >
-                      <RefreshCw size={15} color="#1A1A1A" />
-                      <View style={st.lowConfActionTextCol}>
-                        <Text style={st.lowConfActionBtnTitle}>Scan Again</Text>
-                        <Text style={st.lowConfActionBtnSub}>Use better lighting or a closer angle</Text>
-                      </View>
-                    </Pressable>
-
-                    <Pressable
-                      style={st.lowConfActionBtn}
-                      onPress={() => { resetScan(); setTimeout(() => void handleCapture('gallery'), 300); }}
-                      testID="low-conf-gallery"
-                    >
-                      <ImageIcon size={15} color="#1A1A1A" />
-                      <View style={st.lowConfActionTextCol}>
-                        <Text style={st.lowConfActionBtnTitle}>Try a Different Photo</Text>
-                        <Text style={st.lowConfActionBtnSub}>Pick a clearer image from your gallery</Text>
-                      </View>
-                    </Pressable>
-
-                    <View style={st.lowConfDivider} />
-
-                    <View style={st.lowConfPriceNotice}>
-                      <Text style={st.lowConfPriceNoticeText}>No price found</Text>
-                      <Text style={st.lowConfPriceNoticeSub}>A clearer scan is needed to estimate pricing</Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={st.receiptDetailsSection}>
-                    {resultSection}
+            <View style={st.resultHeader}>
+              <Text style={st.resultItemName}>{result.item_name}</Text>
+              <View style={st.resultMetaRow}>
+                {typeConfig && (
+                  <View style={[st.typeBadge, { backgroundColor: typeConfig.bg }]}>
+                    <typeConfig.Icon size={12} color={typeConfig.color} />
+                    <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
                   </View>
                 )}
-
-                <View style={st.receiptDblLine}>
-                  <View style={st.receiptDblLineInner} />
-                  <View style={[st.receiptDblLineInner, { marginTop: 2 }]} />
-                </View>
-
-                <View style={st.receiptFooter}>
-                  <Text style={st.receiptFooterText}>ITEMS SCANNED: 1</Text>
-                  <Text style={st.receiptFooterText}>SCAN #{viewingEntryId?.slice(-6).toUpperCase() ?? '000000'}</Text>
-                  <Text style={st.receiptThankYou}>THANK YOU FOR USING FLIPS</Text>
-                  <Text style={st.receiptBarcode}>||||| |||| ||||| ||| |||| ||||| ||</Text>
+                <View style={st.confidenceBadge}>
+                  <View style={[st.confidenceDot, { backgroundColor: confidenceColor }]} />
+                  <Text style={[st.confidenceText, { color: confidenceColor }]}>
+                    {Math.round(result.confidence * 100)}% — {confidenceLabel}
+                  </Text>
                 </View>
               </View>
+            </View>
 
-              <View style={st.receiptZigzagBottom} />
+            {result.short_summary ? (
+              <View style={st.summaryCard}>
+                <Text style={st.summaryText}>{result.short_summary}</Text>
+              </View>
+            ) : null}
+
+            <View style={st.detailsSection}>
+              {resultSection}
             </View>
 
             <View style={st.actionBtnsRow}>
-              <Pressable style={st.newScanBtnReceipt} onPress={resetScan} testID="smart-scan-again">
+              <Pressable style={st.newScanBtn} onPress={resetScan} testID="smart-scan-again">
                 <RefreshCw size={16} color="#F5F5F7" />
-                <Text style={st.newScanBtnTextReceipt}>Scan Again</Text>
+                <Text style={st.newScanBtnText}>Scan Again</Text>
               </Pressable>
             </View>
 
             {viewingEntryId && (
               <Pressable
-                style={st.deleteResultBtnReceipt}
+                style={st.deleteResultBtn}
                 testID="delete-scan-result"
                 onPress={() => {
                   Alert.alert(
@@ -829,7 +710,7 @@ export default function SmartScanScreen() {
                 }}
               >
                 <Trash2 size={14} color="#FF453A" />
-                <Text style={st.deleteResultBtnTextReceipt}>Delete This Scan</Text>
+                <Text style={st.deleteResultBtnText}>Delete This Scan</Text>
               </Pressable>
             )}
           </Animated.View>
@@ -945,8 +826,6 @@ const st = StyleSheet.create({
   progressBarFill: { height: 6, backgroundColor: '#0A84FF', borderRadius: 3 },
   progressHint: { fontSize: 12, color: '#636366', lineHeight: 16 },
 
-
-
   capabilitiesSection: { marginTop: 8 },
   capabilitiesTitle: { fontSize: 13, fontWeight: '600' as const, color: '#636366', letterSpacing: 0.5, marginBottom: 14, textTransform: 'uppercase' as const },
   capRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
@@ -955,74 +834,39 @@ const st = StyleSheet.create({
   capLabel: { fontSize: 14, fontWeight: '600' as const, color: '#F5F5F7' },
   capDesc: { fontSize: 12, color: '#8E8E93', marginTop: 1 },
 
-  receiptContainer: { marginBottom: 4 },
-  receiptZigzagTop: { height: 10, backgroundColor: '#0A0A0A', borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
-  receiptBody: { backgroundColor: '#FAFAF5', paddingHorizontal: 20, paddingVertical: 20 },
-  receiptHeader: { alignItems: 'center' as const, marginBottom: 4 },
-  receiptStoreName: { fontSize: 20, fontWeight: '900' as const, color: '#1A1A1A', letterSpacing: 3, textTransform: 'uppercase' as const },
-  receiptStoreAddr: { fontSize: 11, color: '#8A8A8A', fontWeight: '500' as const, marginTop: 2, letterSpacing: 0.5 },
-  receiptDate: { fontSize: 10, color: '#8A8A8A', fontWeight: '500' as const, marginTop: 4, letterSpacing: 0.3 },
-  receiptDblLine: { marginVertical: 8 },
-  receiptDblLineInner: { height: 1, backgroundColor: '#1A1A1A' },
-  receiptImageSection: { marginVertical: 10 },
-  receiptDualImages: { flexDirection: 'row', gap: 8, height: 150 },
-  receiptImgWrap: { flex: 1, borderWidth: 1, borderColor: '#D0D0D0', overflow: 'hidden', position: 'relative' as const, backgroundColor: '#F0F0EA' },
-  receiptImg: { width: '100%', height: '100%' },
-  receiptImgLabel: { position: 'absolute' as const, bottom: 4, left: 0, right: 0, textAlign: 'center' as const, fontSize: 8, fontWeight: '700' as const, color: '#8A8A8A', letterSpacing: 1.5, textTransform: 'uppercase' as const },
-  receiptSoloImgWrap: { height: 180, borderWidth: 1, borderColor: '#D0D0D0', overflow: 'hidden', position: 'relative' as const, backgroundColor: '#F0F0EA' },
-  receiptSoloImg: { width: '100%', height: '100%' },
-  receiptImgOverlay: { position: 'absolute' as const, bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, backgroundColor: 'rgba(250,250,245,0.85)' },
-  receiptImgOverlayText: { fontSize: 11, fontWeight: '600' as const, color: '#4A4A4A' },
-  receiptDashLine: { alignItems: 'center' as const, overflow: 'hidden', marginVertical: 8 },
-  receiptDashText: { fontSize: 12, color: '#BFBFBF', letterSpacing: 2 },
-  receiptItemHeader: { alignItems: 'center' as const, marginVertical: 6 },
-  receiptItemName: { fontSize: 18, fontWeight: '900' as const, color: '#1A1A1A', textAlign: 'center' as const, letterSpacing: -0.3 },
-  receiptItemCategory: { fontSize: 11, fontWeight: '500' as const, color: '#8A8A8A', marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: 1 },
-  receiptMetaRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 6, marginBottom: 4, justifyContent: 'center' as const },
-  receiptTypeBadge: { borderWidth: 1, borderColor: '#1A1A1A', paddingHorizontal: 8, paddingVertical: 3 },
-  receiptTypeBadgeText: { fontSize: 9, fontWeight: '800' as const, color: '#1A1A1A', letterSpacing: 1, textTransform: 'uppercase' as const },
-  receiptConfBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#D0D0D0', paddingHorizontal: 8, paddingVertical: 3 },
-  receiptConfDot: { width: 5, height: 5, borderRadius: 3 },
-  receiptConfText: { fontSize: 9, fontWeight: '700' as const, letterSpacing: 0.5 },
-  receiptSummary: { marginVertical: 6, paddingVertical: 6 },
-  receiptSummaryText: { fontSize: 12, color: '#4A4A4A', lineHeight: 17, fontWeight: '500' as const, textAlign: 'center' as const },
-  receiptDetailsSection: { marginVertical: 4 },
+  imageGallery: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  scannedImageContainer: { flex: 1, position: 'relative' as const, borderRadius: 16, overflow: 'hidden' },
+  scannedImage: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A' },
+  scannedImageBadge: { position: 'absolute' as const, bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  scannedImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+  referenceImageContainer: { flex: 1, position: 'relative' as const, borderRadius: 16, overflow: 'hidden' },
+  referenceImage: { width: '100%', height: 220, borderRadius: 16, backgroundColor: '#1A1A1A' },
+  referenceImageSmall: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A' },
+  referenceImagePlaceholder: { width: '100%', height: 160, borderRadius: 16, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  referenceImagePlaceholderSmall: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  referenceImageLoadingText: { fontSize: 11, color: '#636366', fontWeight: '500' as const, textAlign: 'center' as const },
+  referenceImageBadge: { position: 'absolute' as const, bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  referenceImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#93C5FD' },
 
-  scanStatusBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6, marginBottom: 4 },
-  scanStatusDot: { width: 7, height: 7, borderRadius: 4 },
-  scanStatusText: { fontSize: 10, fontWeight: '900' as const, letterSpacing: 2, textTransform: 'uppercase' as const },
+  resultHeader: { marginBottom: 12 },
+  resultItemName: { fontSize: 22, fontWeight: '800' as const, color: '#F5F5F7', letterSpacing: -0.5, marginBottom: 8 },
+  resultMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  typeBadgeText: { fontSize: 12, fontWeight: '600' as const },
+  confidenceBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#1A1A1A', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: '#2A2A2A' },
+  confidenceDot: { width: 6, height: 6, borderRadius: 3 },
+  confidenceText: { fontSize: 11, fontWeight: '600' as const },
 
-  lowConfNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: '#FEF2F2', paddingVertical: 8, paddingHorizontal: 10, marginVertical: 6, borderLeftWidth: 3, borderLeftColor: '#DC2626' },
-  lowConfNoticeText: { fontSize: 11, color: '#991B1B', lineHeight: 16, fontWeight: '500' as const, flex: 1 },
+  summaryCard: { backgroundColor: '#1A1A1A', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: '#2A2A2A' },
+  summaryText: { fontSize: 14, color: '#AEAEB2', lineHeight: 20 },
 
-  possibleCategoryRow: { alignItems: 'center' as const, marginVertical: 6, paddingVertical: 6, borderWidth: 1, borderColor: '#E5E5E0', borderStyle: 'dashed' as const },
-  possibleCategoryLabel: { fontSize: 9, fontWeight: '700' as const, color: '#8A8A8A', letterSpacing: 1.5, marginBottom: 2 },
-  possibleCategoryValue: { fontSize: 14, fontWeight: '700' as const, color: '#4A4A4A' },
+  detailsSection: { backgroundColor: '#141414', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1E1E1E' },
 
-  lowConfActionsSection: { paddingVertical: 8 },
-  lowConfActionsTitle: { fontSize: 11, fontWeight: '800' as const, color: '#1A1A1A', letterSpacing: 2, marginBottom: 4 },
-  lowConfActionsDesc: { fontSize: 12, color: '#8A8A8A', fontWeight: '500' as const, marginBottom: 12 },
-  lowConfActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 12, backgroundColor: '#F0F0EA', borderWidth: 1, borderColor: '#D0D0D0', marginBottom: 8 },
-  lowConfActionTextCol: { flex: 1 },
-  lowConfActionBtnTitle: { fontSize: 13, fontWeight: '700' as const, color: '#1A1A1A' },
-  lowConfActionBtnSub: { fontSize: 11, color: '#8A8A8A', fontWeight: '500' as const, marginTop: 1 },
-  lowConfDivider: { height: 1, backgroundColor: '#D0D0D0', marginVertical: 10 },
-  lowConfPriceNotice: { alignItems: 'center' as const, paddingVertical: 10 },
-  lowConfPriceNoticeText: { fontSize: 14, fontWeight: '800' as const, color: '#1A1A1A', letterSpacing: 0.5 },
-  lowConfPriceNoticeSub: { fontSize: 11, color: '#8A8A8A', fontWeight: '500' as const, marginTop: 2 },
-
-  actionBtnsRow: { marginTop: 16, gap: 8 },
-
-  receiptFooter: { alignItems: 'center' as const, marginTop: 4, gap: 4 },
-  receiptFooterText: { fontSize: 10, color: '#8A8A8A', fontWeight: '500' as const, letterSpacing: 0.8 },
-  receiptThankYou: { fontSize: 12, fontWeight: '800' as const, color: '#1A1A1A', letterSpacing: 2, marginTop: 6, textTransform: 'uppercase' as const },
-  receiptBarcode: { fontSize: 18, color: '#1A1A1A', letterSpacing: 1, marginTop: 6, fontWeight: '400' as const },
-  receiptZigzagBottom: { height: 10, backgroundColor: '#0A0A0A', borderTopLeftRadius: 4, borderTopRightRadius: 4 },
-
-  newScanBtnReceipt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 12, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333333' },
-  newScanBtnTextReceipt: { fontSize: 15, fontWeight: '700' as const, color: '#F5F5F7', letterSpacing: 0.3 },
-  deleteResultBtnReceipt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 8 },
-  deleteResultBtnTextReceipt: { fontSize: 13, fontWeight: '600' as const, color: '#FF453A' },
+  actionBtnsRow: { gap: 8 },
+  newScanBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 14, backgroundColor: '#3B82F6' },
+  newScanBtnText: { fontSize: 15, fontWeight: '700' as const, color: '#FFFFFF' },
+  deleteResultBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 8 },
+  deleteResultBtnText: { fontSize: 13, fontWeight: '600' as const, color: '#FF453A' },
 
   historySection: { backgroundColor: '#1A1A1A', borderRadius: 16, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#2A2A2A' },
   historyHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },

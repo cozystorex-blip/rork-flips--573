@@ -3,41 +3,29 @@ import { View, Text, StyleSheet } from 'react-native';
 
 import { SmartScanResult } from '@/services/smartScanService';
 
-const R = {
-  paper: '#FAFAF5',
-  ink: '#1A1A1A',
-  inkLight: '#4A4A4A',
-  inkMuted: '#8A8A8A',
-  line: '#D0D0D0',
-  lineDash: '#BFBFBF',
-  accent: '#1A1A1A',
-  green: '#1B7A3D',
-  greenBg: '#E8F5EC',
-  red: '#C41E1E',
-  redBg: '#FDECEC',
-  amber: '#B8860B',
-  amberBg: '#FDF5E1',
-  blue: '#1A5FB4',
-  blueBg: '#E8F0FD',
+const C = {
+  bg: '#141414',
+  card: '#1A1A1A',
+  cardBorder: '#2A2A2A',
+  text: '#F5F5F7',
+  textSecondary: '#AEAEB2',
+  textMuted: '#636366',
+  accent: '#3B82F6',
+  green: '#16A34A',
+  greenBg: '#16A34A18',
+  red: '#EF4444',
+  redBg: '#EF444418',
+  amber: '#D97706',
+  amberBg: '#D9770618',
+  blue: '#3B82F6',
+  blueBg: '#3B82F618',
+  divider: '#2A2A2A',
 };
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
-function ReceiptDivider() {
-  return (
-    <View style={s.receiptDivider}>
-      <Text style={s.receiptDividerText}>{'- - - - - - - - - - - - - - - - - - - - - - - - - - - -'}</Text>
-    </View>
-  );
-}
-
-function ReceiptDoubleLine() {
-  return (
-    <View style={s.doubleLine}>
-      <View style={s.doubleLineInner} />
-      <View style={[s.doubleLineInner, { marginTop: 2 }]} />
-    </View>
-  );
+function Divider() {
+  return <View style={s.divider} />;
 }
 
 function SectionLabel({ text }: { text: string }) {
@@ -52,7 +40,6 @@ function LineItem({ label, value, bold }: { label: string; value: string; bold?:
   return (
     <View style={s.lineItem}>
       <Text style={[s.lineItemLabel, bold && s.lineItemBold]}>{label}</Text>
-      <View style={s.lineItemDots} />
       <Text style={[s.lineItemValue, bold && s.lineItemBold]}>{value}</Text>
     </View>
   );
@@ -68,10 +55,11 @@ function PriceLineItem({ label, value, large }: { label: string; value: string; 
 }
 
 function InfoBlock({ text, type }: { text: string; type?: 'tip' | 'warning' | 'success' }) {
-  const bg = type === 'success' ? R.greenBg : type === 'warning' ? R.amberBg : R.blueBg;
-  const color = type === 'success' ? R.green : type === 'warning' ? R.amber : R.blue;
+  const bg = type === 'success' ? C.greenBg : type === 'warning' ? C.amberBg : C.blueBg;
+  const color = type === 'success' ? C.green : type === 'warning' ? C.amber : C.blue;
+  const borderColor = type === 'success' ? C.green : type === 'warning' ? C.amber : C.blue;
   return (
-    <View style={[s.infoBlock, { backgroundColor: bg }]}>
+    <View style={[s.infoBlock, { backgroundColor: bg, borderLeftColor: borderColor }]}>
       <Text style={[s.infoBlockText, { color }]}>{text}</Text>
     </View>
   );
@@ -93,14 +81,14 @@ function ChipRow({ items, label }: { items: string[]; label?: string }) {
   );
 }
 
-function ReceiptFooterTags({ tags }: { tags: string[] }) {
+function TagsRow({ tags }: { tags: string[] }) {
   if (!tags || tags.length === 0) return null;
   return (
-    <View style={s.footerTags}>
-      <ReceiptDivider />
-      <View style={s.footerTagsRow}>
+    <View style={s.tagsRow}>
+      <Divider />
+      <View style={s.tagsInner}>
         {tags.map((t, i) => (
-          <Text key={`${t}-${i}`} style={s.footerTag}>#{t.toLowerCase().replace(/\s+/g, '')}</Text>
+          <Text key={`${t}-${i}`} style={s.tag}>#{t.toLowerCase().replace(/\s+/g, '')}</Text>
         ))}
       </View>
     </View>
@@ -119,12 +107,12 @@ function ComplementarySection({ result }: { result: SmartScanResult }) {
   if (items.length === 0) return null;
   return (
     <>
-      <ReceiptDivider />
-      <SectionLabel text="GOES WELL WITH" />
+      <Divider />
+      <SectionLabel text="Goes Well With" />
       {items.map((item, i) => (
-        <View key={`comp-${item}-${i}`} style={s.complementaryRow}>
+        <View key={`comp-${item}-${i}`} style={s.bulletRow}>
           <Text style={s.bulletChar}>+</Text>
-          <Text style={s.complementaryText}>{item}</Text>
+          <Text style={s.bulletText}>{item}</Text>
         </View>
       ))}
     </>
@@ -148,38 +136,12 @@ function ResaleBlock({ result }: { result: SmartScanResult }) {
   const displayVal = resale.startsWith('$') ? resale : '$' + resale;
   return (
     <>
-      <ReceiptDivider />
-      <SectionLabel text="RESALE ESTIMATE" />
+      <Divider />
+      <SectionLabel text="Resale Estimate" />
       <PriceLineItem label="Est. Resale" value={displayVal} large />
       {platform && (
         <Text style={s.resalePlatform}>Best on: {platform}</Text>
       )}
-    </>
-  );
-}
-
-interface ResultProps {
-  result: SmartScanResult;
-}
-
-export function ReceiptResultSection({ result }: ResultProps) {
-  return (
-    <>
-      <SectionLabel text="RECEIPT DETECTED" />
-      <InfoBlock text="This image was identified as a receipt or price tag." type="tip" />
-      <ReceiptDivider />
-      <View style={s.unknownBlock}>
-        <Text style={s.unknownTitle}>{result.item_name || 'Receipt'}</Text>
-        <Text style={s.unknownSub}>
-          Use the Receipt Scanner for full receipt parsing with itemized totals, store detection, and expense logging.
-        </Text>
-      </View>
-      {result.short_summary ? (
-        <>
-          <ReceiptDivider />
-          <InfoBlock text={result.short_summary} type="success" />
-        </>
-      ) : null}
     </>
   );
 }
@@ -193,28 +155,54 @@ function NoPriceRow() {
   );
 }
 
+interface ResultProps {
+  result: SmartScanResult;
+}
+
 function EmptyFallbackSection({ result }: ResultProps) {
   const typeLabel = result.item_type ? capitalize(result.item_type.replace(/_/g, ' ')) : 'Item';
   return (
     <>
-      <SectionLabel text="SCAN RESULT" />
-      <View style={s.unknownBlock}>
-        <Text style={s.unknownTitle}>{result.item_name || `${typeLabel} Detected`}</Text>
+      <SectionLabel text="Scan Result" />
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>{result.item_name || `${typeLabel} Detected`}</Text>
         {result.category ? (
-          <Text style={s.unknownSub}>Category: {result.category}</Text>
+          <Text style={s.fallbackSub}>Category: {result.category}</Text>
         ) : null}
       </View>
       {result.short_summary ? (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={result.short_summary} type="tip" />
         </>
       ) : (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text="Could not extract detailed information. Try a clearer photo for better results." type="warning" />
         </>
       )}
+    </>
+  );
+}
+
+export function ReceiptResultSection({ result }: ResultProps) {
+  return (
+    <>
+      <SectionLabel text="Receipt Detected" />
+      <InfoBlock text="This image was identified as a receipt or price tag." type="tip" />
+      <Divider />
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>{result.item_name || 'Receipt'}</Text>
+        <Text style={s.fallbackSub}>
+          Use the Receipt Scanner for full receipt parsing with itemized totals, store detection, and expense logging.
+        </Text>
+      </View>
+      {result.short_summary ? (
+        <>
+          <Divider />
+          <InfoBlock text={result.short_summary} type="success" />
+        </>
+      ) : null}
     </>
   );
 }
@@ -227,15 +215,13 @@ export function FoodResultSection({ result }: ResultProps) {
   const fd = result.food_details;
   return (
     <>
-      <SectionLabel text="NUTRITION FACTS" />
+      <SectionLabel text="Nutrition Facts" />
       <Text style={s.servingNote}>Serving: {fd.serving_size}</Text>
 
       <View style={s.calorieBlock}>
         <Text style={s.calorieNumber}>{fd.calories}</Text>
         <Text style={s.calorieUnit}>CAL</Text>
       </View>
-
-      <ReceiptDoubleLine />
 
       <View style={s.macroGrid}>
         {[
@@ -257,13 +243,13 @@ export function FoodResultSection({ result }: ResultProps) {
 
       {fd.health_summary && (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={fd.health_summary} type="success" />
         </>
       )}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {fd.estimated_price ? (
         <>
           <PriceLineItem label="Est. Price" value={fd.estimated_price} large />
@@ -274,7 +260,7 @@ export function FoodResultSection({ result }: ResultProps) {
 
       {fd.budget_insight && (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={fd.budget_insight} type="tip" />
         </>
       )}
@@ -284,12 +270,12 @@ export function FoodResultSection({ result }: ResultProps) {
 
       {fd.health_benefits.length > 0 && (
         <>
-          <ReceiptDivider />
-          <SectionLabel text="BENEFITS" />
+          <Divider />
+          <SectionLabel text="Benefits" />
           {fd.health_benefits.map((b, i) => (
-            <View key={`${b}-${i}`} style={s.complementaryRow}>
+            <View key={`${b}-${i}`} style={s.bulletRow}>
               <Text style={s.bulletChar}>✓</Text>
-              <Text style={s.complementaryText}>{b}</Text>
+              <Text style={s.bulletText}>{b}</Text>
             </View>
           ))}
         </>
@@ -297,13 +283,13 @@ export function FoodResultSection({ result }: ResultProps) {
 
       {fd.quick_tip && (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={fd.quick_tip} type="tip" />
         </>
       )}
 
       <ComplementarySection result={result} />
-      <ReceiptFooterTags tags={fd.tags} />
+      <TagsRow tags={fd.tags} />
     </>
   );
 }
@@ -316,12 +302,12 @@ export function GroceryResultSection({ result }: ResultProps) {
   const gd = result.grocery_details;
   return (
     <>
-      <SectionLabel text="PRODUCT INFO" />
+      <SectionLabel text="Product Info" />
       {gd.brand && <LineItem label="Brand" value={gd.brand} />}
       {gd.package_size && <LineItem label="Size" value={gd.package_size} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {gd.estimated_price ? (
         <>
           <PriceLineItem label="Est. Price" value={gd.estimated_price} large />
@@ -332,7 +318,7 @@ export function GroceryResultSection({ result }: ResultProps) {
 
       {gd.budget_insight && (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={gd.budget_insight} type="tip" />
         </>
       )}
@@ -340,12 +326,12 @@ export function GroceryResultSection({ result }: ResultProps) {
 
       {gd.what_else_needed && gd.what_else_needed.length > 0 && (
         <>
-          <ReceiptDivider />
-          <SectionLabel text="YOU MAY ALSO NEED" />
+          <Divider />
+          <SectionLabel text="You May Also Need" />
           {gd.what_else_needed.map((item, i) => (
-            <View key={`need-${item}-${i}`} style={s.complementaryRow}>
+            <View key={`need-${item}-${i}`} style={s.bulletRow}>
               <Text style={s.bulletChar}>+</Text>
-              <Text style={s.complementaryText}>{item}</Text>
+              <Text style={s.bulletText}>{item}</Text>
             </View>
           ))}
         </>
@@ -353,13 +339,13 @@ export function GroceryResultSection({ result }: ResultProps) {
 
       {gd.total_cost_note && (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={gd.total_cost_note} type="warning" />
         </>
       )}
 
       <ComplementarySection result={result} />
-      <ReceiptFooterTags tags={gd.tags} />
+      <TagsRow tags={gd.tags} />
     </>
   );
 }
@@ -377,7 +363,7 @@ export function FurnitureResultSection({ result }: ResultProps) {
 
   return (
     <>
-      <SectionLabel text="PRODUCT DETAILS" />
+      <SectionLabel text="Product Details" />
       {fd.material && <LineItem label="Material" value={fd.material} />}
       {fd.finish_color && <LineItem label="Color/Finish" value={fd.finish_color} />}
       {fd.style && <LineItem label="Style" value={fd.style} />}
@@ -386,12 +372,11 @@ export function FurnitureResultSection({ result }: ResultProps) {
       {fd.mounting_type && fd.mounting_type !== 'unknown' && (
         <LineItem label="Type" value={capitalize(fd.mounting_type).replace('-', ' ')} />
       )}
-
       {fd.use_case && <LineItem label="Use" value={fd.use_case} />}
       {fd.room_fit && <LineItem label="Room" value={fd.room_fit} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {fd.estimated_retail_price ? (
         <>
           <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />
@@ -401,10 +386,10 @@ export function FurnitureResultSection({ result }: ResultProps) {
 
       {fd.value_verdict && (
         <View style={[s.verdictStrip, {
-          backgroundColor: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? R.greenBg : R.amberBg,
+          backgroundColor: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.greenBg : C.amberBg,
         }]}>
           <Text style={[s.verdictText, {
-            color: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? R.green : R.amber,
+            color: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.green : C.amber,
           }]}>{capitalize(fd.value_verdict)} Value{fd.value_reasoning ? ` — ${fd.value_reasoning}` : ''}</Text>
         </View>
       )}
@@ -413,27 +398,27 @@ export function FurnitureResultSection({ result }: ResultProps) {
       {fd.cheaper_alternative && <InfoBlock text={`Alt: ${fd.cheaper_alternative}`} type="warning" />}
       {longTermValue && <InfoBlock text={longTermValue} type="success" />}
 
-      <ReceiptDivider />
+      <Divider />
       {fd.assembly_required === false ? (
         <>
-          <SectionLabel text="ASSEMBLY" />
+          <SectionLabel text="Assembly" />
           <InfoBlock text="No assembly required — ready to use" type="success" />
         </>
       ) : (
         <>
-          <SectionLabel text="ASSEMBLY" />
+          <SectionLabel text="Assembly" />
           {fd.assembly_difficulty && <LineItem label="Difficulty" value={capitalize(fd.assembly_difficulty)} />}
           {fd.estimated_build_time && <LineItem label="Build Time" value={fd.estimated_build_time} />}
           {fd.people_needed && <LineItem label="People" value={fd.people_needed === '1' ? '1 person' : fd.people_needed === '2' ? '2 people' : '2+ people'} />}
 
           {fd.likely_tools_needed.length > 0 && (
             <>
-              <ReceiptDivider />
-              <SectionLabel text="TOOLS NEEDED" />
+              <Divider />
+              <SectionLabel text="Tools Needed" />
               {fd.likely_tools_needed.map((t, i) => (
-                <View key={`tool-${t}-${i}`} style={s.complementaryRow}>
+                <View key={`tool-${t}-${i}`} style={s.bulletRow}>
                   <Text style={s.bulletChar}>•</Text>
-                  <Text style={s.complementaryText}>{t}</Text>
+                  <Text style={s.bulletText}>{t}</Text>
                 </View>
               ))}
             </>
@@ -448,8 +433,8 @@ export function FurnitureResultSection({ result }: ResultProps) {
 
       {fd.extra_purchase_items && fd.extra_purchase_items.length > 0 && (
         <>
-          <ReceiptDivider />
-          <SectionLabel text="ADDITIONAL ITEMS" />
+          <Divider />
+          <SectionLabel text="Additional Items" />
           {fd.extra_purchase_items.map((ep, i) => (
             <View key={`extra-${ep.item}-${i}`} style={s.extraItemRow}>
               <View style={s.extraItemHeader}>
@@ -463,11 +448,10 @@ export function FurnitureResultSection({ result }: ResultProps) {
       )}
 
       {fd.total_estimated_cost && (
-        <>
-          <ReceiptDoubleLine />
-          <PriceLineItem label="TOTAL EST. COST" value={fd.total_estimated_cost} large />
-          <ReceiptDoubleLine />
-        </>
+        <View style={s.totalCostBanner}>
+          <Text style={s.totalCostLabel}>TOTAL EST. COST</Text>
+          <Text style={s.totalCostValue}>{fd.total_estimated_cost}</Text>
+        </View>
       )}
 
       {fd.worth_it_verdict && <InfoBlock text={fd.worth_it_verdict} type="success" />}
@@ -479,7 +463,7 @@ export function FurnitureResultSection({ result }: ResultProps) {
 
       <ComplementarySection result={result} />
       <ResaleBlock result={result} />
-      <ReceiptFooterTags tags={fd.tags} />
+      <TagsRow tags={fd.tags} />
     </>
   );
 }
@@ -500,14 +484,14 @@ export function FashionResultSection({ result }: ResultProps) {
     <>
       {fd.item_description && <InfoBlock text={fd.item_description} />}
 
-      <SectionLabel text="IDENTIFICATION" />
+      <SectionLabel text="Identification" />
       <LineItem label="Type" value={subcategoryLabels[fd.subcategory] ?? fd.subcategory} />
       {fd.brand && <LineItem label="Brand" value={fd.brand} />}
       {fd.model && <LineItem label="Model" value={fd.model} />}
       {fd.gender_target && <LineItem label="For" value={capitalize(fd.gender_target)} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="DETAILS" />
+      <Divider />
+      <SectionLabel text="Details" />
       {fd.color && <LineItem label="Color" value={`${fd.color}${fd.secondary_color ? ` / ${fd.secondary_color}` : ''}`} />}
       {fd.material && <LineItem label="Material" value={fd.material} />}
       {fd.style && <LineItem label="Style" value={fd.style} />}
@@ -515,8 +499,8 @@ export function FashionResultSection({ result }: ResultProps) {
       {fd.pattern && fd.pattern !== 'solid' && <LineItem label="Pattern" value={capitalize(fd.pattern)} />}
       {fd.fit && <LineItem label="Fit" value={capitalize(fd.fit)} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {fd.estimated_retail_price ? (
         <>
           <PriceLineItem label="Retail Price" value={fd.estimated_retail_price} large />
@@ -527,16 +511,16 @@ export function FashionResultSection({ result }: ResultProps) {
 
       {fd.value_verdict && (
         <View style={[s.verdictStrip, {
-          backgroundColor: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? R.greenBg : R.amberBg,
+          backgroundColor: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.greenBg : C.amberBg,
         }]}>
           <Text style={[s.verdictText, {
-            color: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? R.green : R.amber,
+            color: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.green : C.amber,
           }]}>{capitalize(fd.value_verdict)} Value{fd.value_reasoning ? ` — ${fd.value_reasoning}` : ''}</Text>
         </View>
       )}
 
       {fd.resale_demand && (
-        <LineItem label="Resale Demand" value={`${capitalize(fd.resale_demand)}`} />
+        <LineItem label="Resale Demand" value={capitalize(fd.resale_demand)} />
       )}
 
       {fd.budget_insight && <InfoBlock text={fd.budget_insight} type="tip" />}
@@ -545,7 +529,7 @@ export function FashionResultSection({ result }: ResultProps) {
       {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
 
       <ComplementarySection result={result} />
-      <ReceiptFooterTags tags={fd.tags} />
+      <TagsRow tags={fd.tags} />
     </>
   );
 }
@@ -562,15 +546,15 @@ export function ElectronicsResultSection({ result }: ResultProps) {
         <InfoBlock text={`${ed.brand ? `${ed.brand} ` : ''}${ed.model ?? ed.product_type}${ed.storage_or_spec ? ` · ${ed.storage_or_spec}` : ''}`} />
       )}
 
-      <SectionLabel text="SPECS" />
+      <SectionLabel text="Specs" />
       <LineItem label="Type" value={ed.product_type} />
       {ed.brand && <LineItem label="Brand" value={ed.brand} />}
       {ed.model && <LineItem label="Model" value={ed.model} />}
       {ed.storage_or_spec && <LineItem label="Spec" value={ed.storage_or_spec} />}
       {ed.condition && <LineItem label="Condition" value={capitalize(ed.condition)} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {ed.estimated_retail_price ? (
         <>
           <PriceLineItem label="Retail Price" value={ed.estimated_retail_price} large />
@@ -583,10 +567,10 @@ export function ElectronicsResultSection({ result }: ResultProps) {
 
       {ed.value_verdict && (
         <View style={[s.verdictStrip, {
-          backgroundColor: ed.value_verdict === 'strong' || ed.value_verdict === 'good' ? R.greenBg : R.amberBg,
+          backgroundColor: ed.value_verdict === 'strong' || ed.value_verdict === 'good' ? C.greenBg : C.amberBg,
         }]}>
           <Text style={[s.verdictText, {
-            color: ed.value_verdict === 'strong' || ed.value_verdict === 'good' ? R.green : R.amber,
+            color: ed.value_verdict === 'strong' || ed.value_verdict === 'good' ? C.green : C.amber,
           }]}>{capitalize(ed.value_verdict)} Value{ed.value_reasoning ? ` — ${ed.value_reasoning}` : ''}</Text>
         </View>
       )}
@@ -598,7 +582,7 @@ export function ElectronicsResultSection({ result }: ResultProps) {
 
       <ComplementarySection result={result} />
       <ResaleBlock result={result} />
-      <ReceiptFooterTags tags={ed.tags} />
+      <TagsRow tags={ed.tags} />
     </>
   );
 }
@@ -620,15 +604,15 @@ export function HouseholdResultSection({ result }: ResultProps) {
     <>
       {hd.item_description && <InfoBlock text={hd.item_description} />}
 
-      <SectionLabel text="DETAILS" />
+      <SectionLabel text="Details" />
       <LineItem label="Type" value={subcategoryLabels[hd.subcategory] ?? hd.subcategory} />
       {hd.brand && <LineItem label="Brand" value={hd.brand} />}
       {hd.model && <LineItem label="Model" value={hd.model} />}
       {hd.material && <LineItem label="Material" value={hd.material} />}
       {hd.condition && <LineItem label="Condition" value={capitalize(hd.condition)} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {hd.estimated_price ? (
         <>
           <PriceLineItem label="Est. Price" value={hd.estimated_price} large />
@@ -639,10 +623,10 @@ export function HouseholdResultSection({ result }: ResultProps) {
 
       {hd.value_verdict && (
         <View style={[s.verdictStrip, {
-          backgroundColor: hd.value_verdict === 'strong' || hd.value_verdict === 'good' ? R.greenBg : R.amberBg,
+          backgroundColor: hd.value_verdict === 'strong' || hd.value_verdict === 'good' ? C.greenBg : C.amberBg,
         }]}>
           <Text style={[s.verdictText, {
-            color: hd.value_verdict === 'strong' || hd.value_verdict === 'good' ? R.green : R.amber,
+            color: hd.value_verdict === 'strong' || hd.value_verdict === 'good' ? C.green : C.amber,
           }]}>{capitalize(hd.value_verdict)} Value{hd.value_reasoning ? ` — ${hd.value_reasoning}` : ''}</Text>
         </View>
       )}
@@ -654,7 +638,7 @@ export function HouseholdResultSection({ result }: ResultProps) {
 
       <ComplementarySection result={result} />
       <ResaleBlock result={result} />
-      <ReceiptFooterTags tags={hd.tags} />
+      <TagsRow tags={hd.tags} />
     </>
   );
 }
@@ -666,7 +650,7 @@ export function GeneralResultSection({ result }: ResultProps) {
     <>
       {gd.item_description && <InfoBlock text={gd.item_description} />}
 
-      <SectionLabel text="IDENTIFICATION" />
+      <SectionLabel text="Identification" />
       {gd.subcategory && <LineItem label="Category" value={capitalize(gd.subcategory.replace(/_/g, ' '))} />}
       {gd.brand && <LineItem label="Brand" value={gd.brand} />}
       {gd.model && <LineItem label="Model" value={gd.model} />}
@@ -674,8 +658,8 @@ export function GeneralResultSection({ result }: ResultProps) {
       {gd.color && <LineItem label="Color" value={gd.color} />}
       {gd.condition && <LineItem label="Condition" value={capitalize(gd.condition)} />}
 
-      <ReceiptDivider />
-      <SectionLabel text="PRICE CHECK" />
+      <Divider />
+      <SectionLabel text="Price Check" />
       {gd.estimated_retail_price ? (
         <>
           <PriceLineItem label="Retail Price" value={gd.estimated_retail_price} large />
@@ -686,10 +670,10 @@ export function GeneralResultSection({ result }: ResultProps) {
 
       {gd.value_verdict && (
         <View style={[s.verdictStrip, {
-          backgroundColor: gd.value_verdict === 'strong' || gd.value_verdict === 'good' ? R.greenBg : R.amberBg,
+          backgroundColor: gd.value_verdict === 'strong' || gd.value_verdict === 'good' ? C.greenBg : C.amberBg,
         }]}>
           <Text style={[s.verdictText, {
-            color: gd.value_verdict === 'strong' || gd.value_verdict === 'good' ? R.green : R.amber,
+            color: gd.value_verdict === 'strong' || gd.value_verdict === 'good' ? C.green : C.amber,
           }]}>{capitalize(gd.value_verdict)} Value{gd.value_reasoning ? ` — ${gd.value_reasoning}` : ''}</Text>
         </View>
       )}
@@ -699,8 +683,8 @@ export function GeneralResultSection({ result }: ResultProps) {
 
       {gd.fun_fact && (
         <>
-          <ReceiptDivider />
-          <SectionLabel text="DID YOU KNOW?" />
+          <Divider />
+          <SectionLabel text="Did You Know?" />
           <InfoBlock text={gd.fun_fact} type="warning" />
         </>
       )}
@@ -710,7 +694,7 @@ export function GeneralResultSection({ result }: ResultProps) {
 
       <ComplementarySection result={result} />
       <ResaleBlock result={result} />
-      <ReceiptFooterTags tags={gd.tags} />
+      <TagsRow tags={gd.tags} />
     </>
   );
 }
@@ -725,19 +709,19 @@ export function UnknownResultSection({ result }: ResultProps) {
   if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
   return (
     <>
-      <View style={s.unknownBlock}>
-        <Text style={s.unknownTitle}>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>
           {result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized'}
         </Text>
         {result.category && result.category !== 'unknown' ? (
-          <Text style={s.unknownSub}>Possible category: {result.category}</Text>
+          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
         ) : null}
       </View>
-      <ReceiptDivider />
+      <Divider />
       <NoPriceRow />
       {result.short_summary ? (
         <>
-          <ReceiptDivider />
+          <Divider />
           <InfoBlock text={result.short_summary} type="tip" />
         </>
       ) : null}
@@ -746,63 +730,43 @@ export function UnknownResultSection({ result }: ResultProps) {
 }
 
 const s = StyleSheet.create({
-  receiptDivider: {
-    marginVertical: 10,
-    alignItems: 'center' as const,
-    overflow: 'hidden',
-  },
-  receiptDividerText: {
-    fontSize: 12,
-    color: R.lineDash,
-    letterSpacing: 2,
-    fontFamily: undefined,
-  },
-  doubleLine: {
-    marginVertical: 8,
-  },
-  doubleLineInner: {
+  divider: {
     height: 1,
-    backgroundColor: R.ink,
+    backgroundColor: C.divider,
+    marginVertical: 12,
   },
   sectionLabel: {
     marginBottom: 8,
     marginTop: 4,
   },
   sectionLabelText: {
-    fontSize: 11,
-    fontWeight: '800' as const,
-    color: R.ink,
-    letterSpacing: 2,
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
   },
   lineItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 3,
+    justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   lineItemLabel: {
     fontSize: 13,
-    color: R.inkLight,
+    color: C.textSecondary,
     fontWeight: '500' as const,
-  },
-  lineItemDots: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderStyle: 'dotted' as const,
-    borderColor: R.lineDash,
-    marginHorizontal: 6,
-    marginBottom: 3,
   },
   lineItemValue: {
     fontSize: 13,
-    color: R.ink,
+    color: C.text,
     fontWeight: '600' as const,
     maxWidth: '55%' as unknown as number,
     textAlign: 'right' as const,
   },
   lineItemBold: {
     fontWeight: '800' as const,
-    color: R.ink,
+    color: C.text,
   },
   priceLineItem: {
     flexDirection: 'row',
@@ -812,28 +776,28 @@ const s = StyleSheet.create({
   },
   priceLineLabel: {
     fontSize: 13,
-    color: R.inkLight,
+    color: C.textSecondary,
     fontWeight: '600' as const,
   },
   priceLineValue: {
     fontSize: 16,
-    color: R.ink,
+    color: C.text,
     fontWeight: '700' as const,
   },
   priceLargeLbl: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: R.ink,
+    color: C.text,
   },
   priceLargeVal: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900' as const,
-    color: R.ink,
+    color: C.text,
     letterSpacing: -0.5,
   },
   servingNote: {
     fontSize: 12,
-    color: R.inkMuted,
+    color: C.textMuted,
     marginBottom: 6,
     fontWeight: '500' as const,
   },
@@ -847,13 +811,13 @@ const s = StyleSheet.create({
   calorieNumber: {
     fontSize: 40,
     fontWeight: '900' as const,
-    color: R.ink,
+    color: C.text,
     letterSpacing: -1,
   },
   calorieUnit: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: R.inkLight,
+    color: C.textSecondary,
     letterSpacing: 2,
   },
   macroGrid: {
@@ -861,9 +825,10 @@ const s = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 10,
     marginBottom: 6,
+    backgroundColor: C.card,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: R.line,
-    borderRadius: 0,
+    borderColor: C.cardBorder,
   },
   macroCell: {
     alignItems: 'center',
@@ -872,26 +837,26 @@ const s = StyleSheet.create({
   macroCellVal: {
     fontSize: 16,
     fontWeight: '800' as const,
-    color: R.ink,
+    color: C.text,
   },
   macroCellLabel: {
     fontSize: 10,
     fontWeight: '600' as const,
-    color: R.inkMuted,
+    color: C.textMuted,
     letterSpacing: 0.5,
     textTransform: 'uppercase' as const,
   },
   infoBlock: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 2,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     marginVertical: 4,
     borderLeftWidth: 3,
-    borderLeftColor: R.blue,
+    borderLeftColor: C.blue,
   },
   infoBlockText: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '500' as const,
   },
   chipSection: {
@@ -900,7 +865,7 @@ const s = StyleSheet.create({
   chipSectionLabel: {
     fontSize: 10,
     fontWeight: '700' as const,
-    color: R.inkMuted,
+    color: C.textMuted,
     letterSpacing: 1.5,
     marginBottom: 6,
     textTransform: 'uppercase' as const,
@@ -908,22 +873,22 @@ const s = StyleSheet.create({
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: 6,
   },
   chip: {
+    backgroundColor: C.card,
     borderWidth: 1,
-    borderColor: R.line,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 0,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   chipText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600' as const,
-    color: R.inkLight,
-    letterSpacing: 0.3,
+    color: C.textSecondary,
   },
-  complementaryRow: {
+  bulletRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
@@ -932,52 +897,52 @@ const s = StyleSheet.create({
   bulletChar: {
     fontSize: 13,
     fontWeight: '700' as const,
-    color: R.inkLight,
+    color: C.textSecondary,
     width: 14,
   },
-  complementaryText: {
+  bulletText: {
     fontSize: 13,
-    color: R.ink,
+    color: C.text,
     flex: 1,
     lineHeight: 18,
     fontWeight: '500' as const,
   },
-  footerTags: {
+  tagsRow: {
     marginTop: 6,
   },
-  footerTagsRow: {
+  tagsInner: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'center' as const,
   },
-  footerTag: {
-    fontSize: 10,
-    color: R.inkMuted,
+  tag: {
+    fontSize: 11,
+    color: C.textMuted,
     fontWeight: '500' as const,
   },
   resalePlatform: {
     fontSize: 11,
-    color: R.inkMuted,
+    color: C.textMuted,
     fontWeight: '500' as const,
     marginTop: 2,
     textAlign: 'right' as const,
   },
   verdictStrip: {
     paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 2,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     marginVertical: 6,
   },
   verdictText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700' as const,
-    lineHeight: 17,
+    lineHeight: 18,
   },
   extraItemRow: {
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: R.line,
+    borderBottomColor: C.divider,
   },
   extraItemHeader: {
     flexDirection: 'row',
@@ -987,35 +952,58 @@ const s = StyleSheet.create({
   extraItemName: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: R.ink,
+    color: C.text,
     flex: 1,
   },
   extraItemCost: {
     fontSize: 13,
     fontWeight: '700' as const,
-    color: R.ink,
+    color: C.text,
   },
   extraItemReason: {
     fontSize: 11,
-    color: R.inkMuted,
-    marginTop: 1,
+    color: C.textMuted,
+    marginTop: 2,
     lineHeight: 15,
   },
-  unknownBlock: {
+  totalCostBanner: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 14,
+    marginVertical: 8,
+    alignItems: 'center' as const,
+  },
+  totalCostLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  totalCostValue: {
+    fontSize: 26,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  fallbackBlock: {
     alignItems: 'center' as const,
     paddingVertical: 16,
   },
-  unknownTitle: {
+  fallbackTitle: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: R.ink,
+    color: C.text,
     textAlign: 'center' as const,
   },
-  unknownSub: {
+  fallbackSub: {
     fontSize: 12,
-    color: R.inkMuted,
+    color: C.textMuted,
     textAlign: 'center' as const,
     lineHeight: 17,
+    marginTop: 4,
   },
   noPriceRow: {
     alignItems: 'center' as const,
@@ -1023,13 +1011,13 @@ const s = StyleSheet.create({
   },
   noPriceText: {
     fontSize: 14,
-    fontWeight: '800' as const,
-    color: R.inkMuted,
+    fontWeight: '700' as const,
+    color: C.textMuted,
     letterSpacing: 0.5,
   },
   noPriceSub: {
     fontSize: 11,
-    color: R.lineDash,
+    color: C.textMuted,
     fontWeight: '500' as const,
     marginTop: 2,
   },
