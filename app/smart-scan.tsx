@@ -206,7 +206,7 @@ export default function SmartScanScreen() {
           historyEntryIdRef.current = undefined;
           if (!hasNavigatedRef.current) {
             hasNavigatedRef.current = true;
-            router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
+            router.push({ pathname: '/log-entry', params: { mode: 'receipt', imageUri: entry.imageUri ?? '' } });
           }
           return;
         }
@@ -281,7 +281,7 @@ export default function SmartScanScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true;
-          router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
+          router.push({ pathname: '/log-entry', params: { mode: 'receipt', imageUri: capturedUri } });
         }
         return;
       }

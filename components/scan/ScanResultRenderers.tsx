@@ -195,20 +195,57 @@ export function ReceiptResultSection({ result }: ResultProps) {
   return (
     <>
       <SectionLabel text="Receipt Detected" />
-      <InfoBlock text="This image was identified as a receipt or price tag." type="tip" />
-      <Divider />
-      <View style={s.fallbackBlock}>
-        <Text style={s.fallbackTitle}>{result.item_name || 'Receipt'}</Text>
-        <Text style={s.fallbackSub}>
-          Use the Receipt Scanner for full receipt parsing with itemized totals, store detection, and expense logging.
-        </Text>
+      <View style={s.receiptStatusCard}>
+        <Text style={s.receiptStatusIcon}>🧾</Text>
+        <View style={s.receiptStatusContent}>
+          <Text style={s.receiptStatusTitle}>{result.item_name || 'Receipt'}</Text>
+          <Text style={s.receiptStatusDesc}>This image has been identified as a receipt, invoice, or price tag.</Text>
+        </View>
       </View>
+
+      <Divider />
+      <SectionLabel text="What We Found" />
+      <View style={s.receiptInfoGrid}>
+        <View style={s.receiptInfoItem}>
+          <Text style={s.receiptInfoLabel}>Type</Text>
+          <Text style={s.receiptInfoValue}>Receipt / Price Tag</Text>
+        </View>
+        <View style={s.receiptInfoItem}>
+          <Text style={s.receiptInfoLabel}>Confidence</Text>
+          <Text style={s.receiptInfoValue}>{Math.round(result.confidence * 100)}%</Text>
+        </View>
+        <View style={s.receiptInfoItem}>
+          <Text style={s.receiptInfoLabel}>Status</Text>
+          <Text style={[s.receiptInfoValue, { color: C.green }]}>Ready to Parse</Text>
+        </View>
+      </View>
+
       {result.short_summary ? (
         <>
           <Divider />
           <InfoBlock text={result.short_summary} type="success" />
         </>
       ) : null}
+
+      <Divider />
+      <SectionLabel text="Full Receipt Parsing" />
+      <View style={s.receiptFeatureList}>
+        {[
+          'Itemized line items with prices',
+          'Store/merchant detection',
+          'Tax, tip, and total breakdown',
+          'Auto-categorized expense logging',
+          'Date and payment method extraction',
+        ].map((feature) => (
+          <View key={feature} style={s.bulletRow}>
+            <Text style={s.bulletChar}>✓</Text>
+            <Text style={s.bulletText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
+
+      <Divider />
+      <InfoBlock text="Use the Receipt Scanner for complete parsing — it will extract every line item, totals, tax, merchant, and date from your receipt." type="tip" />
     </>
   );
 }
@@ -1034,5 +1071,56 @@ const s = StyleSheet.create({
     color: C.textMuted,
     fontWeight: '500' as const,
     marginTop: 2,
+  },
+  receiptStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  receiptStatusIcon: {
+    fontSize: 28,
+  },
+  receiptStatusContent: {
+    flex: 1,
+  },
+  receiptStatusTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: C.text,
+    marginBottom: 2,
+  },
+  receiptStatusDesc: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+  },
+  receiptInfoGrid: {
+    gap: 8,
+  },
+  receiptInfoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  receiptInfoLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '500' as const,
+  },
+  receiptInfoValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '600' as const,
+  },
+  receiptFeatureList: {
+    gap: 2,
   },
 });
