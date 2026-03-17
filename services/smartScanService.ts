@@ -514,7 +514,7 @@ DO NOT fill furniture_details, fashion_details, electronics_details, food_detail
 async function callWithRetry<T>(
   fn: () => Promise<T>,
   label: string,
-  maxRetries: number = 2
+  maxRetries: number = 3
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -527,7 +527,8 @@ async function callWithRetry<T>(
       lastError = err;
       console.log(`[SmartScan] ${label} attempt ${attempt} failed:`, err);
       if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 800));
+        const delay = 800 * attempt;
+        await new Promise(r => setTimeout(r, delay));
       }
     }
   }
