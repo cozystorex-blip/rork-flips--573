@@ -162,10 +162,58 @@ interface ResultProps {
   result: SmartScanResult;
 }
 
+export function ReceiptResultSection({ result }: ResultProps) {
+  return (
+    <>
+      <SectionLabel text="RECEIPT DETECTED" />
+      <InfoBlock text="This image was identified as a receipt or price tag." type="tip" />
+      <ReceiptDivider />
+      <View style={s.unknownBlock}>
+        <Text style={s.unknownTitle}>{result.item_name || 'Receipt'}</Text>
+        <Text style={s.unknownSub}>
+          Use the Receipt Scanner for full receipt parsing with itemized totals, store detection, and expense logging.
+        </Text>
+      </View>
+      {result.short_summary ? (
+        <>
+          <ReceiptDivider />
+          <InfoBlock text={result.short_summary} type="success" />
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function EmptyFallbackSection({ result }: ResultProps) {
+  const typeLabel = result.item_type ? capitalize(result.item_type.replace(/_/g, ' ')) : 'Item';
+  return (
+    <>
+      <SectionLabel text="SCAN RESULT" />
+      <View style={s.unknownBlock}>
+        <Text style={s.unknownTitle}>{result.item_name || `${typeLabel} Detected`}</Text>
+        {result.category ? (
+          <Text style={s.unknownSub}>Category: {result.category}</Text>
+        ) : null}
+      </View>
+      {result.short_summary ? (
+        <>
+          <ReceiptDivider />
+          <InfoBlock text={result.short_summary} type="tip" />
+        </>
+      ) : (
+        <>
+          <ReceiptDivider />
+          <InfoBlock text="We identified this item but could not extract detailed information. Try scanning again with better lighting or a different angle for more complete results." type="warning" />
+        </>
+      )}
+    </>
+  );
+}
+
 export function FoodResultSection({ result }: ResultProps) {
   if (!result.food_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
-    return null;
+    return <EmptyFallbackSection result={result} />;
   }
   const fd = result.food_details;
   return (
@@ -250,7 +298,7 @@ export function FoodResultSection({ result }: ResultProps) {
 export function GroceryResultSection({ result }: ResultProps) {
   if (!result.grocery_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
-    return null;
+    return <EmptyFallbackSection result={result} />;
   }
   const gd = result.grocery_details;
   return (
@@ -302,7 +350,7 @@ export function GroceryResultSection({ result }: ResultProps) {
 export function FurnitureResultSection({ result }: ResultProps) {
   if (!result.furniture_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
-    return null;
+    return <EmptyFallbackSection result={result} />;
   }
   const fd = result.furniture_details;
   const matchingProducts = (fd as Record<string, unknown>).matching_products as string[] | undefined;
@@ -418,7 +466,7 @@ export function FurnitureResultSection({ result }: ResultProps) {
 export function FashionResultSection({ result }: ResultProps) {
   if (!result.fashion_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
-    return null;
+    return <EmptyFallbackSection result={result} />;
   }
   const fd = result.fashion_details;
   const subcategoryLabels: Record<string, string> = {
@@ -480,7 +528,7 @@ export function FashionResultSection({ result }: ResultProps) {
 export function ElectronicsResultSection({ result }: ResultProps) {
   if (!result.electronics_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
-    return null;
+    return <EmptyFallbackSection result={result} />;
   }
   const ed = result.electronics_details;
   return (
@@ -529,7 +577,7 @@ export function ElectronicsResultSection({ result }: ResultProps) {
 export function HouseholdResultSection({ result }: ResultProps) {
   if (!result.household_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
-    return null;
+    return <EmptyFallbackSection result={result} />;
   }
   const hd = result.household_details;
   const subcategoryLabels: Record<string, string> = {
@@ -579,7 +627,7 @@ export function HouseholdResultSection({ result }: ResultProps) {
 }
 
 export function GeneralResultSection({ result }: ResultProps) {
-  if (!result.general_details) return null;
+  if (!result.general_details) return <EmptyFallbackSection result={result} />;
   const gd = result.general_details;
   return (
     <>
@@ -634,18 +682,30 @@ export function UnknownResultSection({ result }: ResultProps) {
   if (result.general_details != null) return <GeneralResultSection result={result} />;
   if (result.household_details != null) return <HouseholdResultSection result={result} />;
   if (result.furniture_details != null) return <FurnitureResultSection result={result} />;
+  if (result.food_details != null) return <FoodResultSection result={result} />;
+  if (result.grocery_details != null) return <GroceryResultSection result={result} />;
+  if (result.fashion_details != null) return <FashionResultSection result={result} />;
+  if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
   return (
-    <View style={s.unknownBlock}>
-      <Text style={s.unknownTitle}>
-        {result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized'}
-      </Text>
-      <ReceiptDivider />
-      <Text style={s.unknownSub}>
-        {result.category && result.category !== 'unknown'
-          ? `Detected: ${result.category}\nTry scanning from a different angle.`
-          : 'Try scanning the product label or a different angle.'}
-      </Text>
-    </View>
+    <>
+      <View style={s.unknownBlock}>
+        <Text style={s.unknownTitle}>
+          {result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized'}
+        </Text>
+        <ReceiptDivider />
+        <Text style={s.unknownSub}>
+          {result.category && result.category !== 'unknown'
+            ? `Detected: ${result.category}\nTry scanning from a different angle for more details.`
+            : 'Try scanning the product label or a different angle for better results.'}
+        </Text>
+      </View>
+      {result.short_summary ? (
+        <>
+          <ReceiptDivider />
+          <InfoBlock text={result.short_summary} type="tip" />
+        </>
+      ) : null}
+    </>
   );
 }
 

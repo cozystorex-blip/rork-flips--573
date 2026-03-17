@@ -54,6 +54,7 @@ import {
   HouseholdResultSection,
   GeneralResultSection,
   UnknownResultSection,
+  ReceiptResultSection,
 } from '@/components/scan/ScanResultRenderers';
 
 type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
@@ -413,8 +414,9 @@ export default function SmartScanScreen() {
       case 'fashion': return <FashionResultSection result={result} />;
       case 'electronics': return <ElectronicsResultSection result={result} />;
       case 'general': return <GeneralResultSection result={result} />;
+      case 'receipt': return <ReceiptResultSection result={result} />;
       case 'unknown': return <UnknownResultSection result={result} />;
-      default: return null;
+      default: return <UnknownResultSection result={result} />;
     }
   }, [result]);
 
