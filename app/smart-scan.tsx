@@ -388,18 +388,24 @@ export default function SmartScanScreen() {
 
   const confidenceLabel = useMemo(() => {
     if (!result) return '';
-    if (result.confidence >= 0.8) return 'High confidence';
-    if (result.confidence >= 0.6) return 'Good match';
-    if (result.confidence >= 0.4) return 'Likely match';
-    return 'Low confidence';
+    if (result.confidence >= 0.82) return 'High confidence';
+    if (result.confidence >= 0.65) return 'Good match';
+    if (result.confidence >= 0.45) return 'Likely match';
+    if (result.confidence >= 0.3) return 'Low confidence';
+    return 'Very low confidence';
   }, [result]);
 
   const confidenceColor = useMemo(() => {
     if (!result) return '#6B7280';
-    if (result.confidence >= 0.8) return '#059669';
-    if (result.confidence >= 0.6) return '#3B82F6';
-    if (result.confidence >= 0.4) return '#D97706';
+    if (result.confidence >= 0.82) return '#059669';
+    if (result.confidence >= 0.65) return '#3B82F6';
+    if (result.confidence >= 0.45) return '#D97706';
+    if (result.confidence >= 0.3) return '#F97316';
     return '#EF4444';
+  }, [result]);
+
+  const isLowConfidence = useMemo(() => {
+    return result ? result.confidence < 0.45 : false;
   }, [result]);
 
   const resultSection = useMemo(() => {
@@ -652,12 +658,16 @@ export default function SmartScanScreen() {
             </View>
 
             <View style={st.resultHeader}>
-              <Text style={st.resultItemName}>{result.item_name}</Text>
+              <Text style={st.resultItemName}>
+                {isLowConfidence && result.confidence < 0.3 ? 'Item Not Confidently Identified' : result.item_name}
+              </Text>
               <View style={st.resultMetaRow}>
                 {typeConfig && (
                   <View style={[st.typeBadge, { backgroundColor: typeConfig.bg }]}>
                     <typeConfig.Icon size={12} color={typeConfig.color} />
-                    <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
+                    <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>
+                      {isLowConfidence && result.confidence < 0.3 ? 'Low Confidence Scan' : typeConfig.label}
+                    </Text>
                   </View>
                 )}
                 <View style={st.confidenceBadge}>
@@ -669,7 +679,24 @@ export default function SmartScanScreen() {
               </View>
             </View>
 
-            {result.short_summary ? (
+            {isLowConfidence && (
+              <View style={st.lowConfidenceCard}>
+                <Text style={st.lowConfidenceTitle}>Why this result may be inaccurate</Text>
+                <Text style={st.lowConfidenceText}>
+                  {result.confidence < 0.3
+                    ? 'The image was too unclear, dark, or ambiguous to identify with confidence. Try scanning again with better lighting or a closer angle.'
+                    : 'This scan had limited visual information. The result is a best guess — details may not be fully accurate.'}
+                </Text>
+              </View>
+            )}
+
+            {result.short_summary && !isLowConfidence ? (
+              <View style={st.summaryCard}>
+                <Text style={st.summaryText}>{result.short_summary}</Text>
+              </View>
+            ) : null}
+
+            {result.short_summary && isLowConfidence ? (
               <View style={st.summaryCard}>
                 <Text style={st.summaryText}>{result.short_summary}</Text>
               </View>
@@ -681,9 +708,19 @@ export default function SmartScanScreen() {
 
             <View style={st.actionBtnsRow}>
               <Pressable style={st.newScanBtn} onPress={resetScan} testID="smart-scan-again">
-                <RefreshCw size={16} color="#F5F5F7" />
+                <RefreshCw size={16} color="#FFFFFF" />
                 <Text style={st.newScanBtnText}>Scan Again</Text>
               </Pressable>
+              {isLowConfidence && (
+                <Pressable
+                  style={st.galleryRetryBtn}
+                  onPress={() => void handleCapture('gallery')}
+                  testID="smart-scan-gallery-retry"
+                >
+                  <ImageIcon size={16} color="#F5F5F7" />
+                  <Text style={st.galleryRetryBtnText}>Try Different Photo</Text>
+                </Pressable>
+              )}
             </View>
 
             {viewingEntryId && (
@@ -862,9 +899,14 @@ const st = StyleSheet.create({
 
   detailsSection: { backgroundColor: '#141414', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#1E1E1E' },
 
+  lowConfidenceCard: { backgroundColor: '#F9731618', borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#F9731630' },
+  lowConfidenceTitle: { fontSize: 13, fontWeight: '700' as const, color: '#F97316', marginBottom: 4 },
+  lowConfidenceText: { fontSize: 12, color: '#AEAEB2', lineHeight: 17 },
   actionBtnsRow: { gap: 8 },
   newScanBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 14, backgroundColor: '#3B82F6' },
   newScanBtnText: { fontSize: 15, fontWeight: '700' as const, color: '#FFFFFF' },
+  galleryRetryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A' },
+  galleryRetryBtnText: { fontSize: 14, fontWeight: '600' as const, color: '#F5F5F7' },
   deleteResultBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 8 },
   deleteResultBtnText: { fontSize: 13, fontWeight: '600' as const, color: '#FF453A' },
 

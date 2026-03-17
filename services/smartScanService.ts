@@ -382,48 +382,53 @@ function stabilizePricing(result: SmartScanResult): SmartScanResult {
   return stabilized;
 }
 
-const CLASSIFICATION_PROMPT = `You are an expert universal product identifier. Your job is to look at the image and classify the item into the single BEST category. Do NOT default to any category. Analyze only what is actually visible.
+const CLASSIFICATION_PROMPT = `You are an expert universal product identifier. Analyze ONLY what is visible in the image. Do NOT default to any category — pick the single best match.
 
-CATEGORIES (pick the one that fits best):
-- "receipt" = printed receipt, invoice, price tag with totals, shelf label with barcodes/prices
-- "food" = prepared/fresh food, meals, fruits, vegetables, cooked dishes, snacks being eaten, bakery items, food court items, restaurant plates
-- "grocery" = packaged food products in store packaging — cans, boxes, bottles, bags, jars, frozen meals, condiments, cereal, pasta, chips, soda, anything with a nutrition label or barcode that you'd find in a grocery aisle
-- "fashion" = ANY wearable item — shoes, sneakers, boots, sandals, clothing, shirts, pants, jackets, coats, dresses, skirts, hats, caps, bags, purses, backpacks, wallets, watches, jewelry, belts, scarves, sunglasses, ties, gloves
-- "electronics" = phones, laptops, tablets, headphones, earbuds, speakers, gaming consoles, controllers, chargers, cables, monitors, keyboards, mice, cameras, smart home devices, drones, power banks
-- "furniture" = large home items — desks, tables, dining sets, chairs, sofas, couches, beds, bed frames, shelving units, bookshelves, cabinets, wardrobes, dressers, nightstands, TV stands, benches, storage units. Items that typically require placement or assembly in a room.
-- "household" = smaller home/lifestyle items — kitchenware, pots, pans, utensils, storage containers, lamps, rugs, curtains, pillows, towels, blankets, cleaning supplies, tools (drills, hammers, wrenches), fitness equipment (dumbbells, kettlebells, yoga mats, resistance bands), bathroom accessories, candles, picture frames, plant pots, decor items, beauty/personal care products (skincare, makeup, hair tools), small appliances (toasters, blenders, coffee makers)
-- "general" = identifiable item that doesn't clearly fit the above categories
-- "unknown" = truly unrecognizable, very blurry, completely dark, or abstract image with no identifiable object
+STEP 1 — DETERMINE WHAT THE OBJECT ACTUALLY IS:
+Before choosing a category, describe to yourself what you literally see: shape, color, material, text, labels, packaging, context. Then match to a category.
 
-CRITICAL RULES — DO NOT VIOLATE:
-1. RECEIPT CHECK FIRST: If you see printed text with prices, totals, barcodes, store headers → "receipt". Set is_receipt=true.
-2. Food packaging (pasta box, cereal box, canned soup, bottled drink) → ALWAYS "grocery", NEVER "furniture" or "household"
-3. Shoes/sneakers/boots → ALWAYS "fashion", NEVER "furniture" or "household"
-4. Dumbbells/weights/yoga mats → ALWAYS "household" (fitness subcategory), NEVER "furniture"
-5. Small kitchen gadgets/utensils → ALWAYS "household", NEVER "furniture"
-6. Skincare/makeup/beauty products → ALWAYS "household" (beauty subcategory), NEVER "grocery"
-7. A chair, desk, or shelf → ALWAYS "furniture", NEVER "household"
-8. Phone/laptop/headphones → ALWAYS "electronics", NEVER "general"
-9. Clothing on a hanger or folded → ALWAYS "fashion", NEVER "household"
-10. If you see a brand logo on a product, classify by the PRODUCT not the brand (Nike shoe = fashion, Nike box = general)
+STEP 2 — PICK EXACTLY ONE CATEGORY:
+- "receipt" = printed receipt, invoice, price tag with totals, shelf label with barcodes/prices. Set is_receipt=true.
+- "food" = prepared/fresh food, meals, fruits, vegetables, cooked dishes, snacks being eaten, bakery items, food court items, restaurant plates, loose produce
+- "grocery" = packaged food products — cans, boxes, bottles, bags, jars, frozen meals, condiments, cereal, pasta, chips, soda, candy bars, protein bars, anything with a nutrition label or barcode from a grocery aisle
+- "fashion" = ANY wearable item: shoes, sneakers, boots, sandals, clothing, shirts, pants, jackets, coats, dresses, hats, bags, purses, backpacks, wallets, watches, jewelry, belts, scarves, sunglasses, gloves
+- "electronics" = phones, laptops, tablets, headphones, earbuds, speakers, gaming consoles, controllers, chargers, cables, monitors, keyboards, cameras, smart home devices, drones, power banks
+- "furniture" = LARGE home items that typically sit on the floor or mount to walls: desks, tables, chairs, sofas, couches, beds, shelving units, bookshelves, cabinets, wardrobes, dressers, nightstands, TV stands, benches. Must require placement/assembly in a room.
+- "household" = smaller home/lifestyle items: kitchenware, pots, pans, utensils, storage containers, lamps, rugs, curtains, pillows, towels, blankets, cleaning supplies, tools (drills, hammers), fitness equipment (dumbbells, kettlebells, yoga mats), bathroom items, candles, decor, beauty/skincare/makeup products, small appliances (toasters, blenders, coffee makers)
+- "general" = identifiable item that doesn't clearly fit the above
+- "unknown" = truly unrecognizable, very blurry, completely dark, or abstract with no identifiable object
 
-NAMING RULES:
+MISCLASSIFICATION RULES — CRITICAL:
+1. Spaghetti, pasta, cereal, canned food, snack bags, drink bottles = "grocery". NEVER "furniture" or "household".
+2. Shoes, sneakers, boots, sandals = "fashion". NEVER "furniture" or "household".
+3. Dumbbells, kettlebells, yoga mats, resistance bands = "household". NEVER "furniture".
+4. Kitchen utensils, pans, small appliances = "household". NEVER "furniture".
+5. Skincare, moisturizer, shampoo, makeup = "household". NEVER "grocery".
+6. Chairs, desks, shelves, sofas = "furniture". NEVER "household".
+7. Phones, laptops, headphones, earbuds = "electronics". NEVER "general".
+8. Clothing on hangers or folded = "fashion". NEVER "household".
+9. If you see food INSIDE a bag/box with packaging = "grocery". If food is loose/plated = "food".
+10. Do NOT classify based on brand alone. Nike shoe = fashion. Nike shipping box = general.
+11. If the image shows a food product but your first instinct is "furniture" — STOP and reconsider. Food is never furniture.
+12. If the image shows a shoe/sneaker but your first instinct is "furniture" — STOP and reconsider. Shoes are never furniture.
+
+NAMING:
 - Read visible text/labels/logos FIRST. Use the actual product name if readable.
-- Include brand name only if actually visible on the item.
-- Never invent brand names that are not visible.
-- Use descriptive names like "Red Running Shoes" rather than vague "Item" or "Product".
+- Include brand only if visible on the item. Never invent brands.
+- Use descriptive names like "Barilla Spaghetti" or "Nike Air Max 90" — not "Item" or "Product".
 
-CONFIDENCE CALIBRATION (be honest):
-- 0.85-0.95: Clear product with visible label/brand, unambiguous category
-- 0.70-0.84: Clear product without label, obvious category
+CONFIDENCE (be strictly honest):
+- 0.85-0.95: Clear product, visible label/brand, obvious category, no ambiguity
+- 0.70-0.84: Clear product, obvious category, no label but recognizable
 - 0.50-0.69: Partially visible, angled, or slightly ambiguous
-- 0.35-0.49: Blurry, dark, but shape is identifiable
+- 0.35-0.49: Blurry or dark but shape identifiable
 - Below 0.35: Very unclear, guessing
-- NEVER give 0.85+ if the category could reasonably be something else
-- NEVER give 0.75+ for blurry or distant photos
+- NEVER give 0.85+ if category could be something else
+- NEVER give 0.75+ for blurry/distant/dark photos
+- If you had to override your first instinct, cap confidence at 0.65
 
-short_summary: Write a concise 1-2 sentence summary of what this item is and its key characteristic or use.
-image_description: Describe the item's visual appearance in detail — color, shape, material, texture, brand styling, notable features, approximate size. Be specific enough for someone to create a clean product-style reference image of it.`;
+short_summary: 1-2 sentence summary of the item and its key use or characteristic.
+image_description: Detailed visual description — color, shape, material, texture, brand elements, notable features, approximate size. Specific enough to recreate as a clean product photo.`;
 
 function getDetailPrompt(itemType: SmartScanItemType): string {
   const base = `You are a product analyzer. Provide accurate, category-appropriate details about this item.
@@ -546,9 +551,9 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
     return fixed;
   }
 
-  const FOOD_SIGNALS = ['spaghetti', 'pasta', 'rice', 'cereal', 'soup', 'sauce', 'bread', 'chips', 'cookie', 'cracker', 'candy', 'chocolate', 'granola', 'yogurt', 'milk', 'juice', 'soda', 'water bottle', 'snack', 'nutrition facts', 'ingredients:', 'serving size', 'calories per', 'canned', 'frozen meal', 'instant', 'ramen', 'noodle', 'protein bar', 'energy drink', 'oatmeal', 'flour', 'sugar', 'honey', 'jam', 'peanut butter', 'ketchup', 'mustard', 'mayo', 'vinegar', 'olive oil', 'cooking oil', 'spice', 'seasoning', 'tea bag', 'coffee ground', 'coffee bean', 'creamer', 'almond milk', 'oat milk', 'frozen pizza', 'ice cream', 'popcorn', 'pretzel', 'trail mix', 'beef jerky', 'tuna can', 'sardine', 'salsa', 'hummus', 'tortilla', 'wrap', 'bagel', 'muffin', 'croissant'];
-  const FASHION_SIGNALS = ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'puma', 'vans', 'converse', 'new balance', 'shirt', 'hoodie', 'jacket', 'pants', 'jeans', 'dress', 'hat', 'handbag', 'purse', 'wallet', 'watch', 'belt', 'gucci', 'louis vuitton', 'coach', 'yeezy', 'air max', 'air force', 'reebok', 'asics', 'skechers', 'under armour', 'lululemon', 'zara', 'h&m', 'uniqlo', 'polo', 'ralph lauren', 'tommy hilfiger', 'levis', 'wrangler', 'north face', 'patagonia', 'columbia', 'timberland', 'birkenstock', 'crocs', 'ugg', 'ray-ban', 'oakley', 'skirt', 'blazer', 'cardigan', 'sweater', 'vest', 'scarf', 'glove', 'beanie', 'cap', 'snapback', 'backpack', 'tote bag', 'crossbody', 'loafer', 'oxford', 'stiletto', 'flip flop', 'slipper', 'running shoe', 'basketball shoe', 'tennis shoe', 'trail shoe', 'cleat'];
-  const ELECTRONICS_SIGNALS = ['iphone', 'ipad', 'macbook', 'airpod', 'samsung galaxy', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'switch', 'laptop', 'tablet', 'headphones', 'earbuds', 'speaker', 'monitor', 'keyboard', 'charger', 'bose', 'jbl', 'sony', 'dell', 'hp', 'lenovo', 'asus', 'acer', 'surface', 'pixel', 'galaxy watch', 'apple watch', 'fitbit', 'garmin', 'gopro', 'drone', 'dji', 'roku', 'fire stick', 'chromecast', 'echo', 'alexa', 'google home', 'smart plug', 'ring', 'nest', 'power bank', 'usb', 'hdmi', 'mouse', 'webcam', 'microphone', 'printer', 'scanner', 'projector', 'tv', 'television', 'soundbar', 'subwoofer', 'amplifier', 'turntable', 'kindle', 'e-reader'];
+  const FOOD_SIGNALS = ['spaghetti', 'pasta', 'rice', 'cereal', 'soup', 'sauce', 'bread', 'chips', 'cookie', 'cracker', 'candy', 'chocolate', 'granola', 'yogurt', 'milk', 'juice', 'soda', 'water bottle', 'snack', 'nutrition facts', 'ingredients:', 'serving size', 'calories per', 'canned', 'frozen meal', 'instant', 'ramen', 'noodle', 'protein bar', 'energy drink', 'oatmeal', 'flour', 'sugar', 'honey', 'jam', 'peanut butter', 'ketchup', 'mustard', 'mayo', 'vinegar', 'olive oil', 'cooking oil', 'spice', 'seasoning', 'tea bag', 'coffee ground', 'coffee bean', 'creamer', 'almond milk', 'oat milk', 'frozen pizza', 'ice cream', 'popcorn', 'pretzel', 'trail mix', 'beef jerky', 'tuna can', 'sardine', 'salsa', 'hummus', 'tortilla', 'wrap', 'bagel', 'muffin', 'croissant', 'macaroni', 'penne', 'linguine', 'fettuccine', 'orzo', 'ravioli', 'lasagna', 'tomato sauce', 'marinara', 'alfredo', 'barilla', 'de cecco', 'ronzoni', 'kraft', 'campbells', 'progresso'];
+  const FASHION_SIGNALS = ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'puma', 'vans', 'converse', 'new balance', 'shirt', 'hoodie', 'jacket', 'pants', 'jeans', 'dress', 'hat', 'handbag', 'purse', 'wallet', 'watch', 'belt', 'gucci', 'louis vuitton', 'coach', 'yeezy', 'air max', 'air force', 'reebok', 'asics', 'skechers', 'under armour', 'lululemon', 'zara', 'h&m', 'uniqlo', 'polo', 'ralph lauren', 'tommy hilfiger', 'levis', 'wrangler', 'north face', 'patagonia', 'columbia', 'timberland', 'birkenstock', 'crocs', 'ugg', 'ray-ban', 'oakley', 'skirt', 'blazer', 'cardigan', 'sweater', 'vest', 'scarf', 'glove', 'beanie', 'cap', 'snapback', 'backpack', 'tote bag', 'crossbody', 'loafer', 'oxford', 'stiletto', 'flip flop', 'slipper', 'running shoe', 'basketball shoe', 'tennis shoe', 'trail shoe', 'cleat', 'footwear', 'kicks', 'trainers'];
+  const ELECTRONICS_SIGNALS = ['iphone', 'ipad', 'macbook', 'airpod', 'samsung galaxy', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'switch', 'laptop', 'tablet', 'headphones', 'earbuds', 'speaker', 'monitor', 'keyboard', 'charger', 'bose', 'jbl', 'sony', 'dell', 'hp', 'lenovo', 'asus', 'acer', 'surface', 'pixel', 'galaxy watch', 'apple watch', 'fitbit', 'garmin', 'gopro', 'drone', 'dji', 'roku', 'fire stick', 'chromecast', 'echo', 'alexa', 'google home', 'smart plug', 'ring', 'nest', 'power bank', 'usb', 'hdmi', 'mouse', 'webcam', 'microphone', 'printer', 'scanner', 'projector', 'tv', 'television', 'soundbar', 'subwoofer', 'amplifier', 'turntable', 'kindle', 'e-reader', 'smartphone', 'cell phone', 'mobile phone'];
   const FITNESS_SIGNALS = ['dumbbell', 'kettlebell', 'barbell', 'weight plate', 'resistance band', 'yoga mat', 'foam roller', 'exercise', 'gym equipment', 'pull-up bar', 'jump rope', 'ab roller', 'medicine ball', 'stability ball', 'exercise bike', 'treadmill', 'elliptical', 'rowing machine', 'bench press', 'squat rack', 'boxing glove', 'punching bag', 'weight bench', 'battle rope'];
   const FURNITURE_SIGNALS = ['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'shelving', 'cabinet', 'wardrobe', 'dresser', 'nightstand', 'bookcase', 'bookshelf', 'tv stand', 'bench', 'stool', 'rack', 'storage unit', 'room divider', 'ikea', 'kallax', 'billy', 'malm', 'lack', 'hemnes', 'expedit', 'poang', 'ektorp', 'detolf', 'besta', 'pax', 'alex', 'linnmon', 'micke', 'dining table', 'coffee table', 'end table', 'console table', 'ottoman', 'recliner', 'loveseat', 'futon', 'bunk bed', 'crib', 'headboard', 'vanity', 'hutch', 'armoire', 'credenza', 'sideboard', 'bar cart', 'shoe rack', 'coat rack'];
   const BEAUTY_SIGNALS = ['moisturizer', 'serum', 'sunscreen', 'cleanser', 'toner', 'foundation', 'concealer', 'mascara', 'lipstick', 'lip gloss', 'eyeshadow', 'blush', 'bronzer', 'primer', 'setting spray', 'face wash', 'face cream', 'eye cream', 'retinol', 'vitamin c', 'hyaluronic', 'niacinamide', 'shampoo', 'conditioner', 'hair mask', 'dry shampoo', 'hair spray', 'curling iron', 'flat iron', 'blow dryer', 'trimmer', 'razor', 'cologne', 'perfume', 'deodorant', 'body lotion', 'body wash', 'hand cream', 'nail polish', 'skincare', 'makeup', 'cosmetic', 'beauty'];
@@ -560,32 +565,68 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
   const hasFurniture = FURNITURE_SIGNALS.some(s => combined.includes(s));
   const hasBeauty = BEAUTY_SIGNALS.some(s => combined.includes(s));
 
-  if (hasFood && (fixed.item_type === 'furniture' || fixed.item_type === 'household' || fixed.item_type === 'general')) {
-    console.log('[SmartScan] Food signals detected but classified as', fixed.item_type, '— correcting to grocery');
-    fixed.item_type = 'grocery';
-    fixed.confidence = Math.min(fixed.confidence, 0.7);
-  } else if (hasFashion && fixed.item_type !== 'fashion' && !hasFood && !hasElectronics) {
-    console.log('[SmartScan] Fashion signals detected, correcting from', fixed.item_type);
-    fixed.item_type = 'fashion';
-    fixed.confidence = Math.max(fixed.confidence, 0.5);
-  } else if (hasElectronics && fixed.item_type !== 'electronics' && !hasFood && !hasFashion) {
-    console.log('[SmartScan] Electronics signals detected, correcting from', fixed.item_type);
-    fixed.item_type = 'electronics';
-    fixed.confidence = Math.max(fixed.confidence, 0.5);
-  } else if (hasFitness && fixed.item_type !== 'household' && !hasFashion && !hasElectronics) {
+  const countSignals = (signals: string[]) => signals.filter(s => combined.includes(s)).length;
+
+  if (hasFood && (fixed.item_type === 'furniture' || fixed.item_type === 'household' || fixed.item_type === 'general' || fixed.item_type === 'fashion' || fixed.item_type === 'electronics')) {
+    const foodCount = countSignals(FOOD_SIGNALS);
+    const otherMax = Math.max(
+      hasFashion ? countSignals(FASHION_SIGNALS) : 0,
+      hasElectronics ? countSignals(ELECTRONICS_SIGNALS) : 0,
+      hasFurniture ? countSignals(FURNITURE_SIGNALS) : 0
+    );
+    if (foodCount >= otherMax) {
+      console.log('[SmartScan] Food signals strongest (' + foodCount + '), correcting from', fixed.item_type, 'to grocery');
+      fixed.item_type = 'grocery';
+      fixed.confidence = Math.min(fixed.confidence, 0.7);
+      return fixed;
+    }
+  }
+
+  if (hasFashion && fixed.item_type !== 'fashion') {
+    const fashionCount = countSignals(FASHION_SIGNALS);
+    const foodCount = hasFood ? countSignals(FOOD_SIGNALS) : 0;
+    const electronicsCount = hasElectronics ? countSignals(ELECTRONICS_SIGNALS) : 0;
+    if (fashionCount > foodCount && fashionCount > electronicsCount) {
+      console.log('[SmartScan] Fashion signals strongest (' + fashionCount + '), correcting from', fixed.item_type);
+      fixed.item_type = 'fashion';
+      fixed.confidence = Math.min(Math.max(fixed.confidence, 0.5), 0.75);
+      return fixed;
+    }
+  }
+
+  if (hasElectronics && fixed.item_type !== 'electronics') {
+    const elecCount = countSignals(ELECTRONICS_SIGNALS);
+    const foodCount = hasFood ? countSignals(FOOD_SIGNALS) : 0;
+    const fashionCount = hasFashion ? countSignals(FASHION_SIGNALS) : 0;
+    if (elecCount > foodCount && elecCount > fashionCount) {
+      console.log('[SmartScan] Electronics signals strongest (' + elecCount + '), correcting from', fixed.item_type);
+      fixed.item_type = 'electronics';
+      fixed.confidence = Math.min(Math.max(fixed.confidence, 0.5), 0.75);
+      return fixed;
+    }
+  }
+
+  if (hasFitness && fixed.item_type !== 'household') {
     console.log('[SmartScan] Fitness signals detected, correcting from', fixed.item_type);
     fixed.item_type = 'household';
     fixed.category = 'Fitness Equipment';
-    fixed.confidence = Math.max(fixed.confidence, 0.55);
-  } else if (hasBeauty && fixed.item_type !== 'household' && !hasFood && !hasFashion && !hasElectronics) {
-    console.log('[SmartScan] Beauty/personal care signals detected, correcting from', fixed.item_type);
+    fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.75);
+    return fixed;
+  }
+
+  if (hasBeauty && fixed.item_type !== 'household' && !hasFood && !hasFashion && !hasElectronics) {
+    console.log('[SmartScan] Beauty signals detected, correcting from', fixed.item_type);
     fixed.item_type = 'household';
     fixed.category = 'Beauty & Personal Care';
-    fixed.confidence = Math.max(fixed.confidence, 0.55);
-  } else if (hasFurniture && !hasFood && !hasFashion && !hasElectronics && !hasFitness && !hasBeauty && fixed.item_type !== 'furniture') {
+    fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.75);
+    return fixed;
+  }
+
+  if (hasFurniture && !hasFood && !hasFashion && !hasElectronics && !hasFitness && !hasBeauty && fixed.item_type !== 'furniture') {
     console.log('[SmartScan] Furniture signals detected, correcting from', fixed.item_type);
     fixed.item_type = 'furniture';
-    fixed.confidence = Math.max(fixed.confidence, 0.6);
+    fixed.confidence = Math.min(Math.max(fixed.confidence, 0.6), 0.8);
+    return fixed;
   }
 
   return fixed;
@@ -752,7 +793,13 @@ export async function generateReferenceImage(description: string, scannedImageBa
 
     if (scannedImageBase64) {
       console.log('[SmartScan] Using image edit API with scanned image');
-      const editPrompt = `Transform this into a clean product photo. Remove background clutter, center the item, make it look like a professional product catalog photo with clean white/light background, studio lighting, sharp detail. Keep the exact same item — do not change the product itself. No text overlays, no watermarks.`;
+      const editPrompt = `Transform this photo into a clean, professional product catalog image. Instructions:
+- Remove all background clutter and replace with a clean white or light gradient background
+- Keep the EXACT same item — do not change, replace, or alter the product
+- Center the item with studio-quality lighting
+- Make it look like an e-commerce product listing photo
+- Sharp focus, clean edges, no shadows except subtle product shadow
+- No text overlays, no watermarks, no hands, no other objects`;
       try {
         const editResponse = await fetch('https://toolkit.rork.com/images/edit/', {
           method: 'POST',
@@ -773,13 +820,13 @@ export async function generateReferenceImage(description: string, scannedImageBa
             return dataUrl;
           }
         }
-        console.log('[SmartScan] Edit API failed, falling back to generation');
+        console.log('[SmartScan] Edit API response not ok, falling back to generation');
       } catch (editErr) {
         console.log('[SmartScan] Edit API error, falling back to generation:', editErr);
       }
     }
 
-    const prompt = `Clean professional product photo on a plain white background, studio lighting, high quality, sharp detail: ${description}. E-commerce product photography style, centered composition, no text overlays, no watermarks, no hands, isolated product only.`;
+    const prompt = `Professional product photography, single item centered on plain white background, studio lighting, high quality, sharp detail, e-commerce style: ${description}. No text, no watermarks, no hands, isolated product only, clean composition.`;
 
     const response = await fetch('https://toolkit.rork.com/images/generate/', {
       method: 'POST',
@@ -858,8 +905,8 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
   classification = recoverUnknown(classification);
   classification = fixItemType(classification);
 
-  if (classification.confidence < 0.3) {
-    classification.confidence = 0.35;
+  if (classification.confidence < 0.25) {
+    classification.confidence = 0.25;
   }
 
   console.log('[SmartScan] Step 2: Getting details for', classification.item_type);
@@ -869,10 +916,11 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
 
 The item has been identified as: ${classification.item_name} (${classification.category}).
 Visual cues: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
-item_type must be "${classification.item_type}". is_receipt must be false.
+item_type MUST be "${classification.item_type}". Do NOT change it. is_receipt must be false.
 confidence should be ${classification.confidence.toFixed(2)}.
-Keep item_name close to "${classification.item_name}" — only refine, don't replace with unrelated product.
-IMPORTANT: Only populate the ${classification.item_type}_details field. All other detail fields MUST be null.`;
+Keep item_name close to "${classification.item_name}" — only refine spelling/capitalization, don't replace with a different product.
+CRITICAL: ONLY populate the ${classification.item_type}_details field. ALL other detail fields (*_details) MUST be null.
+Do NOT invent information. If you don't know a value, set it to null.`;
 
   const result = await callWithRetry(
     () => generateObject({

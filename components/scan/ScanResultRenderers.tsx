@@ -161,16 +161,22 @@ interface ResultProps {
 
 function EmptyFallbackSection({ result }: ResultProps) {
   const typeLabel = result.item_type ? capitalize(result.item_type.replace(/_/g, ' ')) : 'Item';
+  const isLowConf = result.confidence < 0.4;
   return (
     <>
-      <SectionLabel text="Scan Result" />
+      <SectionLabel text={isLowConf ? 'Scan Result — Limited Data' : 'Scan Result'} />
       <View style={s.fallbackBlock}>
         <Text style={s.fallbackTitle}>{result.item_name || `${typeLabel} Detected`}</Text>
         {result.category ? (
           <Text style={s.fallbackSub}>Category: {result.category}</Text>
         ) : null}
       </View>
-      {result.short_summary ? (
+      {isLowConf ? (
+        <>
+          <Divider />
+          <InfoBlock text="Limited information could be extracted. Try a clearer photo with better lighting for more detailed results." type="warning" />
+        </>
+      ) : result.short_summary ? (
         <>
           <Divider />
           <InfoBlock text={result.short_summary} type="tip" />
@@ -707,24 +713,32 @@ export function UnknownResultSection({ result }: ResultProps) {
   if (result.grocery_details != null) return <GroceryResultSection result={result} />;
   if (result.fashion_details != null) return <FashionResultSection result={result} />;
   if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
+
+  const isVeryLow = result.confidence < 0.3;
   return (
     <>
       <View style={s.fallbackBlock}>
         <Text style={s.fallbackTitle}>
-          {result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized'}
+          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
         </Text>
         {result.category && result.category !== 'unknown' ? (
           <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
         ) : null}
       </View>
       <Divider />
-      <NoPriceRow />
-      {result.short_summary ? (
+      {isVeryLow ? (
+        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
+      ) : (
         <>
-          <Divider />
-          <InfoBlock text={result.short_summary} type="tip" />
+          <NoPriceRow />
+          {result.short_summary ? (
+            <>
+              <Divider />
+              <InfoBlock text={result.short_summary} type="tip" />
+            </>
+          ) : null}
         </>
-      ) : null}
+      )}
     </>
   );
 }
