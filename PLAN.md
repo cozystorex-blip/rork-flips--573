@@ -201,3 +201,9 @@
 - [x] Free limit notice shown when user is at the 10-scan cap
 - [x] Both contexts wired into app layout provider tree
 - [x] Build verified clean with zero TypeScript errors
+
+---
+
+## === SAVE 6.3 ===
+
+All features above are complete and stable as of this checkpoint.
