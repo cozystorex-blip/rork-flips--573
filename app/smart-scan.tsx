@@ -379,13 +379,6 @@ export default function SmartScanScreen() {
     return '#DC2626';
   }, [result]);
 
-  const confidenceBg = useMemo(() => {
-    if (!result) return '#F3F4F6';
-    if (result.confidence >= 0.8) return '#ECFDF5';
-    if (result.confidence >= 0.6) return '#EFF6FF';
-    if (result.confidence >= 0.4) return '#FFFBEB';
-    return '#FEF2F2';
-  }, [result]);
 
   const resultSection = useMemo(() => {
     if (!result) return null;
@@ -617,115 +610,133 @@ export default function SmartScanScreen() {
 
         {result && (
           <Animated.View style={{ opacity: resultFade }}>
-            <View style={st.imageGallery}>
-              {scannedImageUri && (
-                <View style={st.scannedImageContainer}>
-                  <ExpoImage
-                    source={{ uri: scannedImageUri }}
-                    style={st.scannedImage}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                  />
-                  <View style={st.scannedImageBadge}>
-                    <Camera size={10} color="#FFFFFF" />
-                    <Text style={st.scannedImageBadgeText}>Your Scan</Text>
+            <View style={st.imageHero}>
+              {scannedImageUri && referenceImageUrl ? (
+                <View style={st.dualImageRow}>
+                  <View style={st.dualImageWrap}>
+                    <ExpoImage
+                      source={{ uri: scannedImageUri }}
+                      style={st.dualImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                    <View style={st.imageLabelLeft}>
+                      <Camera size={9} color="#FFFFFF" />
+                      <Text style={st.imageLabelText}>Scan</Text>
+                    </View>
                   </View>
-                </View>
-              )}
-              {(referenceImageUrl || generatingImage) && (
-                <View style={st.referenceImageContainer}>
-                  {referenceImageUrl ? (
+                  <View style={st.dualImageWrap}>
                     <ExpoImage
                       source={{ uri: referenceImageUrl }}
-                      style={scannedImageUri ? st.referenceImageSmall : st.referenceImage}
+                      style={st.dualImage}
                       contentFit="contain"
                       cachePolicy="memory-disk"
                     />
-                  ) : (
-                    <View style={scannedImageUri ? st.referenceImagePlaceholderSmall : st.referenceImagePlaceholder}>
-                      <ActivityIndicator size="small" color="#3B82F6" />
-                      <Text style={st.referenceImageLoadingText}>Creating reference...</Text>
+                    <View style={st.imageLabelRight}>
+                      <Sparkles size={9} color="#93C5FD" />
+                      <Text style={st.imageLabelTextAi}>AI Match</Text>
                     </View>
-                  )}
-                  <View style={st.referenceImageBadge}>
-                    <Sparkles size={10} color="#3B82F6" />
-                    <Text style={st.referenceImageBadgeText}>AI Reference</Text>
                   </View>
                 </View>
-              )}
+              ) : scannedImageUri ? (
+                <View style={st.soloImageWrap}>
+                  <ExpoImage
+                    source={{ uri: scannedImageUri }}
+                    style={st.soloImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
+                  {generatingImage && (
+                    <View style={st.generatingOverlay}>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text style={st.generatingText}>Creating AI reference...</Text>
+                    </View>
+                  )}
+                </View>
+              ) : referenceImageUrl ? (
+                <View style={st.soloImageWrap}>
+                  <ExpoImage
+                    source={{ uri: referenceImageUrl }}
+                    style={st.soloImage}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
+                  />
+                </View>
+              ) : generatingImage ? (
+                <View style={st.imagePlaceholder}>
+                  <ActivityIndicator size="small" color="#3B82F6" />
+                  <Text style={st.imagePlaceholderText}>Generating reference...</Text>
+                </View>
+              ) : null}
             </View>
 
-            <View style={st.resultCard}>
-              <View style={st.resultHeader}>
-                <View style={st.resultNameRow}>
-                  {typeConfig && (
-                    <View style={[st.resultIcon, { backgroundColor: typeConfig.bg }]}>
-                      <typeConfig.Icon size={20} color={typeConfig.color} />
-                    </View>
-                  )}
-                  <View style={st.resultNameCol}>
-                    <Text style={st.resultName}>{result.item_name}</Text>
-                    <Text style={st.resultCategory}>{result.category}</Text>
+            <View style={st.resultIdentity}>
+              <View style={st.resultIdentityTop}>
+                {typeConfig && (
+                  <View style={[st.resultTypeIcon, { backgroundColor: `${typeConfig.color}20` }]}>
+                    <typeConfig.Icon size={18} color={typeConfig.color} />
                   </View>
+                )}
+                <View style={st.resultIdentityText}>
+                  <Text style={st.resultName}>{result.item_name}</Text>
+                  <Text style={st.resultCategory}>{result.category}</Text>
                 </View>
-
-                <View style={st.resultBadgeRow}>
-                  {typeConfig && (
-                    <View style={[st.typeBadge, { backgroundColor: typeConfig.bg }]}>
-                      <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
-                    </View>
-                  )}
-                  <View style={[st.confBadge, { backgroundColor: confidenceBg }]}>
-                    <Text style={[st.confText, { color: confidenceColor }]}>{confidenceLabel}</Text>
-                  </View>
-                </View>
-
-                {result.short_summary ? (
-                  <View style={st.summaryCard}>
-                    <Text style={st.summaryText}>{result.short_summary}</Text>
-                  </View>
-                ) : null}
               </View>
+              <View style={st.resultBadgeRow}>
+                {typeConfig && (
+                  <View style={[st.typeBadge, { backgroundColor: `${typeConfig.color}18` }]}>
+                    <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
+                  </View>
+                )}
+                <View style={[st.confBadge, { backgroundColor: `${confidenceColor}18` }]}>
+                  <View style={[st.confDot, { backgroundColor: confidenceColor }]} />
+                  <Text style={[st.confText, { color: confidenceColor }]}>{confidenceLabel}</Text>
+                </View>
+              </View>
+            </View>
 
-              <View style={st.divider} />
+            {result.short_summary ? (
+              <View style={st.summaryStrip}>
+                <Text style={st.summaryStripText}>{result.short_summary}</Text>
+              </View>
+            ) : null}
 
+            <View style={st.resultCard}>
               {resultSection}
             </View>
 
-            <View style={st.resultActions}>
+            <View style={st.resultActionsRow}>
               <Pressable style={st.newScanBtn} onPress={resetScan} testID="smart-scan-again">
-                <RefreshCw size={15} color="#3B82F6" />
-                <Text style={[st.newScanText, { color: '#3B82F6' }]}>Scan Another Item</Text>
+                <RefreshCw size={15} color="#FFFFFF" />
+                <Text style={st.newScanBtnText}>Scan Another Item</Text>
               </Pressable>
-            </View>
-
-            {viewingEntryId && (
-              <Pressable
-                style={st.deleteResultBtn}
-                testID="delete-scan-result"
-                onPress={() => {
-                  Alert.alert(
-                    'Delete Scan',
-                    'Are you sure you want to delete this scan result?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => {
-                          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                          deleteEntry(viewingEntryId);
-                          resetScan();
+              {viewingEntryId && (
+                <Pressable
+                  style={st.deleteResultBtn}
+                  testID="delete-scan-result"
+                  onPress={() => {
+                    Alert.alert(
+                      'Delete Scan',
+                      'Are you sure you want to delete this scan result?',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete',
+                          style: 'destructive',
+                          onPress: () => {
+                            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                            deleteEntry(viewingEntryId);
+                            resetScan();
+                          },
                         },
-                      },
-                    ]
-                  );
-                }}
-              >
-                <Trash2 size={16} color="#FF453A" />
-                <Text style={st.deleteResultText}>Delete Scan</Text>
-              </Pressable>
-            )}
+                      ]
+                    );
+                  }}
+                >
+                  <Trash2 size={15} color="#FF453A" />
+                </Pressable>
+              )}
+            </View>
           </Animated.View>
         )}
 
@@ -855,43 +866,43 @@ const st = StyleSheet.create({
   capLabel: { fontSize: 14, fontWeight: '600' as const, color: '#F5F5F7' },
   capDesc: { fontSize: 12, color: '#8E8E93', marginTop: 1 },
 
-  imageGallery: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  scannedImageContainer: { flex: 1, position: 'relative' as const, borderRadius: 16, overflow: 'hidden' },
-  scannedImage: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A' },
-  scannedImageBadge: { position: 'absolute' as const, bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  scannedImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
-  referenceImageContainer: { flex: 1, position: 'relative' as const, borderRadius: 16, overflow: 'hidden' },
-  referenceImage: { width: '100%', height: 220, borderRadius: 16, backgroundColor: '#1A1A1A' },
-  referenceImageSmall: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A' },
-  referenceImagePlaceholder: { width: '100%', height: 160, borderRadius: 16, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  referenceImagePlaceholderSmall: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  referenceImageLoadingText: { fontSize: 11, color: '#636366', fontWeight: '500' as const, textAlign: 'center' as const },
-  referenceImageBadge: { position: 'absolute' as const, bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  referenceImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#93C5FD' },
+  imageHero: { marginBottom: 16 },
+  dualImageRow: { flexDirection: 'row', gap: 8, height: 190 },
+  dualImageWrap: { flex: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: '#151515', position: 'relative' as const },
+  dualImage: { width: '100%', height: '100%' },
+  imageLabelLeft: { position: 'absolute' as const, bottom: 6, left: 6, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
+  imageLabelRight: { position: 'absolute' as const, bottom: 6, right: 6, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
+  imageLabelText: { fontSize: 9, fontWeight: '700' as const, color: '#FFFFFF', textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+  imageLabelTextAi: { fontSize: 9, fontWeight: '700' as const, color: '#93C5FD', textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+  soloImageWrap: { height: 220, borderRadius: 14, overflow: 'hidden', backgroundColor: '#151515', position: 'relative' as const },
+  soloImage: { width: '100%', height: '100%' },
+  generatingOverlay: { position: 'absolute' as const, bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, backgroundColor: 'rgba(0,0,0,0.6)' },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#D1D1D6' },
+  imagePlaceholder: { height: 140, borderRadius: 14, backgroundColor: '#151515', borderWidth: 1, borderColor: '#222', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  imagePlaceholderText: { fontSize: 12, color: '#636366', fontWeight: '500' as const },
 
-  resultCard: { backgroundColor: '#1A1A1A', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#2A2A2A' },
-  resultHeader: { marginBottom: 4 },
-  resultNameRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
-  resultIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  resultNameCol: { flex: 1 },
-  resultName: { fontSize: 20, fontWeight: '700' as const, color: '#F5F5F7', letterSpacing: -0.3 },
-  resultCategory: { fontSize: 13, fontWeight: '500' as const, color: '#8E8E93', marginTop: 2 },
-  resultBadgeRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  resultIdentity: { marginBottom: 12 },
+  resultIdentityTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  resultTypeIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  resultIdentityText: { flex: 1 },
+  resultName: { fontSize: 21, fontWeight: '800' as const, color: '#F5F5F7', letterSpacing: -0.4 },
+  resultCategory: { fontSize: 12, fontWeight: '500' as const, color: '#8E8E93', marginTop: 1 },
+  resultBadgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   typeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeBadgeText: { fontSize: 11, fontWeight: '700' as const },
-  confBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  confBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  confDot: { width: 5, height: 5, borderRadius: 3 },
   confText: { fontSize: 11, fontWeight: '700' as const },
 
-  summaryCard: { backgroundColor: '#222222', borderRadius: 10, padding: 12, marginTop: 4 },
-  summaryText: { fontSize: 13, color: '#D1D1D6', lineHeight: 19, fontWeight: '500' as const },
+  summaryStrip: { backgroundColor: '#161616', borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#1E1E1E' },
+  summaryStripText: { fontSize: 13, color: '#C7C7CC', lineHeight: 19, fontWeight: '500' as const },
 
-  divider: { height: 1, backgroundColor: '#2A2A2A', marginVertical: 16 },
+  resultCard: { backgroundColor: '#141414', borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 4 },
 
-  resultActions: { marginTop: 16, alignItems: 'center' },
-  newScanBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12, backgroundColor: '#3B82F618', borderWidth: 1, borderColor: '#3B82F630' },
-  newScanText: { fontSize: 15, fontWeight: '600' as const },
-  deleteResultBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 12, backgroundColor: '#FF453A14', borderWidth: 1, borderColor: '#FF453A30', marginTop: 12 },
-  deleteResultText: { fontSize: 15, fontWeight: '600' as const, color: '#FF453A' },
+  resultActionsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
+  newScanBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: '#3B82F6' },
+  newScanBtnText: { fontSize: 15, fontWeight: '600' as const, color: '#FFFFFF' },
+  deleteResultBtn: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center' },
 
   historySection: { backgroundColor: '#1A1A1A', borderRadius: 16, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#2A2A2A' },
   historyHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
