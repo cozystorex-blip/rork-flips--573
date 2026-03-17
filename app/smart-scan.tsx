@@ -43,7 +43,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 
 import { AppIllustrations } from '@/constants/illustrations';
-import { runSmartScan, generateReferenceImage, SmartScanResult, SmartScanItemType } from '@/services/smartScanService';
+import { runSmartScan, generateReferenceImage, getLastProcessedBase64, SmartScanResult, SmartScanItemType } from '@/services/smartScanService';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { persistScanImage } from '@/services/imagePersistence';
 import { usePremium } from '@/contexts/PremiumContext';
@@ -194,6 +194,7 @@ export default function SmartScanScreen() {
   const [scanError, setScanError] = useState<string | null>(null);
   const [result, setResult] = useState<SmartScanResult | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
   const [generatingImage, setGeneratingImage] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
@@ -224,6 +225,7 @@ export default function SmartScanScreen() {
         }
         setResult(entry.result);
         setReferenceImageUrl(entry.result.reference_image_url ?? null);
+        setScannedImageUri(entry.imageUri ?? entry.result.scanned_image_uri ?? null);
         setViewingEntryId(entry.id);
         resultFade.setValue(1);
         historyEntryIdRef.current = undefined;
@@ -253,6 +255,7 @@ export default function SmartScanScreen() {
     setScanError(null);
     setResult(null);
     setReferenceImageUrl(null);
+    setScannedImageUri(null);
     resultFade.setValue(0);
     hasNavigatedRef.current = false;
 
@@ -298,15 +301,17 @@ export default function SmartScanScreen() {
 
       animateProgress(70, 800);
       setResult(scanResult);
+      setScannedImageUri(capturedUri);
 
       setScanPhase('generating_image');
       animateProgress(85, 3000);
 
+      const processedBase64 = getLastProcessedBase64();
       let refImageUrl: string | null = null;
       if (scanResult.image_description) {
         try {
           setGeneratingImage(true);
-          refImageUrl = await generateReferenceImage(scanResult.image_description);
+          refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined);
           setReferenceImageUrl(refImageUrl);
           scanResult.reference_image_url = refImageUrl;
         } catch (imgErr) {
@@ -347,6 +352,7 @@ export default function SmartScanScreen() {
   const resetScan = useCallback(() => {
     setResult(null);
     setReferenceImageUrl(null);
+    setScannedImageUri(null);
     setViewingEntryId(null);
     setScanError(null);
     setScanPhase('idle');
@@ -536,6 +542,7 @@ export default function SmartScanScreen() {
                             void Haptics.selectionAsync();
                             setResult(entry.result);
                             setReferenceImageUrl(entry.result.reference_image_url ?? null);
+                            setScannedImageUri(entry.imageUri ?? entry.result.scanned_image_uri ?? null);
                             setViewingEntryId(entry.id);
                             resultFade.setValue(1);
                           }}
@@ -610,27 +617,43 @@ export default function SmartScanScreen() {
 
         {result && (
           <Animated.View style={{ opacity: resultFade }}>
-            {(referenceImageUrl || generatingImage) && (
-              <View style={st.referenceImageContainer}>
-                {referenceImageUrl ? (
+            <View style={st.imageGallery}>
+              {scannedImageUri && (
+                <View style={st.scannedImageContainer}>
                   <ExpoImage
-                    source={{ uri: referenceImageUrl }}
-                    style={st.referenceImage}
-                    contentFit="contain"
+                    source={{ uri: scannedImageUri }}
+                    style={st.scannedImage}
+                    contentFit="cover"
                     cachePolicy="memory-disk"
                   />
-                ) : (
-                  <View style={st.referenceImagePlaceholder}>
-                    <ActivityIndicator size="small" color="#3B82F6" />
-                    <Text style={st.referenceImageLoadingText}>Generating reference image...</Text>
+                  <View style={st.scannedImageBadge}>
+                    <Camera size={10} color="#FFFFFF" />
+                    <Text style={st.scannedImageBadgeText}>Your Scan</Text>
                   </View>
-                )}
-                <View style={st.referenceImageBadge}>
-                  <Sparkles size={10} color="#3B82F6" />
-                  <Text style={st.referenceImageBadgeText}>AI Reference</Text>
                 </View>
-              </View>
-            )}
+              )}
+              {(referenceImageUrl || generatingImage) && (
+                <View style={st.referenceImageContainer}>
+                  {referenceImageUrl ? (
+                    <ExpoImage
+                      source={{ uri: referenceImageUrl }}
+                      style={scannedImageUri ? st.referenceImageSmall : st.referenceImage}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={scannedImageUri ? st.referenceImagePlaceholderSmall : st.referenceImagePlaceholder}>
+                      <ActivityIndicator size="small" color="#3B82F6" />
+                      <Text style={st.referenceImageLoadingText}>Creating reference...</Text>
+                    </View>
+                  )}
+                  <View style={st.referenceImageBadge}>
+                    <Sparkles size={10} color="#3B82F6" />
+                    <Text style={st.referenceImageBadgeText}>AI Reference</Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
             <View style={st.resultCard}>
               <View style={st.resultHeader}>
@@ -832,11 +855,18 @@ const st = StyleSheet.create({
   capLabel: { fontSize: 14, fontWeight: '600' as const, color: '#F5F5F7' },
   capDesc: { fontSize: 12, color: '#8E8E93', marginTop: 1 },
 
-  referenceImageContainer: { alignItems: 'center', marginBottom: 16, position: 'relative' as const },
+  imageGallery: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  scannedImageContainer: { flex: 1, position: 'relative' as const, borderRadius: 16, overflow: 'hidden' },
+  scannedImage: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A' },
+  scannedImageBadge: { position: 'absolute' as const, bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  scannedImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+  referenceImageContainer: { flex: 1, position: 'relative' as const, borderRadius: 16, overflow: 'hidden' },
   referenceImage: { width: '100%', height: 220, borderRadius: 16, backgroundColor: '#1A1A1A' },
+  referenceImageSmall: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A' },
   referenceImagePlaceholder: { width: '100%', height: 160, borderRadius: 16, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  referenceImageLoadingText: { fontSize: 12, color: '#636366', fontWeight: '500' as const },
-  referenceImageBadge: { position: 'absolute' as const, bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  referenceImagePlaceholderSmall: { width: '100%', height: 200, borderRadius: 16, backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  referenceImageLoadingText: { fontSize: 11, color: '#636366', fontWeight: '500' as const, textAlign: 'center' as const },
+  referenceImageBadge: { position: 'absolute' as const, bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   referenceImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#93C5FD' },
 
   resultCard: { backgroundColor: '#1A1A1A', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#2A2A2A' },
