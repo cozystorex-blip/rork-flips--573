@@ -184,6 +184,15 @@ export function ReceiptResultSection({ result }: ResultProps) {
   );
 }
 
+function NoPriceRow() {
+  return (
+    <View style={s.noPriceRow}>
+      <Text style={s.noPriceText}>No price found</Text>
+      <Text style={s.noPriceSub}>Not enough data to estimate pricing</Text>
+    </View>
+  );
+}
+
 function EmptyFallbackSection({ result }: ResultProps) {
   const typeLabel = result.item_type ? capitalize(result.item_type.replace(/_/g, ' ')) : 'Item';
   return (
@@ -203,7 +212,7 @@ function EmptyFallbackSection({ result }: ResultProps) {
       ) : (
         <>
           <ReceiptDivider />
-          <InfoBlock text="We identified this item but could not extract detailed information. Try scanning again with better lighting or a different angle for more complete results." type="warning" />
+          <InfoBlock text="Could not extract detailed information. Try a clearer photo for better results." type="warning" />
         </>
       )}
     </>
@@ -255,9 +264,13 @@ export function FoodResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {fd.estimated_price && <PriceLineItem label="Est. Price" value={fd.estimated_price} large />}
-      {fd.price_range && fd.estimated_price && <LineItem label="Range" value={fd.price_range} />}
-      {fd.unit_price && <LineItem label="Unit Price" value={fd.unit_price} />}
+      {fd.estimated_price ? (
+        <>
+          <PriceLineItem label="Est. Price" value={fd.estimated_price} large />
+          {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
+          {fd.unit_price && <LineItem label="Unit Price" value={fd.unit_price} />}
+        </>
+      ) : <NoPriceRow />}
 
       {fd.budget_insight && (
         <>
@@ -309,9 +322,13 @@ export function GroceryResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {gd.estimated_price && <PriceLineItem label="Est. Price" value={gd.estimated_price} large />}
-      {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
-      {gd.unit_price && <LineItem label="Unit Price" value={gd.unit_price} />}
+      {gd.estimated_price ? (
+        <>
+          <PriceLineItem label="Est. Price" value={gd.estimated_price} large />
+          {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
+          {gd.unit_price && <LineItem label="Unit Price" value={gd.unit_price} />}
+        </>
+      ) : <NoPriceRow />}
 
       {gd.budget_insight && (
         <>
@@ -375,8 +392,12 @@ export function FurnitureResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {fd.estimated_retail_price && <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />}
-      {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
+      {fd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />
+          {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
+        </>
+      ) : <NoPriceRow />}
 
       {fd.value_verdict && (
         <View style={[s.verdictStrip, {
@@ -496,9 +517,13 @@ export function FashionResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {fd.estimated_retail_price && <PriceLineItem label="Retail Price" value={fd.estimated_retail_price} large />}
-      {fd.estimated_resale_value && <PriceLineItem label="Resale Value" value={fd.estimated_resale_value} />}
-      {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
+      {fd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={fd.estimated_retail_price} large />
+          {fd.estimated_resale_value && <PriceLineItem label="Resale Value" value={fd.estimated_resale_value} />}
+          {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
+        </>
+      ) : <NoPriceRow />}
 
       {fd.value_verdict && (
         <View style={[s.verdictStrip, {
@@ -546,9 +571,13 @@ export function ElectronicsResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {ed.estimated_retail_price && <PriceLineItem label="Retail Price" value={ed.estimated_retail_price} large />}
-      {ed.estimated_resale_value && <PriceLineItem label="Resale Value" value={ed.estimated_resale_value} />}
-      {ed.price_range && <LineItem label="Range" value={ed.price_range} />}
+      {ed.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={ed.estimated_retail_price} large />
+          {ed.estimated_resale_value && <PriceLineItem label="Resale Value" value={ed.estimated_resale_value} />}
+          {ed.price_range && <LineItem label="Range" value={ed.price_range} />}
+        </>
+      ) : <NoPriceRow />}
 
       {ed.depreciation_note && <InfoBlock text={ed.depreciation_note} type="warning" />}
 
@@ -600,9 +629,13 @@ export function HouseholdResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {hd.estimated_price && <PriceLineItem label="Est. Price" value={hd.estimated_price} large />}
-      {hd.estimated_resale_value && <PriceLineItem label="Resale Value" value={hd.estimated_resale_value} />}
-      {hd.price_range && <LineItem label="Range" value={hd.price_range} />}
+      {hd.estimated_price ? (
+        <>
+          <PriceLineItem label="Est. Price" value={hd.estimated_price} large />
+          {hd.estimated_resale_value && <PriceLineItem label="Resale Value" value={hd.estimated_resale_value} />}
+          {hd.price_range && <LineItem label="Range" value={hd.price_range} />}
+        </>
+      ) : <NoPriceRow />}
 
       {hd.value_verdict && (
         <View style={[s.verdictStrip, {
@@ -643,9 +676,13 @@ export function GeneralResultSection({ result }: ResultProps) {
 
       <ReceiptDivider />
       <SectionLabel text="PRICE CHECK" />
-      {gd.estimated_retail_price && <PriceLineItem label="Retail Price" value={gd.estimated_retail_price} large />}
-      {gd.estimated_resale_value && <PriceLineItem label="Resale Value" value={gd.estimated_resale_value} />}
-      {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
+      {gd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={gd.estimated_retail_price} large />
+          {gd.estimated_resale_value && <PriceLineItem label="Resale Value" value={gd.estimated_resale_value} />}
+          {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
+        </>
+      ) : <NoPriceRow />}
 
       {gd.value_verdict && (
         <View style={[s.verdictStrip, {
@@ -692,13 +729,12 @@ export function UnknownResultSection({ result }: ResultProps) {
         <Text style={s.unknownTitle}>
           {result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized'}
         </Text>
-        <ReceiptDivider />
-        <Text style={s.unknownSub}>
-          {result.category && result.category !== 'unknown'
-            ? `Detected: ${result.category}\nTry scanning from a different angle for more details.`
-            : 'Try scanning the product label or a different angle for better results.'}
-        </Text>
+        {result.category && result.category !== 'unknown' ? (
+          <Text style={s.unknownSub}>Possible category: {result.category}</Text>
+        ) : null}
       </View>
+      <ReceiptDivider />
+      <NoPriceRow />
       {result.short_summary ? (
         <>
           <ReceiptDivider />
@@ -980,5 +1016,21 @@ const s = StyleSheet.create({
     color: R.inkMuted,
     textAlign: 'center' as const,
     lineHeight: 17,
+  },
+  noPriceRow: {
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+  },
+  noPriceText: {
+    fontSize: 14,
+    fontWeight: '800' as const,
+    color: R.inkMuted,
+    letterSpacing: 0.5,
+  },
+  noPriceSub: {
+    fontSize: 11,
+    color: R.lineDash,
+    fontWeight: '500' as const,
+    marginTop: 2,
   },
 });
