@@ -38,7 +38,7 @@ import { SEED_DEALS, DEAL_POSTER_MAP } from '@/mocks/seedDeals';
 import { getProductImageUrl } from '@/constants/productImages';
 import { mockProfiles } from '@/mocks/data';
 import { getLocalDeals } from '@/services/localDealsService';
-import DealAdCard from '@/components/ads/DealAdCard';
+import AdMobBanner from '@/components/ads/AdMobBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_PHOTO_HEIGHT = (SCREEN_WIDTH - 32) * 0.48;
@@ -518,8 +518,8 @@ export default function DealsScreen() {
   const dealKeyExtractor = useCallback((item: VerifiedDealRow) => item.id, []);
 
   const renderDealItem = useCallback(({ item, index }: { item: VerifiedDealRow; index: number }) => {
-    const adElement = index > 0 && index % 5 === 0
-      ? <DealAdCard key={`deal-ad-${index}`} index={index} />
+    const adElement = index > 0 && index % 6 === 0
+      ? <AdMobBanner key={`admob-${index}`} />
       : null;
 
     return (

@@ -36,8 +36,6 @@ import * as Clipboard from 'expo-clipboard';
 import Colors from '@/constants/colors';
 import { computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
 import { classifySourceUrl } from '@/utils/sourceUrlQuality';
-import AdMobBanner from '@/components/ads/AdMobBanner';
-import DealAdCard from '@/components/ads/DealAdCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -548,11 +546,6 @@ export default function PostDetailScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.adSection}>
-              <AdMobBanner />
-              <DealAdCard index={0} />
-            </View>
-
             {isValidUrl && sourceQuality.showExternalLink ? (
               <View style={styles.storeLinkSection}>
                 <Pressable
@@ -628,11 +621,6 @@ export default function PostDetailScreen() {
               </View>
             )}
           </Animated.View>
-
-          <View style={styles.adSection}>
-            <AdMobBanner />
-            <DealAdCard index={1} />
-          </View>
 
           <View style={{ height: 60 }} />
         </ScrollView>
@@ -723,10 +711,6 @@ export default function PostDetailScreen() {
             </View>
           ) : null}
         </Animated.View>
-
-        <View style={styles.adSection}>
-          <AdMobBanner />
-        </View>
 
         <View style={{ height: 60 }} />
       </ScrollView>
@@ -1377,10 +1361,6 @@ const styles = StyleSheet.create({
     color: '#92400E',
     flex: 1,
     lineHeight: 17,
-  },
-  adSection: {
-    marginTop: 8,
-    marginBottom: 8,
   },
   storeLinkSection: {
     gap: 8,
