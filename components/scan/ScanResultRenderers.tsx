@@ -363,7 +363,6 @@ export function FoodResultSection({ result }: ResultProps) {
         </View>
       ) : null}
       <GoesWithSection result={result} />
-      <ResellValueSection result={result} />
       {fd.tags.length > 0 && (
         <View style={s.tagsRow}>
           {fd.tags.map((t, i) => (
@@ -463,7 +462,6 @@ export function GroceryResultSection({ result }: ResultProps) {
         </View>
       )}
       <GoesWithSection result={result} />
-      <ResellValueSection result={result} />
       {gd.tags.length > 0 && (
         <View style={s.tagsRow}>
           {gd.tags.map((t, i) => (

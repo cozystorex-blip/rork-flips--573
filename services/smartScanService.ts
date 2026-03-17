@@ -12,6 +12,8 @@ const classificationSchema = z.object({
   category: z.string(),
   secondary_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'unknown']).nullable(),
   visual_cues: z.array(z.string()),
+  short_summary: z.string(),
+  image_description: z.string(),
 });
 
 const foodDetailsSchema = z.object({
@@ -232,7 +234,11 @@ const smartScanSchema = z.object({
   is_receipt: z.boolean(),
 });
 
-export type SmartScanResult = z.infer<typeof smartScanSchema>;
+export type SmartScanResult = z.infer<typeof smartScanSchema> & {
+  reference_image_url?: string | null;
+  short_summary?: string;
+  image_description?: string;
+};
 
 function extractDollarAmount(price: string | null): number | null {
   if (!price) return null;
@@ -262,75 +268,45 @@ function normalizeResaleValue(
   condition: string | null
 ): string | null {
   if (!resale) return null;
-
   const combined = (itemName + ' ' + category).toLowerCase();
-
   if (NON_RESELLABLE_SIGNALS.some(s => combined.includes(s))) {
     console.log('[SmartScan] Non-resellable item detected, nullifying resale');
     return null;
   }
-
   if (LOW_RESALE_CATEGORIES.some(s => combined.includes(s))) {
     console.log('[SmartScan] Low-resale category detected, nullifying resale');
     return null;
   }
-
   const resaleVal = extractDollarAmount(resale);
   const retailVal = extractDollarAmount(retail);
-
-  if (resaleVal === null || resaleVal < 1) {
-    return null;
-  }
-
+  if (resaleVal === null || resaleVal < 1) return null;
   if (retailVal !== null && retailVal > 0) {
     if (resaleVal > retailVal * 1.15) {
-      console.log(`[SmartScan] Resale (${resaleVal}) exceeds retail (${retailVal}) — capping`);
       const capped = Math.round(retailVal * 0.7 * 100) / 100;
       return `${capped.toFixed(2)}`;
     }
-
     if (resaleVal > retailVal * 0.95 && (condition === 'good' || condition === 'fair' || condition === 'worn')) {
-      console.log(`[SmartScan] Resale too close to retail for ${condition} condition — adjusting`);
       const adjusted = Math.round(retailVal * 0.55 * 100) / 100;
       return `${adjusted.toFixed(2)}`;
     }
   }
-
-  if (retailVal !== null && retailVal < 5 && resaleVal > 3) {
-    console.log('[SmartScan] Cheap item with inflated resale — nullifying');
-    return null;
-  }
-
+  if (retailVal !== null && retailVal < 5 && resaleVal > 3) return null;
   if (retailVal !== null && retailVal < 15 && resaleVal > retailVal * 0.8) {
-    console.log('[SmartScan] Low-cost item with high resale ratio — capping');
     const capped = Math.round(retailVal * 0.4 * 100) / 100;
     return capped >= 1 ? `${capped.toFixed(2)}` : null;
   }
-
   return resale;
 }
 
 function normalizePriceField(price: string | null): string | null {
   if (!price) return null;
   const lower = price.toLowerCase().trim();
-  if (
-    lower === 'free' ||
-    lower === 'free with purchase' ||
-    lower === 'n/a' ||
-    lower === 'none' ||
-    lower === 'not sold separately' ||
-    lower === 'not for sale' ||
-    lower === 'included' ||
-    lower === 'complimentary' ||
-    lower.includes('free with')
-  ) {
+  if (['free', 'free with purchase', 'n/a', 'none', 'not sold separately', 'not for sale', 'included', 'complimentary'].includes(lower) || lower.includes('free with')) {
     return null;
   }
   const numMatch = lower.replace(/[^0-9.]/g, '');
   const numVal = parseFloat(numMatch);
-  if (!isNaN(numVal) && numVal < 0.05) {
-    return null;
-  }
+  if (!isNaN(numVal) && numVal < 0.05) return null;
   return price;
 }
 
@@ -350,23 +326,16 @@ const RESTAURANT_PACKAGING_BRANDS = [
 
 function isPackagingItem(itemName: string, category: string, cues: string[]): boolean {
   const combined = (itemName + ' ' + category + ' ' + cues.join(' ')).toLowerCase();
-  const hasPackagingSignal = PACKAGING_SIGNALS.some(s => combined.includes(s));
-  const hasRestaurantBrand = RESTAURANT_PACKAGING_BRANDS.some(s => combined.includes(s));
-  return hasPackagingSignal && hasRestaurantBrand;
+  return PACKAGING_SIGNALS.some(s => combined.includes(s)) && RESTAURANT_PACKAGING_BRANDS.some(s => combined.includes(s));
 }
 
 function stabilizePricing(result: SmartScanResult): SmartScanResult {
   const stabilized = { ...result };
   const cues: string[] = [];
-
-  const isPackaging = isPackagingItem(
-    stabilized.item_name ?? '',
-    stabilized.category ?? '',
-    cues
-  );
+  const isPackaging = isPackagingItem(stabilized.item_name ?? '', stabilized.category ?? '', cues);
 
   if (isPackaging) {
-    console.log('[SmartScan] Packaging item detected — nullifying prices for consistency');
+    console.log('[SmartScan] Packaging item detected — nullifying prices');
     if (stabilized.food_details) {
       stabilized.food_details = { ...stabilized.food_details, estimated_price: null, price_range: null, unit_price: null, value_rating: null, budget_insight: 'This is restaurant packaging, not a purchasable item.', cheaper_alternative: null };
     }
@@ -383,264 +352,152 @@ function stabilizePricing(result: SmartScanResult): SmartScanResult {
   }
 
   if (stabilized.food_details) {
-    stabilized.food_details = {
-      ...stabilized.food_details,
-      estimated_price: normalizePriceField(stabilized.food_details.estimated_price),
-      price_range: normalizePriceField(stabilized.food_details.price_range),
-      unit_price: normalizePriceField(stabilized.food_details.unit_price),
-    };
+    stabilized.food_details = { ...stabilized.food_details, estimated_price: normalizePriceField(stabilized.food_details.estimated_price), price_range: normalizePriceField(stabilized.food_details.price_range), unit_price: normalizePriceField(stabilized.food_details.unit_price) };
   }
   if (stabilized.grocery_details) {
-    stabilized.grocery_details = {
-      ...stabilized.grocery_details,
-      estimated_price: normalizePriceField(stabilized.grocery_details.estimated_price),
-      price_range: normalizePriceField(stabilized.grocery_details.price_range),
-      unit_price: normalizePriceField(stabilized.grocery_details.unit_price),
-    };
+    stabilized.grocery_details = { ...stabilized.grocery_details, estimated_price: normalizePriceField(stabilized.grocery_details.estimated_price), price_range: normalizePriceField(stabilized.grocery_details.price_range), unit_price: normalizePriceField(stabilized.grocery_details.unit_price) };
   }
   if (stabilized.household_details) {
     const hd = stabilized.household_details;
-    stabilized.household_details = {
-      ...hd,
-      estimated_price: normalizePriceField(hd.estimated_price),
-      price_range: normalizePriceField(hd.price_range),
-      estimated_resale_value: normalizeResaleValue(
-        hd.estimated_resale_value,
-        hd.estimated_price,
-        stabilized.item_name,
-        stabilized.category,
-        hd.condition
-      ),
-    };
+    stabilized.household_details = { ...hd, estimated_price: normalizePriceField(hd.estimated_price), price_range: normalizePriceField(hd.price_range), estimated_resale_value: normalizeResaleValue(hd.estimated_resale_value, hd.estimated_price, stabilized.item_name, stabilized.category, hd.condition) };
   }
   if (stabilized.fashion_details) {
     const fd = stabilized.fashion_details;
-    stabilized.fashion_details = {
-      ...fd,
-      estimated_retail_price: normalizePriceField(fd.estimated_retail_price),
-      estimated_resale_value: normalizeResaleValue(
-        fd.estimated_resale_value,
-        fd.estimated_retail_price,
-        stabilized.item_name,
-        stabilized.category,
-        fd.condition
-      ),
-      price_range: normalizePriceField(fd.price_range),
-    };
+    stabilized.fashion_details = { ...fd, estimated_retail_price: normalizePriceField(fd.estimated_retail_price), estimated_resale_value: normalizeResaleValue(fd.estimated_resale_value, fd.estimated_retail_price, stabilized.item_name, stabilized.category, fd.condition), price_range: normalizePriceField(fd.price_range) };
   }
   if (stabilized.electronics_details) {
     const ed = stabilized.electronics_details;
-    stabilized.electronics_details = {
-      ...ed,
-      estimated_retail_price: normalizePriceField(ed.estimated_retail_price),
-      estimated_resale_value: normalizeResaleValue(
-        ed.estimated_resale_value,
-        ed.estimated_retail_price,
-        stabilized.item_name,
-        stabilized.category,
-        ed.condition
-      ),
-      price_range: normalizePriceField(ed.price_range),
-    };
+    stabilized.electronics_details = { ...ed, estimated_retail_price: normalizePriceField(ed.estimated_retail_price), estimated_resale_value: normalizeResaleValue(ed.estimated_resale_value, ed.estimated_retail_price, stabilized.item_name, stabilized.category, ed.condition), price_range: normalizePriceField(ed.price_range) };
   }
   if (stabilized.furniture_details) {
     const fud = stabilized.furniture_details;
-    stabilized.furniture_details = {
-      ...fud,
-      estimated_retail_price: normalizePriceField(fud.estimated_retail_price),
-      estimated_resale_value: normalizeResaleValue(
-        fud.estimated_resale_value,
-        fud.estimated_retail_price,
-        stabilized.item_name,
-        stabilized.category,
-        null
-      ),
-      estimated_price_range: normalizePriceField(fud.estimated_price_range),
-    };
+    stabilized.furniture_details = { ...fud, estimated_retail_price: normalizePriceField(fud.estimated_retail_price), estimated_resale_value: normalizeResaleValue(fud.estimated_resale_value, fud.estimated_retail_price, stabilized.item_name, stabilized.category, null), estimated_price_range: normalizePriceField(fud.estimated_price_range) };
   }
   if (stabilized.general_details) {
     const gd = stabilized.general_details;
-    stabilized.general_details = {
-      ...gd,
-      estimated_retail_price: normalizePriceField(gd.estimated_retail_price),
-      estimated_resale_value: normalizeResaleValue(
-        gd.estimated_resale_value,
-        gd.estimated_retail_price,
-        stabilized.item_name,
-        stabilized.category,
-        gd.condition
-      ),
-      price_range: normalizePriceField(gd.price_range),
-    };
+    stabilized.general_details = { ...gd, estimated_retail_price: normalizePriceField(gd.estimated_retail_price), estimated_resale_value: normalizeResaleValue(gd.estimated_resale_value, gd.estimated_retail_price, stabilized.item_name, stabilized.category, gd.condition), price_range: normalizePriceField(gd.price_range) };
   }
 
   return stabilized;
 }
 
-const CLASSIFICATION_PROMPT = `You are an expert IKEA product classifier. Your primary job is to identify IKEA products, furniture, and home items from images taken while shopping at IKEA.
+const CLASSIFICATION_PROMPT = `You are a universal product identifier. Classify the item in this image into the CORRECT category. Do NOT assume any default category. Analyze what is actually visible.
 
 RULES:
 1. RECEIPT CHECK: If you see printed text with prices, totals, barcodes, store headers → receipt. Set is_receipt=true.
-2. If NOT a receipt, classify:
-   - "furniture" = THE PRIMARY CATEGORY. Desks, tables, chairs, sofas, beds, shelving, cabinets, bookcases, TV stands, wardrobes, dressers, nightstands, kitchen islands, bathroom vanities, storage units, shoe racks, coat racks, side tables, coffee tables, dining sets, office chairs, stools, benches, room dividers, modular storage, flat-pack items, ANY IKEA product tag/shelf label/barcode label, ANY item that looks like it could be from IKEA or a furniture store. When in doubt between furniture and household, choose furniture.
-   - "household" = smaller home items: kitchenware, storage containers, organizing bins, candles, picture frames, mirrors, lamps, rugs, curtains, pillows, throws, towels, bathroom accessories, kitchen tools, plant pots. Items that DON'T need assembly.
-   - "food" = fresh/prepared food, IKEA food court items, Swedish meatballs, food items.
-   - "grocery" = packaged food items from IKEA Swedish Food Market, lingonberry jam, cookies, etc.
-   - "electronics" = smart home devices, LED lighting systems, phone chargers, speakers.
-   - "fashion" = wearable items (rare in IKEA context).
-   - "general" = anything else that doesn't fit above.
-   - "unknown" = ONLY if truly unrecognizable. Very rare.
+2. If NOT a receipt, classify based on what you ACTUALLY SEE:
+   - "food" = prepared/fresh food, meals, fruits, vegetables, cooked dishes, snacks being eaten, food court items
+   - "grocery" = packaged food products, canned goods, boxed items, bottled drinks, condiments, anything sold in a grocery store aisle with nutrition labels or barcodes
+   - "furniture" = desks, tables, chairs, sofas, beds, shelving units, cabinets, wardrobes, bookcases, TV stands, benches, large home items that need assembly or placement
+   - "household" = smaller home items: kitchenware, storage containers, lamps, rugs, curtains, pillows, towels, cleaning supplies, tools, fitness equipment (dumbbells, kettlebells, yoga mats), bathroom accessories, candles, picture frames, plant pots, decor items
+   - "fashion" = shoes, sneakers, boots, clothing, shirts, pants, jackets, dresses, hats, bags, purses, watches, jewelry, belts, accessories, any wearable item
+   - "electronics" = phones, laptops, tablets, headphones, speakers, gaming consoles, chargers, monitors, keyboards, cameras, smart devices
+   - "general" = anything that doesn't clearly fit above categories
+   - "unknown" = truly unrecognizable, very blurry, or completely dark image
 
-3. IKEA BIAS: If you see any IKEA branding, yellow/blue color schemes, shelf tags with article numbers, flat-pack boxes, Allen keys, or typical IKEA showroom settings → classify as furniture with high confidence.
-4. NAMING: Read visible text/labels/logos first. If you see an IKEA product name (like KALLAX, BILLY, MALM, LACK, HEMNES, etc.), use it. Never invent brands not visible. If unsure, describe what you see honestly.
-5. CONFIDENCE: Clear IKEA product=0.85-0.95, clear furniture no brand=0.7-0.84, slightly unclear=0.5-0.69, blurry/dark=0.35-0.55, very unclear=below 0.35.
-6. Even blurry/angled photos of identifiable furniture should get "furniture", not "unknown". Lower confidence instead.
-7. Imperfect camera photos are normal. A blurry shelf is still furniture. A dark table is still furniture.`;
+3. CRITICAL: Do NOT force items into wrong categories:
+   - Food packaging (pasta boxes, cereal, canned food) → "grocery", NOT "furniture"
+   - Sneakers/shoes → "fashion", NOT "furniture" or "household"
+   - Dumbbells/weights → "household" with subcategory fitness, NOT "furniture"
+   - Small kitchen items → "household", NOT "furniture"
+   - A chair or desk → "furniture", NOT "household"
+
+4. NAMING: Read visible text/labels/logos first. Use the actual product name if visible. If you see a brand name, include it. Never invent brands not visible.
+
+5. CONFIDENCE CALIBRATION:
+   - Clear product with visible label/brand = 0.85-0.95
+   - Clear product, no label = 0.70-0.84
+   - Partially visible or angled = 0.50-0.69
+   - Blurry or dark but identifiable shape = 0.35-0.55
+   - Very unclear = below 0.35
+   - NEVER give 0.85+ confidence if the category could reasonably be something else
+
+6. short_summary: Write a 1-2 sentence summary of what this item is and its key characteristic.
+7. image_description: Describe the item in detail for generating a clean reference image later. Include color, shape, material, brand styling, and notable visual features. Be specific enough that someone could recreate the item visually.`;
 
 function getDetailPrompt(itemType: SmartScanItemType): string {
-  const base = `You are a product scanner. Provide accurate details about this item.
+  const base = `You are a product analyzer. Provide accurate, category-appropriate details about this item.
 
 PRICING RULES:
-- Use real current retail prices from major retailers. Do not invent prices.
-- Be consistent: same item should get same price every time.
+- Use real current retail prices. Do not invent prices.
 - Price range should be tight (within ~15% of estimate).
-- Unit pricing must be mathematically correct.
 - Use 2025-2026 current pricing.
-- If an item is packaging (bag, wrapper, box) from a restaurant or store, set estimated_price to null. Do not guess packaging prices.
-- Never output "Free with purchase" or "$0.00" — if item has no retail price, set price fields to null.
-- Always use dollar format like "$X.XX" for real prices. Never use words like "Free" or "Included" as a price.
+- If item is packaging, set price fields to null.
+- Never output "Free" or "$0.00" — set to null instead.
+- Use dollar format like "$X.XX" for real prices.
 
-RESALE PRICING RULES:
-- Resale value must ALWAYS be LOWER than retail price. Used items lose value.
-- For items in "new" condition, resale is typically 60-80% of retail.
-- For "like-new" condition, resale is 50-70% of retail.
-- For "good" condition, resale is 35-55% of retail.
-- For "fair" or "worn" condition, resale is 20-40% of retail.
-- Cheap items under $10 retail usually have no meaningful resale value — set resale to null.
-- Common household consumables (cleaning supplies, toiletries, disposables) have NO resale value — set resale to null.
-- Basic packaging, bags, containers have NO resale value — set resale to null.
-- Only provide resale values for items that people actually buy secondhand.
-- If unsure about resale demand, set resale to null rather than guessing.
-- Never set resale higher than retail. Never.\n\n`;
+RESALE RULES:
+- Resale must be LOWER than retail. Used items lose value.
+- Cheap items under $10 usually have no resale value — set to null.
+- Consumables have NO resale value.
+- Only provide resale for items people actually buy secondhand.\n\n`;
 
   switch (itemType) {
     case 'food':
-      return base + `Analyze this FOOD item. Fill food_details with:
+      return base + `Analyze this FOOD item. Fill food_details ONLY. Set all other detail fields to null.
 - Accurate nutrition per serving (calories, protein, carbs, fat, fiber, sugar)
-- key_nutrients, health_benefits (always 2+ items), health_summary, quick_tip
-- estimated_price (real current price, REQUIRED), price_range (tight range, REQUIRED)
-- unit_price if calculable, value_rating, budget_insight, cheaper_alternative
-- tags (healthy, budget, bulk, organic, etc)
-- complementary_items: 3-5 items that pair well with this food (e.g. sides, drinks, sauces, toppings)
-Set all other detail fields to null.`;
+- key_nutrients, health_benefits (2+ items), health_summary, quick_tip
+- estimated_price, price_range, value_rating, budget_insight
+- tags and complementary_items
+DO NOT fill furniture_details, fashion_details, electronics_details, household_details, or general_details.`;
 
     case 'grocery':
-      return base + `Analyze this GROCERY item. Fill grocery_details with:
-- brand (from visible label), package_size
-- estimated_price (real retail price), price_range (tight range), unit_price
+      return base + `Analyze this GROCERY/PACKAGED FOOD item. Fill grocery_details ONLY. Set all other detail fields to null.
+- brand (from label), package_size, estimated_price, price_range, unit_price
 - value_rating, budget_insight, cheaper_alternative
-- what_else_needed (complementary items), total_cost_note if applicable
-- tags (budget-friendly, bulk, deal, organic, premium)
-- complementary_items: 3-5 products that pair well or are commonly bought together with this item
-Set all other detail fields to null.`;
+- what_else_needed, tags, complementary_items
+DO NOT fill furniture_details, fashion_details, electronics_details, household_details, or general_details.`;
 
     case 'household':
-      return base + `Analyze this HOUSEHOLD item. Fill household_details with:
-- item_description (specific description of item and use)
-- subcategory (tools/fitness/kitchenware/cleaning/bathroom/decor/garden/storage/lighting/small_appliance/other)
+      return base + `Analyze this HOUSEHOLD item. Fill household_details ONLY. Set all other detail fields to null.
+- item_description, subcategory (tools/fitness/kitchenware/cleaning/bathroom/decor/garden/storage/lighting/small_appliance/other)
 - brand, model, material, condition
-- estimated_price (real retail), price_range, estimated_resale_value
-- value_rating, value_verdict, value_reasoning, resale_potential
-- practical_recommendation (actionable advice specific to item)
-- For heavy items: shipping_note, local_pickup_recommendation=true
-- For paired items (dumbbells): set_or_pair_note
-- buy_new_vs_used, comparable_model, resale_suggestion, best_selling_platform
-- budget_insight, cheaper_alternative, care_tip
-- tags (heavy, commodity, durable, budget, premium, used-ok, local-only)
-- complementary_items: 3-5 products that complement or are commonly used alongside this item
-Set all other detail fields to null.`;
+- estimated_price, price_range, estimated_resale_value (only if item has real resale market)
+- practical_recommendation, care_tip
+- tags, complementary_items
+DO NOT fill furniture_details, fashion_details, electronics_details, food_details, grocery_details, or general_details.`;
 
     case 'fashion':
-      return base + `Analyze this FASHION item. Fill fashion_details with:
+      return base + `Analyze this FASHION item. Fill fashion_details ONLY. Set all other detail fields to null.
 - subcategory (shoes/clothing/outerwear/accessories/bags/jewelry/activewear/other)
-- item_description (rich description: brand, model, material, style)
-- brand (from visible logos/labels ONLY), model (if clearly identifiable)
-- material, color, secondary_color, pattern, style, condition
-- For clothing: fit, sleeve_length, neckline, closure_type, condition_notes, cleaning_recommendation, cleaning_reason
-- For shoes: analyze silhouette, sole, upper construction. Set pattern/fit/sleeve_length/neckline to null.
-- gender_target
-- estimated_retail_price (real price), estimated_resale_value (real sold prices), price_range
-- resale_demand, best_selling_platform, value_rating
-- value_verdict, value_reasoning, comparable_model, resale_suggestion
-- budget_insight, cheaper_alternative, care_tip
-- tags (streetwear, designer, vintage, budget, athletic, sneaker, resale, etc)
-- complementary_items: 3-5 items that pair well with this fashion item (e.g. matching shoes, accessories, outfits)
-Set all other detail fields to null.`;
+- item_description, brand (from visible logos ONLY), model, material, color, style, condition
+- For shoes: analyze silhouette, sole, upper. Set sleeve_length/neckline to null.
+- For clothing: fit, pattern, neckline, sleeve_length if visible
+- estimated_retail_price, estimated_resale_value, resale_demand
+- value_verdict, care_tip, tags, complementary_items
+DO NOT fill furniture_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'electronics':
-      return base + `Analyze this ELECTRONICS item. Fill electronics_details with:
-- product_type (smartphone, laptop, headphones, etc)
-- brand (from visible logos), model (if identifiable), storage_or_spec, condition
-- estimated_retail_price (real current price), estimated_resale_value (real sold prices), price_range
-- depreciation_note, resale_demand, value_rating
-- value_verdict, value_reasoning, comparable_model, resale_suggestion
-- best_selling_platform, budget_insight, cheaper_alternative, care_tip
-- tags (refurbished, budget, flagship, premium, resale, etc)
-- complementary_items: 3-5 accessories or products that pair well with this device (e.g. cases, chargers, stands)
-Set all other detail fields to null.`;
+      return base + `Analyze this ELECTRONICS item. Fill electronics_details ONLY. Set all other detail fields to null.
+- product_type, brand, model, storage_or_spec, condition
+- estimated_retail_price, estimated_resale_value, depreciation_note
+- resale_demand, value_verdict, care_tip
+- tags, complementary_items
+DO NOT fill furniture_details, fashion_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'furniture':
-      return base + `You are an IKEA shopping companion scanner. Analyze this furniture/home item as if the user is shopping at IKEA.
-
-Fill furniture_details with:
-- item_type_specific (bookshelf, desk, chair, wardrobe, shelving unit, etc)
-- material, finish_color, style, estimated_dimensions
-- estimated_retail_price (use real IKEA pricing if recognizable, otherwise best estimate), estimated_price_range
-- estimated_resale_value: reframe as "long-term value" — what this item holds value-wise over time. If cheap IKEA item, set to null.
-- value_level, value_rating
-- resale_demand: treat as "popularity" — how sought-after this item is
-- value_verdict, value_reasoning: frame as whether this is a smart purchase, not resale potential
-- comparable_model: suggest similar IKEA alternatives if any
-- resale_suggestion: reframe as a durability/longevity tip
-- best_selling_platform: set to null (not relevant for IKEA shopping)
-- use_case (what this item is best used for)
-- room_fit (which room this works best in)
-- budget_insight (IKEA-specific buying tip)
-- cheaper_alternative (cheaper IKEA alternative if exists)
-- care_tip (maintenance advice)
+      return base + `Analyze this FURNITURE item. Fill furniture_details ONLY. Set all other detail fields to null.
+- item_type_specific, material, finish_color, style, estimated_dimensions
+- estimated_retail_price, estimated_price_range, value_level, value_rating
 - assembly_required, assembly_difficulty, estimated_build_time, people_needed
-- likely_tools_needed: ALWAYS include relevant tools. Common IKEA tools: Allen key (included), Phillips screwdriver, hammer, drill (optional for wall mounting), measuring tape, level. Be specific.
-- likely_parts, mounting_type, assembly_summary
-- similar_products: suggest matching or complementary IKEA products
-- extra_purchase_items (with item, cost, reason): items you'll need to complete the setup — wall anchors, shelf pins, LED lights, drawer organizers, etc.
-- total_estimated_cost
-- worth_it_verdict: frame as smart-buy assessment
-- room_fit_labels: array of room types this works well in. Pick from: "dorm room", "small apartment", "studio", "office", "kids room", "family room", "bedroom", "living room", "kitchen", "bathroom", "entryway", "garage". Include 2-4 labels.
-- matching_products: array of 3-5 IKEA products that pair well with this item. Use real IKEA product names when possible (e.g. "SKADIS pegboard", "KALLAX insert", "LEDBERG LED strip").
-- wall_anchor_note: if wall mounting is recommended or required, explain why and what type of anchors.
-- setup_notes: any important setup tips, like "leave 2cm gap from wall for ventilation" or "attach to wall for stability".
-- long_term_value: a brief note on durability and whether this item holds up over time.
-- tags (budget, premium, ikea, flat-pack, modern, scandinavian, space-saving, family-friendly, dorm-friendly, etc)
-- complementary_items: 3-5 items that complement this product (in addition to matching_products, think broader — rugs, lamps, organizers, etc)
-Set all other detail fields to null.`;
+- likely_tools_needed, likely_parts, mounting_type, assembly_summary
+- use_case, room_fit, room_fit_labels, matching_products
+- extra_purchase_items, total_estimated_cost, worth_it_verdict
+- care_tip, setup_notes, wall_anchor_note, long_term_value
+- tags, complementary_items
+If you recognize an IKEA product, use real IKEA product names and pricing.
+DO NOT fill fashion_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'general':
-      return base + `Analyze this item. Fill general_details with:
-- item_description (what it is and its purpose)
-- subcategory (books, toys, beauty, automotive, collectibles, music, pet, sports, art, plants, office, baby, medical, vehicle, travel, vintage, craft, gaming, etc)
-- brand, model, material, color, condition
-- age_or_era (if applicable), rarity (common/uncommon/rare/very-rare/unique)
-- estimated_retail_price (real price), estimated_resale_value, price_range
-- value_rating, value_verdict, value_reasoning, resale_demand
-- resale_suggestion, best_selling_platform, comparable_item
-- budget_insight, cheaper_alternative, care_tip, fun_fact, practical_tip
-- tags (vintage, collectible, budget, premium, rare, everyday, niche, resale)
-- complementary_items: 3-5 items that pair well or are commonly used with this item
-Set all other detail fields to null.`;
+      return base + `Analyze this item. Fill general_details ONLY. Set all other detail fields to null.
+- item_description, subcategory, brand, model, material, color, condition
+- estimated_retail_price, estimated_resale_value, price_range
+- value_rating, fun_fact, practical_tip, care_tip
+- tags, complementary_items
+DO NOT fill furniture_details, fashion_details, electronics_details, food_details, grocery_details, or household_details.`;
 
     default:
-      return base + `Do your best to analyze this item. Fill general_details with whatever you can determine.
-Set all other detail fields to null.`;
+      return base + `Do your best to analyze this item. Fill general_details. Set all other detail fields to null.`;
   }
 }
 
@@ -670,48 +527,47 @@ async function callWithRetry<T>(
 function fixItemType(classification: z.infer<typeof classificationSchema>): z.infer<typeof classificationSchema> {
   const fixed = { ...classification };
   const name = (fixed.item_name ?? '').toLowerCase();
+  const cat = (fixed.category ?? '').toLowerCase();
   const cues = (fixed.visual_cues ?? []).map(c => c.toLowerCase()).join(' ');
-  const combined = name + ' ' + cues;
+  const combined = name + ' ' + cat + ' ' + cues;
 
   if (fixed.item_type === 'unknown' || fixed.item_type === 'receipt') {
     return fixed;
   }
 
-  const IKEA_SIGNALS = ['ikea', 'kallax', 'billy', 'malm', 'lack', 'hemnes', 'besta', 'poang', 'ektorp', 'gronlid', 'kivik', 'alex', 'linnmon', 'bekant', 'markus', 'detolf', 'fjalkinge', 'stuva', 'nordli', 'pax', 'brimnes', 'tarva', 'ivar', 'skadis', 'raskog', 'flat-pack', 'flat pack', 'article number', 'shelf tag'];
-  const FURNITURE_SIGNALS = ['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'shelving', 'cabinet', 'wardrobe', 'dresser', 'nightstand', 'bookcase', 'bookshelf', 'tv stand', 'bench', 'stool', 'rack', 'storage unit', 'room divider'];
-  const FASHION_SIGNALS = ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'puma', 'vans', 'converse', 'new balance', 'shirt', 'hoodie', 'jacket', 'pants', 'jeans', 'dress', 'hat', 'bag', 'purse', 'wallet', 'watch', 'belt', 'gucci', 'louis vuitton', 'coach'];
+  const FOOD_SIGNALS = ['spaghetti', 'pasta', 'rice', 'cereal', 'soup', 'sauce', 'bread', 'chips', 'cookie', 'cracker', 'candy', 'chocolate', 'granola', 'yogurt', 'milk', 'juice', 'soda', 'water bottle', 'snack', 'nutrition facts', 'ingredients:', 'serving size', 'calories per', 'canned', 'frozen meal', 'instant', 'ramen', 'noodle'];
+  const FASHION_SIGNALS = ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'puma', 'vans', 'converse', 'new balance', 'shirt', 'hoodie', 'jacket', 'pants', 'jeans', 'dress', 'hat', 'handbag', 'purse', 'wallet', 'watch', 'belt', 'gucci', 'louis vuitton', 'coach', 'yeezy', 'air max', 'air force'];
   const ELECTRONICS_SIGNALS = ['iphone', 'ipad', 'macbook', 'airpod', 'samsung galaxy', 'playstation', 'ps5', 'xbox', 'nintendo', 'laptop', 'tablet', 'headphones', 'earbuds', 'speaker', 'monitor', 'keyboard', 'charger', 'bose', 'jbl', 'sony'];
-  const TOOL_SIGNALS = ['wrench', 'drill', 'hammer', 'saw', 'screwdriver', 'plier', 'socket', 'dewalt', 'milwaukee', 'makita', 'toolbox'];
-  const FITNESS_SIGNALS = ['dumbbell', 'kettlebell', 'barbell', 'weight plate', 'resistance band', 'yoga mat', 'foam roller'];
+  const FITNESS_SIGNALS = ['dumbbell', 'kettlebell', 'barbell', 'weight plate', 'resistance band', 'yoga mat', 'foam roller', 'exercise', 'gym equipment'];
+  const FURNITURE_SIGNALS = ['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'shelving', 'cabinet', 'wardrobe', 'dresser', 'nightstand', 'bookcase', 'bookshelf', 'tv stand', 'bench', 'stool', 'rack', 'storage unit', 'room divider', 'ikea', 'kallax', 'billy', 'malm', 'lack', 'hemnes'];
 
-  const hasIkea = IKEA_SIGNALS.some(s => combined.includes(s));
-  const hasFurniture = FURNITURE_SIGNALS.some(s => combined.includes(s));
+  const hasFood = FOOD_SIGNALS.some(s => combined.includes(s));
   const hasFashion = FASHION_SIGNALS.some(s => combined.includes(s));
   const hasElectronics = ELECTRONICS_SIGNALS.some(s => combined.includes(s));
-  const hasTools = TOOL_SIGNALS.some(s => combined.includes(s));
   const hasFitness = FITNESS_SIGNALS.some(s => combined.includes(s));
+  const hasFurniture = FURNITURE_SIGNALS.some(s => combined.includes(s));
 
-  if (hasIkea && fixed.item_type !== 'furniture') {
-    console.log('[SmartScan] IKEA signals detected, overriding from', fixed.item_type);
-    fixed.item_type = 'furniture';
-    fixed.confidence = Math.max(fixed.confidence, 0.8);
-  } else if (hasFurniture && fixed.item_type !== 'furniture' && !hasFashion && !hasElectronics) {
-    console.log('[SmartScan] Furniture signals detected, overriding from', fixed.item_type);
-    fixed.item_type = 'furniture';
-    fixed.confidence = Math.max(fixed.confidence, 0.6);
-  } else if (hasFashion && fixed.item_type !== 'fashion' && !hasElectronics) {
-    console.log('[SmartScan] Fashion signals detected, overriding from', fixed.item_type);
+  if (hasFood && fixed.item_type === 'furniture') {
+    console.log('[SmartScan] Food signals detected but classified as furniture — correcting to grocery');
+    fixed.item_type = 'grocery';
+    fixed.confidence = Math.min(fixed.confidence, 0.7);
+  } else if (hasFashion && fixed.item_type !== 'fashion') {
+    console.log('[SmartScan] Fashion signals detected, correcting from', fixed.item_type);
     fixed.item_type = 'fashion';
-    fixed.confidence = Math.max(fixed.confidence, 0.45);
-  } else if (hasElectronics && fixed.item_type !== 'electronics' && !hasFashion) {
-    console.log('[SmartScan] Electronics signals detected, overriding from', fixed.item_type);
+    fixed.confidence = Math.max(fixed.confidence, 0.5);
+  } else if (hasElectronics && fixed.item_type !== 'electronics') {
+    console.log('[SmartScan] Electronics signals detected, correcting from', fixed.item_type);
     fixed.item_type = 'electronics';
     fixed.confidence = Math.max(fixed.confidence, 0.5);
-  } else if ((hasTools || hasFitness) && fixed.item_type !== 'household') {
-    console.log('[SmartScan] Household signals detected, overriding from', fixed.item_type);
+  } else if (hasFitness && fixed.item_type !== 'household') {
+    console.log('[SmartScan] Fitness signals detected, correcting from', fixed.item_type);
     fixed.item_type = 'household';
-    fixed.category = hasTools ? 'Tools' : 'Fitness Equipment';
-    fixed.confidence = Math.max(fixed.confidence, 0.5);
+    fixed.category = 'Fitness Equipment';
+    fixed.confidence = Math.max(fixed.confidence, 0.55);
+  } else if (hasFurniture && !hasFood && !hasFashion && !hasElectronics && fixed.item_type !== 'furniture') {
+    console.log('[SmartScan] Furniture signals detected, correcting from', fixed.item_type);
+    fixed.item_type = 'furniture';
+    fixed.confidence = Math.max(fixed.confidence, 0.6);
   }
 
   return fixed;
@@ -719,7 +575,6 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
 
 function recoverUnknown(classification: z.infer<typeof classificationSchema>): z.infer<typeof classificationSchema> {
   if (classification.item_type !== 'unknown') return classification;
-
   const fixed = { ...classification };
   const combined = ((fixed.visual_cues ?? []).join(' ') + ' ' + (fixed.item_name ?? '')).toLowerCase();
 
@@ -727,8 +582,8 @@ function recoverUnknown(classification: z.infer<typeof classificationSchema>): z
     [['shoe', 'sneaker', 'boot', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'shirt', 'hoodie', 'jacket', 'pants', 'dress', 'bag', 'hat', 'belt'], 'fashion', 'Fashion'],
     [['phone', 'laptop', 'tablet', 'headphone', 'earbuds', 'speaker', 'screen', 'charger', 'controller', 'console'], 'electronics', 'Electronics'],
     [['dumbbell', 'kettlebell', 'wrench', 'drill', 'hammer', 'pan', 'pot', 'skillet', 'vacuum', 'broom', 'towel', 'blanket', 'pillow'], 'household', 'Household'],
-    [['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'cabinet', 'dresser', 'ikea'], 'furniture', 'Furniture'],
-    [['cereal', 'bottle', 'can', 'package', 'barcode', 'nutrition facts', 'grocery'], 'grocery', 'Grocery'],
+    [['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'cabinet', 'dresser'], 'furniture', 'Furniture'],
+    [['cereal', 'bottle', 'can', 'package', 'barcode', 'nutrition facts', 'grocery', 'pasta', 'sauce', 'snack'], 'grocery', 'Grocery'],
     [['meal', 'food', 'fruit', 'vegetable', 'cooked', 'pizza', 'burger', 'sandwich'], 'food', 'Food'],
   ];
 
@@ -751,21 +606,69 @@ function recoverUnknown(classification: z.infer<typeof classificationSchema>): z
 
 function validateResult(result: SmartScanResult, classification: z.infer<typeof classificationSchema>): SmartScanResult {
   const validated = { ...result };
-
   const CONSUMABLE_TYPES: SmartScanItemType[] = ['food', 'grocery'];
   const RESELLABLE_TYPES: SmartScanItemType[] = ['fashion', 'electronics', 'household', 'furniture', 'general'];
 
   if (CONSUMABLE_TYPES.includes(validated.item_type)) {
-    if (validated.fashion_details) { validated.fashion_details = null; }
-    if (validated.electronics_details) { validated.electronics_details = null; }
-    if (validated.household_details) { validated.household_details = null; }
-    if (validated.furniture_details) { validated.furniture_details = null; }
-    if (validated.general_details) { validated.general_details = null; }
+    validated.fashion_details = null;
+    validated.electronics_details = null;
+    validated.household_details = null;
+    validated.furniture_details = null;
+    validated.general_details = null;
   }
 
   if (RESELLABLE_TYPES.includes(validated.item_type)) {
-    if (validated.food_details) { validated.food_details = null; }
-    if (validated.grocery_details) { validated.grocery_details = null; }
+    validated.food_details = null;
+    validated.grocery_details = null;
+  }
+
+  if (validated.item_type === 'food') {
+    validated.grocery_details = null;
+    validated.household_details = null;
+    validated.furniture_details = null;
+    validated.fashion_details = null;
+    validated.electronics_details = null;
+    validated.general_details = null;
+  }
+  if (validated.item_type === 'grocery') {
+    validated.food_details = null;
+    validated.household_details = null;
+    validated.furniture_details = null;
+    validated.fashion_details = null;
+    validated.electronics_details = null;
+    validated.general_details = null;
+  }
+  if (validated.item_type === 'furniture') {
+    validated.food_details = null;
+    validated.grocery_details = null;
+    validated.household_details = null;
+    validated.fashion_details = null;
+    validated.electronics_details = null;
+    validated.general_details = null;
+  }
+  if (validated.item_type === 'fashion') {
+    validated.food_details = null;
+    validated.grocery_details = null;
+    validated.household_details = null;
+    validated.furniture_details = null;
+    validated.electronics_details = null;
+    validated.general_details = null;
+  }
+  if (validated.item_type === 'electronics') {
+    validated.food_details = null;
+    validated.grocery_details = null;
+    validated.household_details = null;
+    validated.furniture_details = null;
+    validated.fashion_details = null;
+    validated.general_details = null;
+  }
+  if (validated.item_type === 'household') {
+    validated.food_details = null;
+    validated.grocery_details = null;
+    validated.furniture_details = null;
+    validated.fashion_details = null;
+    validated.electronics_details = null;
+    validated.general_details = null;
   }
 
   if (!validated.item_name || validated.item_name.length < 3 || validated.item_name === 'Unknown') {
@@ -791,9 +694,7 @@ function repairMissingDetails(result: SmartScanResult, classification: z.infer<t
   };
 
   const expectedKey = detailsMap[type];
-  if (!expectedKey || repaired[expectedKey] != null) {
-    return repaired;
-  }
+  if (!expectedKey || repaired[expectedKey] != null) return repaired;
 
   console.log(`[SmartScan] WARNING: ${type} scan returned null ${expectedKey} — repairing`);
 
@@ -814,33 +715,47 @@ function repairMissingDetails(result: SmartScanResult, classification: z.infer<t
   repaired.general_details = {
     item_description: classification.item_name || 'Scanned item',
     subcategory: classification.category || 'other',
-    brand: null,
-    model: null,
-    material: null,
-    color: null,
-    condition: null,
-    estimated_retail_price: null,
-    estimated_resale_value: null,
-    price_range: null,
-    value_rating: null,
-    value_verdict: null,
-    value_reasoning: null,
-    resale_demand: null,
-    resale_suggestion: null,
-    best_selling_platform: null,
-    comparable_item: null,
-    budget_insight: null,
-    cheaper_alternative: null,
-    care_tip: null,
-    fun_fact: null,
-    practical_tip: null,
-    age_or_era: null,
-    rarity: null,
+    brand: null, model: null, material: null, color: null, condition: null,
+    estimated_retail_price: null, estimated_resale_value: null, price_range: null,
+    value_rating: null, value_verdict: null, value_reasoning: null,
+    resale_demand: null, resale_suggestion: null, best_selling_platform: null,
+    comparable_item: null, budget_insight: null, cheaper_alternative: null,
+    care_tip: null, fun_fact: null, practical_tip: null, age_or_era: null, rarity: null,
     tags: (classification.visual_cues ?? []).slice(0, 5),
     complementary_items: [],
   };
   repaired.confidence = Math.min(repaired.confidence, 0.4);
   return repaired;
+}
+
+export async function generateReferenceImage(description: string): Promise<string | null> {
+  try {
+    console.log('[SmartScan] Generating reference image for:', description.substring(0, 80));
+    const prompt = `Clean product photo on white background, studio lighting, high quality, sharp detail: ${description}. Professional product photography style, no text overlays, no watermarks.`;
+
+    const response = await fetch('https://toolkit.rork.com/images/generate/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, size: '1024x1024' }),
+    });
+
+    if (!response.ok) {
+      console.log('[SmartScan] Image generation failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json() as { image?: { base64Data?: string; mimeType?: string } };
+    if (data.image?.base64Data) {
+      const mimeType = data.image.mimeType || 'image/png';
+      const dataUrl = `data:${mimeType};base64,${data.image.base64Data}`;
+      console.log('[SmartScan] Reference image generated successfully');
+      return dataUrl;
+    }
+    return null;
+  } catch (err) {
+    console.log('[SmartScan] Reference image generation error:', err);
+    return null;
+  }
 }
 
 export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
@@ -878,14 +793,9 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
       confidence: Math.max(classification.confidence, 0.85),
       item_name: 'Receipt',
       category: 'receipt',
-      food_details: null,
-      grocery_details: null,
-      household_details: null,
-      furniture_details: null,
-      fashion_details: null,
-      electronics_details: null,
-      general_details: null,
-      is_receipt: true,
+      food_details: null, grocery_details: null, household_details: null,
+      furniture_details: null, fashion_details: null, electronics_details: null,
+      general_details: null, is_receipt: true,
     };
   }
 
@@ -905,7 +815,8 @@ The item has been identified as: ${classification.item_name} (${classification.c
 Visual cues: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
 item_type must be "${classification.item_type}". is_receipt must be false.
 confidence should be ${classification.confidence.toFixed(2)}.
-Keep item_name close to "${classification.item_name}" — only refine, don't replace with unrelated product.`;
+Keep item_name close to "${classification.item_name}" — only refine, don't replace with unrelated product.
+IMPORTANT: Only populate the ${classification.item_type}_details field. All other detail fields MUST be null.`;
 
   const result = await callWithRetry(
     () => generateObject({
@@ -931,6 +842,9 @@ Keep item_name close to "${classification.item_name}" — only refine, don't rep
   const repaired = repairMissingDetails(result, classification);
   const validated = validateResult(repaired, classification);
   const stabilized = stabilizePricing(validated);
+
+  stabilized.short_summary = classification.short_summary ?? '';
+  stabilized.image_description = classification.image_description ?? '';
 
   console.log('[SmartScan] Done:', stabilized.item_name, 'type:', stabilized.item_type, 'conf:', stabilized.confidence);
   return stabilized;
