@@ -30,6 +30,7 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import AdMobBanner from '@/components/ads/AdMobBanner';
+import AdBlockTile from '@/components/ads/AdBlockTile';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const AD_BLOCK_GAP = 2;
@@ -793,30 +794,37 @@ export default function ProfileScreen() {
                 </View>
               ) : otherBlocks.length > 0 ? (
                 <View style={styles.adBlocksGrid}>
-                  {otherBlocks.map((block) => (
-                    <Pressable
-                      key={block.id}
-                      style={({ pressed }) => [
-                        styles.adBlockCard,
-                        pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
-                      ]}
-                      onPress={() => openPostPreview(block, otherProfile.display_name)}
-                      testID={`ad-block-${block.id}`}
-                    >
-                      {getBlockImageUri(block.headerImageUrl) ? (
-                        <Image
-                          source={{ uri: getBlockImageUri(block.headerImageUrl) }}
-                          style={styles.adBlockImage}
-                          contentFit="cover"
-                          recyclingKey={block.id}
-                        />
-                      ) : (
-                        <View style={[styles.adBlockImage, styles.adBlockImagePlaceholder]}>
-                          <ImageIcon size={20} color="#AEAEB2" />
-                        </View>
+                  {otherBlocks.map((block, idx) => (
+                    <React.Fragment key={block.id}>
+                      {idx === 3 && (
+                        <AdBlockTile size={AD_BLOCK_SIZE} index={0} />
                       )}
-                    </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.adBlockCard,
+                          pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
+                        ]}
+                        onPress={() => openPostPreview(block, otherProfile.display_name)}
+                        testID={`ad-block-${block.id}`}
+                      >
+                        {getBlockImageUri(block.headerImageUrl) ? (
+                          <Image
+                            source={{ uri: getBlockImageUri(block.headerImageUrl) }}
+                            style={styles.adBlockImage}
+                            contentFit="cover"
+                            recyclingKey={block.id}
+                          />
+                        ) : (
+                          <View style={[styles.adBlockImage, styles.adBlockImagePlaceholder]}>
+                            <ImageIcon size={20} color="#AEAEB2" />
+                          </View>
+                        )}
+                      </Pressable>
+                    </React.Fragment>
                   ))}
+                  {otherBlocks.length > 0 && otherBlocks.length <= 3 && (
+                    <AdBlockTile size={AD_BLOCK_SIZE} index={2} />
+                  )}
                 </View>
               ) : (
                 <View style={styles.emptyPostsContainer}>
@@ -1017,31 +1025,38 @@ export default function ProfileScreen() {
               </View>
             ) : userBlocks.length > 0 ? (
               <View style={styles.adBlocksGrid}>
-                {userBlocks.map((block) => (
-                  <Pressable
-                    key={block.id}
-                    style={({ pressed }) => [
-                      styles.adBlockCard,
-                      pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
-                    ]}
-                    onPress={() => openPostPreview(block, myProfile.display_name || '')}
-                    onLongPress={() => handleDeleteBlock(block.id)}
-                    testID={`ad-block-${block.id}`}
-                  >
-                    {getBlockImageUri(block.headerImageUrl) ? (
-                      <Image
-                        source={{ uri: getBlockImageUri(block.headerImageUrl) }}
-                        style={styles.adBlockImage}
-                        contentFit="cover"
-                        recyclingKey={block.id}
-                      />
-                    ) : (
-                      <View style={[styles.adBlockImage, styles.adBlockImagePlaceholder]}>
-                        <ImageIcon size={20} color="#AEAEB2" />
-                      </View>
+                {userBlocks.map((block, idx) => (
+                  <React.Fragment key={block.id}>
+                    {idx === 3 && (
+                      <AdBlockTile size={AD_BLOCK_SIZE} index={0} />
                     )}
-                  </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.adBlockCard,
+                        pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
+                      ]}
+                      onPress={() => openPostPreview(block, myProfile.display_name || '')}
+                      onLongPress={() => handleDeleteBlock(block.id)}
+                      testID={`ad-block-${block.id}`}
+                    >
+                      {getBlockImageUri(block.headerImageUrl) ? (
+                        <Image
+                          source={{ uri: getBlockImageUri(block.headerImageUrl) }}
+                          style={styles.adBlockImage}
+                          contentFit="cover"
+                          recyclingKey={block.id}
+                        />
+                      ) : (
+                        <View style={[styles.adBlockImage, styles.adBlockImagePlaceholder]}>
+                          <ImageIcon size={20} color="#AEAEB2" />
+                        </View>
+                      )}
+                    </Pressable>
+                  </React.Fragment>
                 ))}
+                {userBlocks.length > 0 && userBlocks.length <= 3 && (
+                  <AdBlockTile size={AD_BLOCK_SIZE} index={1} />
+                )}
               </View>
             ) : (
               <View style={styles.adBlocksEmpty}>

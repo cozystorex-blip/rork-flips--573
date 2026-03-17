@@ -22,7 +22,7 @@ import { CategoryColors } from '@/constants/colors';
 import { CategoryLabels, UserProfile, CategoryType } from '@/types';
 import CategoryIcon from '@/components/CategoryIcon';
 import { useAuth } from '@/contexts/AuthContext';
-import NativeAdCard from '@/components/ads/NativeAdCard';
+import AdProfileCard from '@/components/ads/AdProfileCard';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -186,24 +186,16 @@ export default function DiscoverScreen() {
   const gridElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
     const adPositions = new Set([6, 14, 22]);
-    let cardIndex = 0;
     displayProfiles.forEach((p, index) => {
       const catColor = CategoryColors[p.dominantStyle];
       const isFollowed = followedIds.includes(p.id);
       const isOwnProfile = p.id === userId;
 
-      const shouldInsertAd = displayProfiles.length >= 6 && adPositions.has(index);
+      const shouldInsertAd = displayProfiles.length >= 4 && adPositions.has(index);
       if (shouldInsertAd) {
-        if (cardIndex % 2 !== 0) {
-          elements.push(<View key={`spacer-${index}`} style={{ width: CARD_WIDTH }} />);
-          cardIndex++;
-        }
         elements.push(
-          <View key={`ad-${index}`} style={styles.fullWidthCard}>
-            <NativeAdCard index={index} />
-          </View>
+          <AdProfileCard key={`ad-card-${index}`} width={CARD_WIDTH} index={index} />
         );
-        cardIndex = 0;
       }
 
       elements.push(
@@ -255,7 +247,6 @@ export default function DiscoverScreen() {
           <DiscoverCardBody profile={p} catColor={catColor} />
         </Pressable>
       );
-      cardIndex++;
     });
     return elements;
   }, [displayProfiles, followedIds, userId, router, toggleFollow]);
