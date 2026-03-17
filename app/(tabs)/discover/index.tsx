@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { User, UserPlus, CircleUserRound } from 'lucide-react-native';
+import { User, UserPlus, CircleUserRound, TrendingUp } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { mockProfiles } from '@/mocks/data';
@@ -24,47 +24,12 @@ import CategoryIcon from '@/components/CategoryIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import AdProfileCard from '@/components/ads/AdProfileCard';
 
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const H_PADDING = 16;
-const CARD_GAP = 10;
+const CARD_GAP = 12;
 const NUM_COLUMNS = 2;
 const CARD_WIDTH = (SCREEN_WIDTH - H_PADDING * 2 - CARD_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 const FOLLOWED_STORAGE_KEY = 'followed_creators';
-
-const DiscoverCardBody = React.memo(function DiscoverCardBody({ profile, catColor }: { profile: UserProfile; catColor: string }) {
-  const thumbs = profile.thumbnails ?? [];
-  return (
-    <View style={styles.cardBody}>
-      <Text style={styles.profileName} numberOfLines={1}>
-        {profile.name}
-      </Text>
-      <View style={[styles.styleTag, { backgroundColor: catColor + '10' }]}>
-        <CategoryIcon category={profile.dominantStyle} size={11} color={catColor} />
-        <Text style={[styles.styleTagText, { color: catColor }]}>
-          {CategoryLabels[profile.dominantStyle]}
-        </Text>
-      </View>
-      <View style={styles.statRow}>
-        <Text style={styles.statValue}>{profile.totalLogs}</Text>
-        <Text style={styles.statLabel}> posts</Text>
-      </View>
-      {thumbs.length > 0 && (
-        <View style={styles.thumbRow}>
-          {thumbs.slice(0, 4).map((uri, i) => (
-            <Image
-              key={`thumb-${i}`}
-              source={{ uri }}
-              style={styles.thumbImg}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-            />
-          ))}
-        </View>
-      )}
-    </View>
-  );
-});
 
 interface DiscoverProfile {
   id: string;
@@ -97,6 +62,138 @@ function mapToUserProfile(dp: DiscoverProfile): UserProfile {
     weeklyHistory: [],
   };
 }
+
+const FollowingBubble = React.memo(function FollowingBubble({
+  profile,
+  catColor,
+  onPress,
+}: {
+  profile: UserProfile;
+  catColor: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.followingItem,
+        pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
+      ]}
+      testID={`followed-bubble-${profile.id}`}
+    >
+      <View style={[styles.followingRing, { borderColor: catColor }]}>
+        {profile.avatar ? (
+          <Image source={{ uri: profile.avatar }} style={styles.followingAvatar} contentFit="cover" />
+        ) : (
+          <View style={[styles.followingAvatar, styles.followingPlaceholder]}>
+            <User size={22} color={catColor} />
+          </View>
+        )}
+      </View>
+      <Text style={styles.followingName} numberOfLines={1}>
+        {profile.name.split(' ')[0]}
+      </Text>
+    </Pressable>
+  );
+});
+
+const ProfileCard = React.memo(function ProfileCard({
+  profile,
+  catColor,
+  isFollowed,
+  isOwnProfile,
+  onPress,
+  onToggleFollow,
+}: {
+  profile: UserProfile;
+  catColor: string;
+  isFollowed: boolean;
+  isOwnProfile: boolean;
+  onPress: () => void;
+  onToggleFollow: () => void;
+}) {
+  const thumbs = profile.thumbnails ?? [];
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.profileCard,
+        { width: CARD_WIDTH },
+        pressed && styles.cardPressed,
+      ]}
+      onPress={onPress}
+      testID={`profile-card-${profile.id}`}
+    >
+      <View style={styles.avatarContainer}>
+        {profile.avatar ? (
+          <Image
+            source={{ uri: profile.avatar }}
+            style={styles.avatar}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={`avatar-${profile.id}`}
+          />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <User size={32} color={catColor} strokeWidth={1.5} />
+          </View>
+        )}
+        <View style={styles.avatarOverlay} />
+        {!isOwnProfile && (
+          <Pressable
+            onPress={(e) => {
+              if (typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+              }
+              onToggleFollow();
+            }}
+            style={[
+              styles.followBtn,
+              isFollowed && styles.followBtnActive,
+            ]}
+            hitSlop={6}
+            testID={`follow-btn-${profile.id}`}
+          >
+            {isFollowed ? (
+              <User size={11} color="#FFFFFF" strokeWidth={2} />
+            ) : (
+              <UserPlus size={11} color="#FFFFFF" strokeWidth={2} />
+            )}
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.profileName} numberOfLines={1}>
+          {profile.name}
+        </Text>
+        <View style={[styles.styleTag, { backgroundColor: catColor + '14' }]}>
+          <CategoryIcon category={profile.dominantStyle} size={10} color={catColor} />
+          <Text style={[styles.styleTagText, { color: catColor }]}>
+            {CategoryLabels[profile.dominantStyle]}
+          </Text>
+        </View>
+        <View style={styles.statsRow}>
+          <Text style={styles.statValue}>{profile.totalLogs}</Text>
+          <Text style={styles.statLabel}> posts</Text>
+        </View>
+        {thumbs.length > 0 && (
+          <View style={styles.thumbRow}>
+            {thumbs.slice(0, 3).map((uri, i) => (
+              <Image
+                key={`thumb-${i}`}
+                source={{ uri }}
+                style={styles.thumbImg}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    </Pressable>
+  );
+});
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
@@ -178,10 +275,15 @@ export default function DiscoverScreen() {
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 350,
+      duration: 400,
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  const navigateToProfile = useCallback((id: string) => {
+    void Haptics.selectionAsync();
+    router.push(`/profile/${id}`);
+  }, [router]);
 
   const gridElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
@@ -191,98 +293,67 @@ export default function DiscoverScreen() {
       const isFollowed = followedIds.includes(p.id);
       const isOwnProfile = p.id === userId;
 
-      const shouldInsertAd = displayProfiles.length >= 4 && adPositions.has(index);
-      if (shouldInsertAd) {
+      if (displayProfiles.length >= 4 && adPositions.has(index)) {
         elements.push(
           <AdProfileCard key={`ad-card-${index}`} width={CARD_WIDTH} index={index} />
         );
       }
 
       elements.push(
-        <Pressable
+        <ProfileCard
           key={p.id}
-          style={({ pressed }) => [
-            styles.profileCard,
-            { width: CARD_WIDTH },
-            pressed && styles.cardPressed,
-          ]}
-          onPress={() => router.push(`/profile/${p.id}`)}
-          testID={`profile-card-${p.id}`}
-        >
-          {p.avatar ? (
-            <Image
-              source={{ uri: p.avatar }}
-              style={styles.avatar}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              recyclingKey={`avatar-${p.id}`}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <User size={30} color={catColor} strokeWidth={1.5} />
-            </View>
-          )}
-          {!isOwnProfile && (
-            <Pressable
-              onPress={(e) => {
-                if (typeof e.stopPropagation === 'function') {
-                  e.stopPropagation();
-                }
-                void toggleFollow(p.id);
-              }}
-              style={[
-                styles.followBtn,
-                isFollowed && styles.followBtnActive,
-              ]}
-              hitSlop={6}
-              testID={`follow-btn-${p.id}`}
-            >
-              {isFollowed ? (
-                <User size={11} color="#FFFFFF" strokeWidth={1.8} />
-              ) : (
-                <UserPlus size={11} color="#1C1C1E" strokeWidth={1.8} />
-              )}
-            </Pressable>
-          )}
-          <DiscoverCardBody profile={p} catColor={catColor} />
-        </Pressable>
+          profile={p}
+          catColor={catColor}
+          isFollowed={isFollowed}
+          isOwnProfile={isOwnProfile}
+          onPress={() => navigateToProfile(p.id)}
+          onToggleFollow={() => void toggleFollow(p.id)}
+        />
       );
     });
     return elements;
-  }, [displayProfiles, followedIds, userId, router, toggleFollow]);
+  }, [displayProfiles, followedIds, userId, navigateToProfile, toggleFollow]);
+
+  const profileCount = displayProfiles.length;
 
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 4 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
-        <View style={styles.headerRow}>
-          <Text style={styles.screenTitle}>Profiles</Text>
-          <Pressable
-            onPress={() => {
-              if (userId) {
-                router.push(`/profile/${userId}`);
-              } else {
-                router.push('/auth');
-              }
-            }}
-            style={({ pressed }) => [
-              styles.accountBtn,
-              pressed && { opacity: 0.6 },
-            ]}
-            hitSlop={8}
-            testID="header-account-btn"
-          >
-            <CircleUserRound size={26} color="#1C1C1E" strokeWidth={1.6} />
-          </Pressable>
+        <View style={styles.headerSection}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.screenTitle}>Discover</Text>
+              <Text style={styles.screenSubtitle}>{profileCount} shoppers sharing deals</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                if (userId) {
+                  router.push(`/profile/${userId}`);
+                } else {
+                  router.push('/auth');
+                }
+              }}
+              style={({ pressed }) => [
+                styles.accountBtn,
+                pressed && { opacity: 0.6 },
+              ]}
+              hitSlop={8}
+              testID="header-account-btn"
+            >
+              <CircleUserRound size={24} color="#1C1C1E" strokeWidth={1.6} />
+            </Pressable>
+          </View>
         </View>
+
         {followedProfiles.length > 0 && (
-          <View style={styles.followingCard}>
+          <View style={styles.followingSection}>
             <View style={styles.followingHeader}>
               <Text style={styles.followingLabel}>Following</Text>
-              <View style={styles.followingBadge}>
-                <Text style={styles.followingBadgeText}>{followedProfiles.length}</Text>
+              <View style={styles.followingCount}>
+                <Text style={styles.followingCountText}>{followedProfiles.length}</Text>
               </View>
             </View>
             <ScrollView
@@ -293,40 +364,29 @@ export default function DiscoverScreen() {
               {followedProfiles.map((p) => {
                 const catColor = CategoryColors[p.dominantStyle];
                 return (
-                  <Pressable
+                  <FollowingBubble
                     key={p.id}
-                    onPress={() => router.push(`/profile/${p.id}`)}
-                    style={({ pressed }) => [
-                      styles.followingItem,
-                      pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                    ]}
-                    testID={`followed-bubble-${p.id}`}
-                  >
-                    <View style={[styles.followingRing, { borderColor: catColor }]}>
-                      {p.avatar ? (
-                        <Image source={{ uri: p.avatar }} style={styles.followingAvatar} contentFit="cover" />
-                      ) : (
-                        <View style={[styles.followingAvatar, styles.followingPlaceholder]}>
-                          <User size={24} color={catColor} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.followingName} numberOfLines={1}>
-                      {p.name.split(' ')[0]}
-                    </Text>
-                  </Pressable>
+                    profile={p}
+                    catColor={catColor}
+                    onPress={() => navigateToProfile(p.id)}
+                  />
                 );
               })}
             </ScrollView>
           </View>
         )}
 
-        <Text style={styles.discoverLabel}>Discover</Text>
+        <View style={styles.sectionDivider}>
+          <View style={styles.trendingRow}>
+            <TrendingUp size={14} color="#1B7A45" strokeWidth={2.2} />
+            <Text style={styles.sectionLabel}>Popular Profiles</Text>
+          </View>
+        </View>
 
         {discoverQuery.isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#8E8E93" />
-            <Text style={styles.loadingText}>Loading profiles...</Text>
+            <Text style={styles.loadingText}>Finding shoppers near you...</Text>
           </View>
         ) : discoverQuery.isError ? (
           <View style={styles.loadingContainer}>
@@ -347,7 +407,7 @@ export default function DiscoverScreen() {
           </Animated.View>
         )}
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 28 }} />
       </ScrollView>
     </View>
   );
@@ -361,84 +421,100 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: H_PADDING,
   },
-  headerRow: {
+  headerSection: {
+    marginBottom: 16,
+  },
+  headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 8,
   },
   screenTitle: {
-    fontSize: 30,
-    fontWeight: '700' as const,
+    fontSize: 32,
+    fontWeight: '800' as const,
     color: '#1C1C1E',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
+  },
+  screenSubtitle: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 2,
   },
   accountBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#F2F2F7',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  followingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
     elevation: 2,
+    marginTop: 4,
+  },
+  followingSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   followingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 12,
   },
   followingLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
-    color: '#3C3C43',
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
   },
-  followingBadge: {
+  followingCount: {
     backgroundColor: '#1B7A45',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 6,
   },
-  followingBadgeText: {
+  followingCountText: {
     fontSize: 12,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   followingAvatarRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 14,
     paddingRight: 4,
   },
   followingItem: {
     alignItems: 'center',
-    width: 58,
+    width: 56,
   },
   followingRing: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
     padding: 2,
-    marginBottom: 4,
+    marginBottom: 5,
     overflow: 'hidden',
   },
   followingAvatar: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: 22,
   },
   followingPlaceholder: {
     justifyContent: 'center',
@@ -448,99 +524,139 @@ const styles = StyleSheet.create({
   followingName: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#3C3C43',
     textAlign: 'center' as const,
   },
-  discoverLabel: {
+  sectionDivider: {
+    marginBottom: 12,
+  },
+  trendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sectionLabel: {
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.2,
-    marginBottom: 6,
   },
   loadingContainer: {
     width: '100%',
-    paddingVertical: 40,
+    paddingVertical: 48,
     alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontWeight: '500' as const,
+    marginTop: 10,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '600' as const,
+  },
+  retryBtn: {
+    marginTop: 14,
+    backgroundColor: '#1B7A45',
+    paddingHorizontal: 28,
+    paddingVertical: 11,
+    borderRadius: 12,
+  },
+  retryBtnText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 8,
+    rowGap: CARD_GAP,
     columnGap: CARD_GAP,
-    marginBottom: 16,
-  },
-  fullWidthCard: {
-    width: '100%',
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-    position: 'relative' as const,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardPressed: {
     opacity: 0.92,
     transform: [{ scale: 0.97 }],
   },
+  avatarContainer: {
+    position: 'relative' as const,
+  },
   avatar: {
     width: '100%',
-    height: CARD_WIDTH * 0.82,
+    height: CARD_WIDTH * 0.85,
     backgroundColor: '#F2F2F7',
   },
   avatarPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  avatarOverlay: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 30,
+    backgroundColor: 'transparent',
+  },
   followBtn: {
     position: 'absolute' as const,
     top: 8,
     right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   followBtnActive: {
     backgroundColor: '#1B7A45',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   cardBody: {
-    paddingHorizontal: 9,
-    paddingTop: 5,
-    paddingBottom: 7,
-    gap: 2,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
+    gap: 3,
   },
   profileName: {
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#1C1C1E',
+    letterSpacing: -0.2,
   },
   styleTag: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
+    marginTop: 2,
   },
   styleTagText: {
     fontSize: 11,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
   },
-  statRow: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
-    marginTop: 2,
+    marginTop: 3,
   },
   statValue: {
     fontSize: 17,
@@ -553,38 +669,15 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontWeight: '400' as const,
   },
-  loadingText: {
-    fontSize: 13,
-    color: '#8E8E93',
-    fontWeight: '500' as const,
-    marginTop: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '600' as const,
-  },
-  retryBtn: {
-    marginTop: 12,
-    backgroundColor: '#1B7A45',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  retryBtnText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
   thumbRow: {
     flexDirection: 'row' as const,
     gap: 3,
-    marginTop: 5,
+    marginTop: 6,
   },
   thumbImg: {
     flex: 1,
-    height: 36,
-    borderRadius: 5,
+    height: 38,
+    borderRadius: 6,
     backgroundColor: '#F2F2F7',
   },
 });
