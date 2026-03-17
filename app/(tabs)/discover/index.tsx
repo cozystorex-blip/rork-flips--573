@@ -214,7 +214,7 @@ export default function DiscoverScreen() {
             { width: CARD_WIDTH },
             pressed && styles.cardPressed,
           ]}
-          onPress={() => router.push(`/profile/${p.id}` as any)}
+          onPress={() => router.push(`/profile/${p.id}`)}
           testID={`profile-card-${p.id}`}
         >
           {p.avatar ? (
@@ -271,9 +271,9 @@ export default function DiscoverScreen() {
           <Pressable
             onPress={() => {
               if (userId) {
-                router.push(`/profile/${userId}` as any);
+                router.push(`/profile/${userId}`);
               } else {
-                router.push('/auth' as any);
+                router.push('/auth');
               }
             }}
             style={({ pressed }) => [
@@ -304,7 +304,7 @@ export default function DiscoverScreen() {
                 return (
                   <Pressable
                     key={p.id}
-                    onPress={() => router.push(`/profile/${p.id}` as any)}
+                    onPress={() => router.push(`/profile/${p.id}`)}
                     style={({ pressed }) => [
                       styles.followingItem,
                       pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] },

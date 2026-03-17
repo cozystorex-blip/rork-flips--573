@@ -114,19 +114,19 @@ export default function HomeScreen() {
   const handleScanCardPress = useCallback((entry: ScanHistoryEntry) => {
     void Haptics.selectionAsync();
     router.push({
-      pathname: '/smart-scan' as any,
+      pathname: '/smart-scan',
       params: { historyEntryId: entry.id },
     });
   }, [router]);
 
   const handleScanPress = useCallback(() => {
     void Haptics.selectionAsync();
-    router.push('/smart-scan' as any);
+    router.push('/smart-scan');
   }, [router]);
 
   const handleReceiptPress = useCallback((expenseId: string) => {
     void Haptics.selectionAsync();
-    router.push({ pathname: '/receipt-detail' as any, params: { expenseId } });
+    router.push({ pathname: '/receipt-detail', params: { expenseId } });
   }, [router]);
 
   return (
@@ -152,7 +152,7 @@ export default function HomeScreen() {
                 <Text style={styles.sectionTitle}>Recent Receipts</Text>
               </View>
               {recentReceipts.length > 3 && (
-                <Pressable onPress={() => router.push('/(tabs)/analytics' as any)} hitSlop={8}>
+                <Pressable onPress={() => router.push('/(tabs)/analytics')} hitSlop={8}>
                   <Text style={styles.seeAllText}>See all</Text>
                 </Pressable>
               )}

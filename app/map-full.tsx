@@ -82,7 +82,7 @@ export default function MapFullScreen() {
         friction: 11,
       }).start();
     } else {
-      router.push({ pathname: '/place-profile' as any, params: { id: place.id } });
+      router.push({ pathname: '/place-profile', params: { id: place.id } });
     }
   }, [slideAnim, router]);
 
@@ -218,7 +218,7 @@ export default function MapFullScreen() {
             if (matchedPlace) {
               dismissCard();
               setTimeout(() => {
-                router.push({ pathname: '/place-profile' as any, params: { id: matchedPlace.id } });
+                router.push({ pathname: '/place-profile', params: { id: matchedPlace.id } });
               }, 300);
             }
           }}>

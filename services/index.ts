@@ -18,7 +18,7 @@ export { deleteScanImage } from './imagePersistence';
 
 export { generateStoreInsights, getStoreTypeLabel, calculateDistance } from './storeInsightsService';
 
-export { classifySourceUrl, isExactProductUrl } from '@/utils/sourceUrlQuality';
+export { classifySourceUrl, isExactProductUrl } from '../utils/sourceUrlQuality';
 
 export {
   checkPhotoPermission,
