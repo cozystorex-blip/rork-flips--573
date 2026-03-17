@@ -587,7 +587,7 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: () => {
           void signOut();
-          router.replace('/auth');
+          router.replace('/auth' as any);
         },
       },
     ]);
@@ -624,7 +624,7 @@ export default function ProfileScreen() {
         </Pressable>
         <Pressable
           style={styles.createBtn}
-          onPress={() => router.push('/edit-profile')}
+          onPress={() => router.push('/edit-profile' as any)}
         >
           <Text style={styles.createBtnText}>Create Profile</Text>
         </Pressable>
@@ -655,7 +655,7 @@ export default function ProfileScreen() {
         <Text style={styles.emptyText}>Set up your profile</Text>
         <Pressable
           style={styles.createBtn}
-          onPress={() => router.push('/edit-profile')}
+          onPress={() => router.push('/edit-profile' as any)}
         >
           <Text style={styles.createBtnText}>Create Profile</Text>
         </Pressable>
@@ -848,7 +848,7 @@ export default function ProfileScreen() {
         <Text style={styles.emptyText}>Set up your profile</Text>
         <Pressable
           style={styles.createBtn}
-          onPress={() => router.push('/edit-profile')}
+          onPress={() => router.push('/edit-profile' as any)}
         >
           <Text style={styles.createBtnText}>Create Profile</Text>
         </Pressable>
@@ -878,7 +878,7 @@ export default function ProfileScreen() {
           headerRight: () => (
             <View style={styles.headerActions}>
               <Pressable
-                onPress={() => router.push('/edit-profile')}
+                onPress={() => router.push('/edit-profile' as any)}
                 style={({ pressed }) => [
                   styles.editHeaderBtn,
                   pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] },
@@ -944,7 +944,7 @@ export default function ProfileScreen() {
               styles.editBtn,
               pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
             ]}
-            onPress={() => router.push('/edit-profile')}
+            onPress={() => router.push('/edit-profile' as any)}
           >
             <View style={styles.editBtnIcon}>
               <SquarePen size={12} color="#FFFFFF" strokeWidth={2.2} />
@@ -998,7 +998,7 @@ export default function ProfileScreen() {
               </Animated.View>
             </Pressable>
             <Pressable
-              onPress={() => router.push({ pathname: '/create-block', params: { userId: profileUserId } })}
+              onPress={() => router.push({ pathname: '/create-block' as any, params: { userId: profileUserId } })}
               style={({ pressed }) => [
                 styles.addBlockChip,
                 pressed && { opacity: 0.7 },

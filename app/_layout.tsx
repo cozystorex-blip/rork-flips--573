@@ -30,7 +30,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       console.log('[AuthGate] Not authenticated, redirecting to auth');
       hasNavigated.current = true;
       try {
-        router.replace('/auth');
+        router.replace('/auth' as any);
       } catch (e) {
         console.log('[AuthGate] Navigation to auth failed:', e);
       }
@@ -38,7 +38,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       console.log('[AuthGate] Authenticated, redirecting to home');
       hasNavigated.current = true;
       try {
-        router.replace('/');
+        router.replace('/' as any);
       } catch (e) {
         console.log('[AuthGate] Navigation to home failed:', e);
       }

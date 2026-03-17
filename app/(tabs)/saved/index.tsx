@@ -281,11 +281,11 @@ export default function SavedScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (item.type === 'scan') {
       const scanEntry = item.raw as ScanHistoryEntry;
-      router.push({ pathname: '/smart-scan', params: { historyEntryId: scanEntry.id } });
+      router.push({ pathname: '/smart-scan' as any, params: { historyEntryId: scanEntry.id } });
     } else if (item.type === 'deal') {
       const deal = item.raw as SavedDeal;
       router.push({
-        pathname: '/post-detail',
+        pathname: '/post-detail' as any,
         params: {
           dealId: deal.dealId,
           title: deal.title,
@@ -551,7 +551,7 @@ export default function SavedScreen() {
                 <Pressable
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/smart-scan');
+                    router.push('/smart-scan' as any);
                   }}
                   style={styles.emptyBtn}
                   testID="saved-empty-scan"
@@ -562,7 +562,7 @@ export default function SavedScreen() {
                 <Pressable
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/(tabs)/discover');
+                    router.push('/(tabs)/discover' as any);
                   }}
                   style={styles.emptyBtnOutline}
                   testID="saved-empty-finds"

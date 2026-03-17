@@ -20,9 +20,9 @@ function CenterTabButton() {
   const handleAction = useCallback((route: string, key: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (key === 'deal') {
-      router.push('/post-deal');
+      router.push('/post-deal' as any);
     } else {
-      router.push(route as '/create-block');
+      router.push(route as any);
     }
   }, [router]);
 
@@ -32,7 +32,7 @@ function CenterTabButton() {
       Animated.timing(scaleAnim, { toValue: 0.88, duration: 80, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
     ]).start();
-    router.push('/smart-scan');
+    router.push('/smart-scan' as any);
   }, [scaleAnim, router]);
 
   const openNativeSheet = useCallback(() => {

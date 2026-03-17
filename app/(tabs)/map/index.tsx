@@ -507,7 +507,7 @@ export default function DealsScreen() {
     if (deal.last_verified) params.lastVerified = deal.last_verified;
     if (deal.brand_slug) params.brandSlug = deal.brand_slug;
     if (deal.deal_expires_at) params.dealExpiresAt = deal.deal_expires_at;
-    router.push({ pathname: '/post-detail', params });
+    router.push({ pathname: '/post-detail' as any, params });
   }, [router]);
 
   const openDealDetail = useCallback((deal: VerifiedDealRow) => {
@@ -563,7 +563,7 @@ export default function DealsScreen() {
                 </Pressable>
               )}
               <Pressable
-                onPress={() => router.push('/post-deal')}
+                onPress={() => router.push('/post-deal' as any)}
                 style={({ pressed }) => [styles.postDealHeaderBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
                 testID="post-deal-header-btn"
               >
