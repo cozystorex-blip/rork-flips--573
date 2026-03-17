@@ -33,6 +33,7 @@ import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import { usePremium } from '@/contexts/PremiumContext';
 import SavedUpgradeModal from '@/components/SavedUpgradeModal';
 import type { SmartScanResult } from '@/services/smartScanService';
+import AdMobBanner from '@/components/ads/AdMobBanner';
 
 type FilterKey = 'all' | 'scans' | 'value';
 
@@ -591,6 +592,7 @@ export default function SavedScreen() {
                   {filteredItems.map(renderSavedCard)}
                 </View>
               </View>
+              <AdMobBanner />
               {savedUpgradeCard}
             </View>
           )}

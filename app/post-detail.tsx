@@ -36,6 +36,7 @@ import * as Clipboard from 'expo-clipboard';
 import Colors from '@/constants/colors';
 import { computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
 import { classifySourceUrl } from '@/utils/sourceUrlQuality';
+import AdMobBanner from '@/components/ads/AdMobBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -621,6 +622,10 @@ export default function PostDetailScreen() {
               </View>
             )}
           </Animated.View>
+
+          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
+            <AdMobBanner />
+          </View>
 
           <View style={{ height: 60 }} />
         </ScrollView>

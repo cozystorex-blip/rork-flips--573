@@ -26,6 +26,7 @@ import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext'
 import { generateAISuggestions, AISuggestion } from '@/services/aiSuggestionsService';
 
 import * as Haptics from 'expo-haptics';
+import AdMobBanner from '@/components/ads/AdMobBanner';
 
 function buildSuggestionKey(scans: ScanHistoryEntry[], receipts: { id: string; category: string }[]): string {
   const scanPart = scans.slice(0, 5).map(s => `${s.id}-${s.result.item_type}`).join('|');
@@ -357,6 +358,8 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
+
+          <AdMobBanner />
 
           {/* Quick Action */}
           <Pressable
