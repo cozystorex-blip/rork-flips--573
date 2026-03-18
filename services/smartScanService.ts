@@ -434,18 +434,23 @@ function getDetailPrompt(itemType: SmartScanItemType): string {
   const base = `You are a product analyzer. Provide accurate, category-appropriate details about this item.
 
 PRICING RULES:
-- Use real current retail prices. Do not invent prices.
+- Use real current retail prices as of March 2026. Do not invent prices.
 - Price range should be tight (within ~15% of estimate).
-- Use 2025-2026 current pricing.
+- Use current 2026 market pricing — not outdated or historical prices.
 - If item is packaging, set price fields to null.
 - Never output "Free" or "$0.00" — set to null instead.
 - Use dollar format like "$X.XX" for real prices.
 
-RESALE RULES:
-- Resale must be LOWER than retail. Used items lose value.
+RESALE VALUE RULES (CRITICAL — must reflect current 2026 market):
+- Resale value must reflect the CURRENT secondhand market price as of March 2026.
+- Use real current resale prices from platforms like eBay, StockX, Poshmark, Facebook Marketplace, OfferUp, Mercari, Grailed.
+- Resale must be LOWER than retail unless the item is a limited edition, rare, or hyped release with genuine above-retail demand.
+- For hyped/limited items (e.g. sold-out sneakers, rare collectibles), resale CAN exceed retail — use real current aftermarket prices.
 - Cheap items under $10 usually have no resale value — set to null.
-- Consumables have NO resale value.
-- Only provide resale for items people actually buy secondhand.\n\n`;
+- Consumables, food, groceries, and single-use items have NO resale value.
+- Only provide resale for items people actually buy and sell secondhand.
+- If you are unsure of the current resale price, give a conservative estimate rather than inflating.
+- Never use old or outdated resale prices — always estimate based on current 2026 demand and availability.\n\n`;
 
   switch (itemType) {
     case 'food':
