@@ -46,6 +46,7 @@ import { runSmartScan, generateReferenceImage, getLastProcessedBase64, SmartScan
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { persistScanImage } from '@/services/imagePersistence';
 import { usePremium } from '@/contexts/PremiumContext';
+import { showInterstitialIfReady } from '@/services/adService';
 import {
   FoodResultSection,
   GroceryResultSection,
@@ -311,6 +312,8 @@ export default function SmartScanScreen() {
       setScanPhase('done');
       animateProgress(100, 300);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      void showInterstitialIfReady();
 
       let persistedUri = capturedUri;
       try {

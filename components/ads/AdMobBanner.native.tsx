@@ -18,12 +18,28 @@ try {
   console.warn('[AdMobBanner] react-native-google-mobile-ads not available:', e);
 }
 
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 15000;
+
 export default function AdMobBanner() {
   const { isPremium } = usePremium();
   const [adReady, setAdReady] = useState(false);
   const [adError, setAdError] = useState(false);
   const [sdkReady, setSdkReady] = useState(isAdsInitialized());
+  const [retryCount, setRetryCount] = useState(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAdModuleAvailable() || !BannerAd) return;
@@ -33,7 +49,9 @@ export default function AdMobBanner() {
     }
     const unsub = onAdsInitialized(() => {
       console.log('[AdMobBanner] SDK ready, showing banner');
-      setSdkReady(true);
+      if (mountedRef.current) {
+        setSdkReady(true);
+      }
     });
     return unsub;
   }, []);
@@ -49,25 +67,47 @@ export default function AdMobBanner() {
   }, [adReady, fadeAnim]);
 
   const handleAdLoaded = useCallback(() => {
-    console.log('[AdMobBanner] Banner ad loaded');
-    setAdReady(true);
-    setAdError(false);
+    console.log('[AdMobBanner] Banner ad loaded successfully');
+    if (mountedRef.current) {
+      setAdReady(true);
+      setAdError(false);
+      setRetryCount(0);
+    }
   }, []);
 
   const handleAdFailed = useCallback((error: Error) => {
     console.log('[AdMobBanner] Banner ad failed:', error.message);
-    setAdError(true);
+    if (!mountedRef.current) return;
+
     setAdReady(false);
+
+    setRetryCount((prev) => {
+      const next = prev + 1;
+      if (next < MAX_RETRY_ATTEMPTS) {
+        console.log(`[AdMobBanner] Will retry in ${RETRY_DELAY_MS / 1000}s (attempt ${next}/${MAX_RETRY_ATTEMPTS})`);
+        retryTimerRef.current = setTimeout(() => {
+          if (mountedRef.current) {
+            console.log('[AdMobBanner] Retrying banner load...');
+            setAdError(false);
+          }
+        }, RETRY_DELAY_MS);
+      } else {
+        console.log('[AdMobBanner] Max retries reached, hiding banner');
+      }
+      return next;
+    });
+
+    setAdError(true);
   }, []);
 
   if (isPremium) return null;
   if (!isAdModuleAvailable() || !BannerAd) return null;
   if (!sdkReady) return null;
+  if (adError && retryCount >= MAX_RETRY_ATTEMPTS) return null;
+  if (adError) return null;
 
   const unitId = getBannerUnitId();
   console.log('[AdMobBanner] Rendering banner with unit ID:', unitId);
-
-  if (adError) return null;
 
   return (
     <Animated.View
@@ -98,7 +138,7 @@ export default function AdMobBanner() {
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 12,
+    marginVertical: 8,
     alignItems: 'center',
   },
   container: {

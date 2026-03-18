@@ -38,6 +38,10 @@ export async function showInterstitialIfReady(): Promise<boolean> {
   return false;
 }
 
+export function isInterstitialReady(): boolean {
+  return false;
+}
+
 export function associateAdProfile(userId: string | null): void {
   console.log('[AdService] Associate ad profile (web):', userId ? userId.substring(0, 8) + '...' : 'anonymous');
 }

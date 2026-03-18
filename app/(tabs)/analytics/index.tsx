@@ -16,6 +16,7 @@ import { useExpenses } from '@/contexts/ExpenseContext';
 import { ExpenseCategoryColors } from '@/constants/colors';
 import { ExpenseCategoryType, ExpenseCategoryLabels, Expense } from '@/types';
 import * as Haptics from 'expo-haptics';
+import AdMobBanner from '@/components/ads/AdMobBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_H_PAD = 16;
@@ -444,6 +445,8 @@ export default function AnalyticsScreen() {
               thisWeekExpenses.slice(0, 8).map(renderRecentCard)
             )}
           </View>
+
+          <AdMobBanner />
 
           <View style={{ height: 40 }} />
         </Animated.View>
