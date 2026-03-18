@@ -1035,55 +1035,5 @@ const s = StyleSheet.create({
     fontWeight: '500' as const,
     marginTop: 2,
   },
-  receiptStatusCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.card,
-    borderRadius: 12,
-    padding: 14,
-    marginVertical: 6,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-  },
-  receiptStatusIcon: {
-    fontSize: 28,
-  },
-  receiptStatusContent: {
-    flex: 1,
-  },
-  receiptStatusTitle: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: C.text,
-    marginBottom: 2,
-  },
-  receiptStatusDesc: {
-    fontSize: 12,
-    color: C.textSecondary,
-    lineHeight: 17,
-    fontWeight: '500' as const,
-  },
-  receiptInfoGrid: {
-    gap: 8,
-  },
-  receiptInfoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  receiptInfoLabel: {
-    fontSize: 13,
-    color: C.textSecondary,
-    fontWeight: '500' as const,
-  },
-  receiptInfoValue: {
-    fontSize: 13,
-    color: C.text,
-    fontWeight: '600' as const,
-  },
-  receiptFeatureList: {
-    gap: 2,
-  },
+
 });

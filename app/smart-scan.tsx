@@ -144,17 +144,30 @@ async function requestCameraImage(): Promise<ImagePicker.ImagePickerResult | nul
   return null;
 }
 
-async function requestGalleryImage(): Promise<ImagePicker.ImagePickerResult> {
+async function requestGalleryImage(): Promise<ImagePicker.ImagePickerResult | null> {
   if (Platform.OS !== 'web') {
     const { status, canAskAgain } = await ImagePicker.getMediaLibraryPermissionsAsync();
-    if (status !== 'granted' && (status === 'undetermined' || canAskAgain)) {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert('Photo Access Needed', 'Please allow photo library access in Settings.');
+    console.log('[Gallery] Permission status:', status, 'canAskAgain:', canAskAgain);
+    if (status !== 'granted') {
+      if (status === 'undetermined' || canAskAgain) {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
+          return null;
+        }
+      } else {
+        Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
+        return null;
       }
     }
   }
-  return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+  try {
+    return await ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+  } catch (err) {
+    console.log('[Gallery] launchImageLibraryAsync failed:', err);
+    Alert.alert('Error', 'Could not open photo library. Please try again.');
+    return null;
+  }
 }
 
 function getTimeAgo(dateStr: string): string {
@@ -239,36 +252,39 @@ export default function SmartScanScreen() {
   }, [progressWidth]);
 
   const handleCapture = useCallback(async (mode: 'camera' | 'gallery') => {
-
     setResult(null);
     setReferenceImageUrl(null);
     setScannedImageUri(null);
+    setGeneratingImage(false);
     resultFade.setValue(0);
+    progressWidth.setValue(0);
     hasNavigatedRef.current = false;
+
+    let capturedUri: string | null = null;
 
     try {
       let pickerResult: ImagePicker.ImagePickerResult | null;
 
       if (mode === 'camera') {
         pickerResult = await requestCameraImage();
-        if (!pickerResult) return;
       } else {
         pickerResult = await requestGalleryImage();
       }
 
-      if (pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
+      if (!pickerResult || pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
         console.log('[SmartScan] User cancelled image selection');
         return;
       }
 
-      const capturedUri = pickerResult.assets[0].uri;
+      capturedUri = pickerResult.assets[0].uri;
       console.log('[SmartScan] Image captured:', capturedUri.substring(0, 80));
+
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       setScanning(true);
       setScanPhase('preprocessing');
       startPulse();
-      progressWidth.setValue(0);
-      animateProgress(20, 1500);
+      animateProgress(20, 1200);
 
       setScanPhase('analyzing');
       animateProgress(40, 5000);
@@ -279,6 +295,8 @@ export default function SmartScanScreen() {
         animateProgress(100, 200);
         setScanPhase('done');
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setScanning(false);
+        stopPulse();
         if (!hasNavigatedRef.current) {
           hasNavigatedRef.current = true;
           router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
@@ -294,13 +312,14 @@ export default function SmartScanScreen() {
       animateProgress(85, 3000);
 
       const processedBase64 = getLastProcessedBase64();
-      let refImageUrl: string | null = null;
       if (scanResult.image_description) {
         try {
           setGeneratingImage(true);
-          refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined);
-          setReferenceImageUrl(refImageUrl);
-          scanResult.reference_image_url = refImageUrl;
+          const refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined);
+          if (refImageUrl) {
+            setReferenceImageUrl(refImageUrl);
+            scanResult.reference_image_url = refImageUrl;
+          }
         } catch (imgErr) {
           console.log('[SmartScan] Reference image generation failed:', imgErr);
         } finally {
@@ -357,7 +376,7 @@ export default function SmartScanScreen() {
       };
 
       setResult(fallbackResult);
-      setScannedImageUri(scannedImageUri);
+      setScannedImageUri(capturedUri);
       setScanPhase('done');
       animateProgress(100, 300);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -370,7 +389,7 @@ export default function SmartScanScreen() {
       setScanning(false);
       stopPulse();
     }
-  }, [startPulse, stopPulse, animateProgress, progressWidth, resultFade, addEntry, router, scannedImageUri]);
+  }, [startPulse, stopPulse, animateProgress, progressWidth, resultFade, addEntry, router]);
 
   const resetScan = useCallback(() => {
     setResult(null);
