@@ -58,6 +58,7 @@ import {
   GeneralResultSection,
   UnknownResultSection,
   ReceiptResultSection,
+  DocumentResultSection,
 } from '@/components/scan/ScanResultRenderers';
 
 type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
@@ -80,6 +81,7 @@ const TYPE_CONFIG: Record<SmartScanItemType, { label: string; color: string; bg:
   electronics: { label: 'Electronics', color: '#0284C7', bg: '#F0F9FF', Icon: Smartphone },
   general: { label: 'Item Identified', color: '#0D9488', bg: '#F0FDFA', Icon: Scan },
   receipt: { label: 'Receipt Detected', color: '#DC2626', bg: '#FEF2F2', Icon: Receipt },
+  document: { label: 'Document / Content', color: '#8B5CF6', bg: '#F5F3FF', Icon: ImageIcon },
   unknown: { label: 'Unknown Item', color: '#6B7280', bg: '#F3F4F6', Icon: HelpCircle },
 };
 
@@ -359,6 +361,7 @@ export default function SmartScanScreen() {
         furniture_details: null,
         fashion_details: null,
         electronics_details: null,
+        document_details: null,
         general_details: {
           item_description: 'We could not fully analyze this item. Try scanning again with better lighting or a different angle.',
           subcategory: 'other',
@@ -440,6 +443,7 @@ export default function SmartScanScreen() {
       case 'electronics': return <ElectronicsResultSection result={result} />;
       case 'general': return <GeneralResultSection result={result} />;
       case 'receipt': return <ReceiptResultSection result={result} />;
+      case 'document': return <DocumentResultSection result={result} />;
       case 'unknown': return <UnknownResultSection result={result} />;
       default: return <UnknownResultSection result={result} />;
     }

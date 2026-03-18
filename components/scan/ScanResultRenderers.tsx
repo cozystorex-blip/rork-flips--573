@@ -740,6 +740,102 @@ export function GeneralResultSection({ result }: ResultProps) {
   );
 }
 
+export function DocumentResultSection({ result }: ResultProps) {
+  const dd = result.document_details;
+  if (!dd) {
+    return (
+      <>
+        <SectionLabel text="Content Detected" />
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{result.item_name || 'Document / Printed Content'}</Text>
+          {result.short_summary ? (
+            <Text style={s.fallbackSub}>{result.short_summary}</Text>
+          ) : null}
+        </View>
+        <Divider />
+        <InfoBlock text="This scan appears to show printed or digital reference content rather than one physical item. Try cropping a specific item for single-item identification." type="tip" />
+      </>
+    );
+  }
+
+  const docTypeLabels: Record<string, string> = {
+    infographic: 'Infographic',
+    catalog: 'Catalog / Multi-Item Page',
+    educational: 'Educational Material',
+    poster: 'Poster',
+    screenshot: 'Screenshot / Digital Content',
+    chart: 'Chart / Diagram',
+    reference: 'Reference Material',
+    other: 'Document',
+  };
+
+  return (
+    <>
+      <SectionLabel text="Content Analysis" />
+      <LineItem label="Type" value={docTypeLabels[dd.document_type] ?? 'Document'} />
+      {dd.main_topic ? <LineItem label="Topic" value={dd.main_topic} /> : null}
+
+      {dd.content_description ? (
+        <>
+          <Divider />
+          <InfoBlock text={dd.content_description} type="tip" />
+        </>
+      ) : null}
+
+      {dd.detected_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Items / Subjects Detected" />
+          {dd.detected_items.map((item, i) => (
+            <View key={`di-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>•</Text>
+              <Text style={s.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.key_information.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Key Information" />
+          {dd.key_information.map((info, i) => (
+            <View key={`ki-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>✓</Text>
+              <Text style={s.bulletText}>{info}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.visible_text_summary ? (
+        <>
+          <Divider />
+          <SectionLabel text="Content Summary" />
+          <View style={s.fallbackBlock}>
+            <Text style={s.fallbackSub}>{dd.visible_text_summary}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {dd.suggested_actions.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Suggested Next Steps" />
+          {dd.suggested_actions.map((action, i) => (
+            <View key={`sa-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>→</Text>
+              <Text style={s.bulletText}>{action}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <TagsRow tags={dd.tags} />
+    </>
+  );
+}
+
 export function UnknownResultSection({ result }: ResultProps) {
   if (result.general_details != null) return <GeneralResultSection result={result} />;
   if (result.household_details != null) return <HouseholdResultSection result={result} />;

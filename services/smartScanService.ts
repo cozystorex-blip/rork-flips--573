@@ -2,18 +2,23 @@ import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
 import { preprocessReceiptImage } from '@/services/receiptImagePreprocess';
 
-export type SmartScanItemType = 'food' | 'grocery' | 'household' | 'furniture' | 'fashion' | 'electronics' | 'general' | 'receipt' | 'unknown';
+export type SmartScanItemType = 'food' | 'grocery' | 'household' | 'furniture' | 'fashion' | 'electronics' | 'general' | 'receipt' | 'document' | 'unknown';
+
+export type ImageContentType = 'single_item' | 'multi_item_page' | 'printed_material' | 'screenshot' | 'document' | 'unclear';
 
 const classificationSchema = z.object({
-  item_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'unknown']),
+  item_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'document', 'unknown']),
   confidence: z.number().min(0).max(1),
   is_receipt: z.boolean(),
   item_name: z.string(),
   category: z.string(),
-  secondary_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'unknown']).nullable(),
+  secondary_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'document', 'unknown']).nullable(),
   visual_cues: z.array(z.string()),
   short_summary: z.string(),
   image_description: z.string(),
+  image_content_type: z.enum(['single_item', 'multi_item_page', 'printed_material', 'screenshot', 'document', 'unclear']),
+  detected_items_list: z.array(z.string()),
+  page_topic: z.string(),
 });
 
 const foodDetailsSchema = z.object({
@@ -219,8 +224,19 @@ const furnitureDetailsSchema = z.object({
   complementary_items: z.array(z.string()),
 });
 
+const documentDetailsSchema = z.object({
+  content_description: z.string(),
+  document_type: z.enum(['infographic', 'catalog', 'educational', 'poster', 'screenshot', 'chart', 'reference', 'other']),
+  detected_items: z.array(z.string()),
+  main_topic: z.string(),
+  visible_text_summary: z.string(),
+  key_information: z.array(z.string()),
+  suggested_actions: z.array(z.string()),
+  tags: z.array(z.string()),
+});
+
 const smartScanSchema = z.object({
-  item_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'unknown']),
+  item_type: z.enum(['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'document', 'unknown']),
   confidence: z.number().min(0).max(1),
   item_name: z.string(),
   category: z.string(),
@@ -231,6 +247,7 @@ const smartScanSchema = z.object({
   fashion_details: fashionDetailsSchema.nullable(),
   electronics_details: electronicsDetailsSchema.nullable(),
   general_details: generalDetailsSchema.nullable(),
+  document_details: documentDetailsSchema.nullable(),
   is_receipt: z.boolean(),
 });
 
@@ -243,6 +260,9 @@ export type SmartScanResult = z.infer<typeof smartScanSchema> & {
   scanned_image_uri?: string;
   visual_cues?: string[];
   trustResult?: ScanTrustResult;
+  image_content_type?: ImageContentType;
+  detected_items_list?: string[];
+  page_topic?: string;
 };
 
 function extractDollarAmount(price: string | null): number | null {
@@ -387,6 +407,31 @@ function stabilizePricing(result: SmartScanResult): SmartScanResult {
 }
 
 const CLASSIFICATION_PROMPT = `You are an expert universal product identifier. Analyze ONLY what is visible in the image. Do NOT default to any category — pick the single best match.
+
+STEP 0 — DETERMINE IMAGE CONTENT TYPE:
+Before identifying any object, first determine what KIND of image this is:
+- "single_item" = photo of one physical real-world object (product, food, furniture, etc.)
+- "multi_item_page" = image showing multiple labeled items together (catalog page, comparison chart, product lineup, collage with labeled items)
+- "printed_material" = poster, educational sheet, infographic, brochure, flyer, diagram, reference chart, informational page with text and graphics
+- "screenshot" = screenshot from a phone/computer screen, digital graphic, app screen, website capture
+- "document" = text document, article, printed page, report, form, letter
+- "unclear" = too blurry or dark to determine anything
+
+Set image_content_type accordingly. This is critical for correct routing.
+
+IF image_content_type is "multi_item_page", "printed_material", "screenshot", or "document":
+- Set item_type to "document"
+- Set confidence to 0.70 or higher (you DID identify the content type)
+- Set item_name to describe what the page/content is (e.g. "Building Materials Infographic", "Product Catalog Page", "Educational Poster")
+- List any identifiable items or topics in detected_items_list
+- Set page_topic to the main subject or topic of the content
+- Do NOT set item_type to "unknown" just because it is not a single physical object
+- Do NOT give low confidence for clearly readable printed content
+
+IF image_content_type is "single_item" or "unclear":
+- Set detected_items_list to empty array []
+- Set page_topic to empty string ""
+- Continue with normal single-item classification below
 
 STEP 1 — DETERMINE WHAT THE OBJECT ACTUALLY IS:
 Before choosing a category, describe to yourself what you literally see: shape, color, material, text, labels, packaging, context. Then match to a category.
@@ -584,7 +629,7 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
   const cues = (fixed.visual_cues ?? []).map(c => c.toLowerCase()).join(' ');
   const combined = name + ' ' + cat + ' ' + cues;
 
-  if (fixed.item_type === 'unknown' || fixed.item_type === 'receipt') {
+  if (fixed.item_type === 'unknown' || fixed.item_type === 'receipt' || fixed.item_type === 'document') {
     return fixed;
   }
 
@@ -671,6 +716,7 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
 
 function recoverUnknown(classification: z.infer<typeof classificationSchema>): z.infer<typeof classificationSchema> {
   if (classification.item_type !== 'unknown') return classification;
+  if (classification.image_content_type === 'printed_material' || classification.image_content_type === 'multi_item_page' || classification.image_content_type === 'screenshot' || classification.image_content_type === 'document') return classification;
   const fixed = { ...classification };
   const combined = ((fixed.visual_cues ?? []).join(' ') + ' ' + (fixed.item_name ?? '')).toLowerCase();
 
@@ -766,6 +812,15 @@ function validateResult(result: SmartScanResult, classification: z.infer<typeof 
     validated.electronics_details = null;
     validated.general_details = null;
   }
+  if (validated.item_type === 'document') {
+    validated.food_details = null;
+    validated.grocery_details = null;
+    validated.furniture_details = null;
+    validated.fashion_details = null;
+    validated.electronics_details = null;
+    validated.household_details = null;
+    validated.general_details = null;
+  }
 
   if (!validated.item_name || validated.item_name.length < 3 || validated.item_name === 'Unknown') {
     validated.item_name = classification.item_name || `${classification.category} Item`;
@@ -822,6 +877,82 @@ function repairMissingDetails(result: SmartScanResult, classification: z.infer<t
   };
   repaired.confidence = Math.min(repaired.confidence, 0.4);
   return repaired;
+}
+
+function buildDocumentResult(
+  classification: z.infer<typeof classificationSchema>,
+  imageUri: string
+): SmartScanResult {
+  const contentType = classification.image_content_type;
+  const detectedItems = classification.detected_items_list ?? [];
+  const pageTopic = classification.page_topic ?? '';
+  const confidence = Math.max(classification.confidence, 0.70);
+
+  const docTypeMap: Record<string, string> = {
+    multi_item_page: 'catalog',
+    printed_material: 'infographic',
+    screenshot: 'screenshot',
+    document: 'other',
+    single_item: 'other',
+    unclear: 'other',
+  };
+
+  const suggestedActions: string[] = [];
+  if (detectedItems.length > 1) {
+    suggestedActions.push('Crop a specific item for single-item identification');
+  }
+  suggestedActions.push('Try scanning a single product for detailed analysis');
+  if (contentType === 'screenshot') {
+    suggestedActions.push('Use the original source for more accurate results');
+  }
+
+  const keyInfo: string[] = [];
+  if (pageTopic) keyInfo.push(`Topic: ${pageTopic}`);
+  if (detectedItems.length > 0) {
+    keyInfo.push(`${detectedItems.length} item${detectedItems.length === 1 ? '' : 's'} detected`);
+  }
+
+  const contentLabels: Record<string, string> = {
+    multi_item_page: 'Multi-item reference page detected',
+    printed_material: 'Printed material detected',
+    screenshot: 'Screenshot / digital content detected',
+    document: 'Document content detected',
+  };
+  const summary = contentLabels[contentType] ?? 'Non-product content detected';
+
+  console.log('[SmartScan] Building document result:', summary, 'items:', detectedItems.length);
+
+  return {
+    item_type: 'document',
+    confidence,
+    item_name: classification.item_name || summary,
+    category: 'Document / Printed Content',
+    food_details: null,
+    grocery_details: null,
+    household_details: null,
+    furniture_details: null,
+    fashion_details: null,
+    electronics_details: null,
+    general_details: null,
+    document_details: {
+      content_description: classification.short_summary || summary,
+      document_type: (docTypeMap[contentType] ?? 'other') as 'infographic' | 'catalog' | 'educational' | 'poster' | 'screenshot' | 'chart' | 'reference' | 'other',
+      detected_items: detectedItems,
+      main_topic: pageTopic,
+      visible_text_summary: classification.short_summary || '',
+      key_information: keyInfo,
+      suggested_actions: suggestedActions,
+      tags: (classification.visual_cues ?? []).slice(0, 8),
+    },
+    is_receipt: false,
+    short_summary: classification.short_summary || summary,
+    image_description: classification.image_description ?? '',
+    visual_cues: classification.visual_cues ?? [],
+    scanned_image_uri: imageUri,
+    image_content_type: contentType,
+    detected_items_list: detectedItems,
+    page_topic: pageTopic,
+  };
 }
 
 export async function generateReferenceImage(description: string, scannedImageBase64?: string): Promise<string | null> {
@@ -935,8 +1066,19 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
       category: 'receipt',
       food_details: null, grocery_details: null, household_details: null,
       furniture_details: null, fashion_details: null, electronics_details: null,
-      general_details: null, is_receipt: true,
+      general_details: null, document_details: null, is_receipt: true,
     };
+  }
+
+  const contentType = classification.image_content_type;
+  console.log('[SmartScan] Content type:', contentType, 'detected_items:', classification.detected_items_list?.length ?? 0);
+
+  if (contentType === 'printed_material' || contentType === 'multi_item_page' || contentType === 'screenshot' || contentType === 'document' || classification.item_type === 'document') {
+    console.log('[SmartScan] Document/printed content detected — using document flow');
+    const docResult = buildDocumentResult(classification, imageUri);
+    lastProcessedBase64 = processed.base64;
+    docResult.scanned_image_uri = imageUri;
+    return docResult;
   }
 
   classification = recoverUnknown(classification);
