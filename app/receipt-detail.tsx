@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   PieChart,
   Clock,
+  CreditCard,
+  Tag,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useExpenses } from '@/contexts/ExpenseContext';
@@ -38,6 +40,22 @@ const CATEGORY_COLORS: Record<string, string> = {
   subscriptions: '#A855F7',
   other: '#9CA3AF',
 };
+
+interface ParsedReceiptItem {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+interface ParsedReceiptData {
+  items: ParsedReceiptItem[];
+  subtotal: number | null;
+  tax: number | null;
+  tip: number | null;
+  discount: number | null;
+  paymentMethod: string | null;
+}
 
 function formatFullDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -58,20 +76,82 @@ function formatTime(dateStr: string): string {
   });
 }
 
-function parseReceiptItems(preview: string | undefined): { name: string; price: number }[] {
+function parseFromRawExtraction(rawText: string | undefined): ParsedReceiptData | null {
+  if (!rawText) return null;
+  try {
+    const parsed = JSON.parse(rawText);
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const items: ParsedReceiptItem[] = (parsed.items ?? [])
+      .filter((i: { name?: string; total_price?: number; totalPrice?: number }) => {
+        const name = i?.name ?? '';
+        const price = i?.total_price ?? i?.totalPrice ?? 0;
+        return name.length > 0 && price > 0;
+      })
+      .map((i: { name: string; quantity?: number; unit_price?: number; unitPrice?: number; total_price?: number; totalPrice?: number }) => ({
+        name: i.name,
+        quantity: i.quantity ?? 1,
+        unitPrice: i.unit_price ?? i.unitPrice ?? 0,
+        totalPrice: i.total_price ?? i.totalPrice ?? 0,
+      }));
+
+    return {
+      items,
+      subtotal: parsed.subtotal ?? null,
+      tax: parsed.tax ?? null,
+      tip: parsed.tip ?? null,
+      discount: parsed.discount_amount ?? parsed.discount ?? null,
+      paymentMethod: parsed.payment_method ?? parsed.paymentMethod ?? null,
+    };
+  } catch (e) {
+    console.log('[ReceiptDetail] Failed to parse rawText:', e);
+    return null;
+  }
+}
+
+function parseFromPreview(preview: string | undefined): ParsedReceiptItem[] {
   if (!preview) return [];
   const lines = preview.split('\n').filter(Boolean);
-  return lines.map((line) => {
-    const match = line.match(/^(.+?)\s*[-–—:]\s*\$?([\d.]+)$/);
-    if (match) {
-      return { name: match[1].trim(), price: parseFloat(match[2]) };
-    }
-    const priceMatch = line.match(/\$?([\d.]+)/);
-    return {
-      name: line.replace(/\$?[\d.]+/, '').trim() || line,
-      price: priceMatch ? parseFloat(priceMatch[1]) : 0,
-    };
-  });
+  return lines
+    .filter((line) => !line.startsWith('+'))
+    .map((line) => {
+      const dashMatch = line.match(/^(.+?)\s*[-–—]\s*\$?([\d.]+)$/);
+      if (dashMatch) {
+        const rawName = dashMatch[1].trim();
+        const price = parseFloat(dashMatch[2]);
+        const qtyMatch = rawName.match(/^(\d+)x\s+(.+)$/);
+        if (qtyMatch) {
+          const qty = parseInt(qtyMatch[1], 10);
+          return { name: qtyMatch[2], quantity: qty, unitPrice: qty > 0 ? +(price / qty).toFixed(2) : price, totalPrice: price };
+        }
+        return { name: rawName, quantity: 1, unitPrice: price, totalPrice: price };
+      }
+
+      const commaItems = line.split(',').map((s) => s.trim()).filter(Boolean);
+      if (commaItems.length > 1) {
+        return commaItems.map((part) => {
+          const partMatch = part.match(/^(.+?)\s+\$?([\d.]+)$/);
+          if (partMatch) {
+            const rawName = partMatch[1].trim();
+            const price = parseFloat(partMatch[2]);
+            const qtyMatch = rawName.match(/^(\d+)x\s+(.+)$/);
+            if (qtyMatch) {
+              const qty = parseInt(qtyMatch[1], 10);
+              return { name: qtyMatch[2], quantity: qty, unitPrice: qty > 0 ? +(price / qty).toFixed(2) : price, totalPrice: price };
+            }
+            return { name: rawName, quantity: 1, unitPrice: price, totalPrice: price };
+          }
+          return null;
+        }).filter((x): x is ParsedReceiptItem => x !== null);
+      }
+
+      const priceMatch = line.match(/\$?([\d.]+)/);
+      const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
+      const name = line.replace(/\$?[\d.]+/, '').replace(/[-–—]/, '').trim() || line;
+      return { name, quantity: 1, unitPrice: price, totalPrice: price };
+    })
+    .flat()
+    .filter((item) => item.totalPrice > 0);
 }
 
 export default function ReceiptDetailScreen() {
@@ -93,9 +173,24 @@ export default function ReceiptDetailScreen() {
     return expenses.find((e) => e.id === params.expenseId) ?? null;
   }, [expenses, params.expenseId]);
 
-  const receiptItems = useMemo(() => {
-    return parseReceiptItems(expense?.receiptItemsPreview);
-  }, [expense?.receiptItemsPreview]);
+  const receiptData = useMemo<ParsedReceiptData>(() => {
+    const fromRaw = parseFromRawExtraction(expense?.receiptRawText);
+    if (fromRaw && fromRaw.items.length > 0) {
+      console.log('[ReceiptDetail] Parsed from raw extraction:', fromRaw.items.length, 'items');
+      return fromRaw;
+    }
+
+    const previewItems = parseFromPreview(expense?.receiptItemsPreview);
+    console.log('[ReceiptDetail] Parsed from preview:', previewItems.length, 'items');
+    return {
+      items: previewItems,
+      subtotal: null,
+      tax: null,
+      tip: null,
+      discount: null,
+      paymentMethod: null,
+    };
+  }, [expense?.receiptRawText, expense?.receiptItemsPreview]);
 
   const catColor = expense ? (CATEGORY_COLORS[expense.category] ?? '#9CA3AF') : '#9CA3AF';
   const catLabel = expense ? (ExpenseCategoryLabels[expense.category as ExpenseCategoryType] ?? 'Other') : 'Other';
@@ -104,9 +199,23 @@ export default function ReceiptDetailScreen() {
     ? Math.round(expense.receiptConfidence * 100)
     : null;
 
+  const confidenceLabel = useMemo(() => {
+    if (confidencePct === null) return '';
+    if (confidencePct >= 80) return 'High';
+    if (confidencePct >= 60) return 'Medium';
+    return 'Low';
+  }, [confidencePct]);
+
+  const confidenceColor = useMemo(() => {
+    if (confidencePct === null) return '#9CA3AF';
+    if (confidencePct >= 80) return '#16A34A';
+    if (confidencePct >= 60) return '#D97706';
+    return '#EF4444';
+  }, [confidencePct]);
+
   const itemsTotal = useMemo(() => {
-    return receiptItems.reduce((sum, i) => sum + i.price, 0);
-  }, [receiptItems]);
+    return receiptData.items.reduce((sum, i) => sum + i.totalPrice, 0);
+  }, [receiptData.items]);
 
   if (!expense) {
     return (
@@ -170,19 +279,31 @@ export default function ReceiptDetailScreen() {
                 <Text style={styles.heroMetaText}>{formatTime(expense.createdAt)}</Text>
               </View>
             </View>
-            <View style={[styles.categoryPill, { backgroundColor: catColor + '18' }]}>
-              <View style={[styles.categoryDot, { backgroundColor: catColor }]} />
-              <Text style={[styles.categoryPillText, { color: catColor }]}>{catLabel}</Text>
+            <View style={styles.heroBottomRow}>
+              <View style={[styles.categoryPill, { backgroundColor: catColor + '18' }]}>
+                <View style={[styles.categoryDot, { backgroundColor: catColor }]} />
+                <Text style={[styles.categoryPillText, { color: catColor }]}>{catLabel}</Text>
+              </View>
+              {receiptData.paymentMethod && (
+                <View style={styles.paymentPill}>
+                  <CreditCard size={11} color="#636366" strokeWidth={1.5} />
+                  <Text style={styles.paymentPillText}>{receiptData.paymentMethod}</Text>
+                </View>
+              )}
             </View>
           </View>
 
           {confidencePct !== null && (
             <View style={styles.insightCard}>
               <View style={styles.insightHeader}>
-                <View style={styles.insightIconBadge}>
+                <View style={[styles.insightIconBadge, { backgroundColor: confidenceColor }]}>
                   <CheckCircle2 size={14} color="#FFFFFF" strokeWidth={2} />
                 </View>
                 <Text style={styles.insightTitle}>Scan Confidence</Text>
+                <View style={[styles.confidenceBadge, { backgroundColor: `${confidenceColor}15` }]}>
+                  <View style={[styles.confidenceBadgeDot, { backgroundColor: confidenceColor }]} />
+                  <Text style={[styles.confidenceBadgeText, { color: confidenceColor }]}>{confidenceLabel}</Text>
+                </View>
               </View>
               <View style={styles.confidenceRow}>
                 <View style={styles.confidenceBarBg}>
@@ -191,7 +312,7 @@ export default function ReceiptDetailScreen() {
                       styles.confidenceBarFill,
                       {
                         width: `${Math.min(confidencePct, 100)}%`,
-                        backgroundColor: confidencePct >= 80 ? '#16A34A' : confidencePct >= 50 ? '#D97706' : '#EF4444',
+                        backgroundColor: confidenceColor,
                       },
                     ]}
                   />
@@ -201,43 +322,78 @@ export default function ReceiptDetailScreen() {
               <Text style={styles.confidenceHint}>
                 {confidencePct >= 80
                   ? 'High confidence — details were clearly extracted'
-                  : confidencePct >= 50
+                  : confidencePct >= 60
                   ? 'Moderate confidence — some details may need review'
                   : 'Low confidence — consider verifying the amounts'}
               </Text>
             </View>
           )}
 
-          {receiptItems.length > 0 && (
+          {receiptData.items.length > 0 && (
             <View style={styles.insightCard}>
               <View style={styles.insightHeader}>
                 <View style={[styles.insightIconBadge, { backgroundColor: '#D97706' }]}>
                   <ShoppingCart size={14} color="#FFFFFF" strokeWidth={2} />
                 </View>
-                <Text style={styles.insightTitle}>Items ({receiptItems.length})</Text>
+                <Text style={styles.insightTitle}>Items</Text>
+                <View style={styles.itemCountBadge}>
+                  <Text style={styles.itemCountText}>{receiptData.items.length}</Text>
+                </View>
               </View>
               <View style={styles.itemsList}>
-                {receiptItems.map((item, idx) => (
+                {receiptData.items.map((item, idx) => (
                   <View
                     key={`${item.name}-${idx}`}
                     style={[
                       styles.itemRow,
-                      idx < receiptItems.length - 1 && styles.itemRowBorder,
+                      idx < receiptData.items.length - 1 && styles.itemRowBorder,
                     ]}
                   >
-                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                    {item.price > 0 && (
-                      <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-                    )}
+                    <View style={styles.itemLeft}>
+                      <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                      {item.quantity > 1 && (
+                        <Text style={styles.itemQty}>{item.quantity} × ${item.unitPrice.toFixed(2)}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.itemPrice}>${item.totalPrice.toFixed(2)}</Text>
                   </View>
                 ))}
               </View>
-              {itemsTotal > 0 && (
-                <View style={styles.itemsTotalRow}>
-                  <Text style={styles.itemsTotalLabel}>Items Total</Text>
-                  <Text style={styles.itemsTotalValue}>${itemsTotal.toFixed(2)}</Text>
+
+              <View style={styles.breakdownSection}>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Items Total</Text>
+                  <Text style={styles.breakdownValue}>${itemsTotal.toFixed(2)}</Text>
                 </View>
-              )}
+                {receiptData.subtotal !== null && receiptData.subtotal > 0 && Math.abs(receiptData.subtotal - itemsTotal) > 0.01 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Subtotal</Text>
+                    <Text style={styles.breakdownValue}>${receiptData.subtotal.toFixed(2)}</Text>
+                  </View>
+                )}
+                {receiptData.tax !== null && receiptData.tax > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Tax</Text>
+                    <Text style={styles.breakdownValue}>${receiptData.tax.toFixed(2)}</Text>
+                  </View>
+                )}
+                {receiptData.tip !== null && receiptData.tip > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Tip</Text>
+                    <Text style={styles.breakdownValue}>${receiptData.tip.toFixed(2)}</Text>
+                  </View>
+                )}
+                {receiptData.discount !== null && receiptData.discount > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Discount</Text>
+                    <Text style={[styles.breakdownValue, { color: '#16A34A' }]}>-${receiptData.discount.toFixed(2)}</Text>
+                  </View>
+                )}
+                <View style={[styles.breakdownRow, styles.breakdownTotal]}>
+                  <Text style={styles.breakdownTotalLabel}>Total Paid</Text>
+                  <Text style={styles.breakdownTotalValue}>${expense.amount.toFixed(2)}</Text>
+                </View>
+              </View>
             </View>
           )}
 
@@ -256,14 +412,14 @@ export default function ReceiptDetailScreen() {
               </View>
               <View style={styles.insightTile}>
                 <ShoppingCart size={18} color="#D97706" strokeWidth={2} />
-                <Text style={styles.insightTileValue}>{receiptItems.length || '—'}</Text>
+                <Text style={styles.insightTileValue}>{receiptData.items.length || '—'}</Text>
                 <Text style={styles.insightTileLabel}>Items</Text>
               </View>
               <View style={styles.insightTile}>
                 <TrendingDown size={18} color="#3B82F6" strokeWidth={2} />
                 <Text style={styles.insightTileValue}>
-                  {receiptItems.length > 0
-                    ? `$${(expense.amount / receiptItems.length).toFixed(2)}`
+                  {receiptData.items.length > 0
+                    ? `$${(expense.amount / receiptData.items.length).toFixed(2)}`
                     : '—'}
                 </Text>
                 <Text style={styles.insightTileLabel}>Avg / Item</Text>
@@ -271,17 +427,35 @@ export default function ReceiptDetailScreen() {
             </View>
           </View>
 
-          {(expense.notes || expense.note) && (
-            <View style={styles.insightCard}>
-              <View style={styles.insightHeader}>
-                <View style={[styles.insightIconBadge, { backgroundColor: '#8E8E93' }]}>
-                  <FileText size={14} color="#FFFFFF" strokeWidth={2} />
+          {receiptData.discount !== null && receiptData.discount > 0 && (
+            <View style={styles.savingsCard}>
+              <View style={styles.savingsHeader}>
+                <View style={[styles.insightIconBadge, { backgroundColor: '#16A34A' }]}>
+                  <Tag size={14} color="#FFFFFF" strokeWidth={2} />
                 </View>
-                <Text style={styles.insightTitle}>Notes</Text>
+                <Text style={styles.insightTitle}>Savings</Text>
               </View>
-              <Text style={styles.notesText}>{expense.notes || expense.note}</Text>
+              <Text style={styles.savingsAmount}>You saved ${receiptData.discount.toFixed(2)}</Text>
+              <Text style={styles.savingsHint}>Discounts and coupons applied to this receipt</Text>
             </View>
           )}
+
+          {(() => {
+            const rawNote = expense.notes || expense.note || '';
+            const displayNote = rawNote.startsWith('Scanned:') && receiptData.items.length > 0 ? '' : rawNote;
+            if (!displayNote) return null;
+            return (
+              <View style={styles.insightCard}>
+                <View style={styles.insightHeader}>
+                  <View style={[styles.insightIconBadge, { backgroundColor: '#8E8E93' }]}>
+                    <FileText size={14} color="#FFFFFF" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.insightTitle}>Notes</Text>
+                </View>
+                <Text style={styles.notesText}>{displayNote}</Text>
+              </View>
+            );
+          })()}
 
           <AdMobBanner />
 
@@ -352,7 +526,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700' as const,
     color: '#1C1C1E',
-    textAlign: 'center',
+    textAlign: 'center' as const,
     letterSpacing: -0.3,
     marginBottom: 6,
   },
@@ -379,6 +553,11 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: '#8E8E93',
   },
+  heroBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,6 +574,20 @@ const styles = StyleSheet.create({
   categoryPillText: {
     fontSize: 13,
     fontWeight: '700' as const,
+  },
+  paymentPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#F2F2F7',
+  },
+  paymentPillText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#636366',
   },
   insightCard: {
     backgroundColor: '#FFFFFF',
@@ -426,6 +619,24 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.2,
+    flex: 1,
+  },
+  confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  confidenceBadgeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  confidenceBadgeText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
   },
   confidenceRow: {
     flexDirection: 'row',
@@ -438,7 +649,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#F2F2F7',
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
   },
   confidenceBarFill: {
     height: 8,
@@ -457,7 +668,20 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     lineHeight: 17,
   },
-  itemsList: {},
+  itemCountBadge: {
+    backgroundColor: '#262626',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  itemCountText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  itemsList: {
+    marginBottom: 4,
+  },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -468,36 +692,64 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#1C1C1E',
+  itemLeft: {
     flex: 1,
     marginRight: 12,
   },
-  itemPrice: {
+  itemName: {
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#1C1C1E',
+    lineHeight: 18,
   },
-  itemsTotalRow: {
+  itemQty: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  itemPrice: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+  },
+  breakdownSection: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    paddingTop: 12,
+    marginTop: 4,
+    gap: 6,
+  },
+  breakdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    marginTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
   },
-  itemsTotalLabel: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+  breakdownLabel: {
+    fontSize: 13,
+    fontWeight: '500' as const,
     color: '#8E8E93',
   },
-  itemsTotalValue: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#1B7A45',
+  breakdownValue: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+  },
+  breakdownTotal: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  breakdownTotalLabel: {
+    fontSize: 15,
+    fontWeight: '800' as const,
+    color: '#1C1C1E',
+  },
+  breakdownTotalValue: {
+    fontSize: 15,
+    fontWeight: '800' as const,
+    color: '#166534',
   },
   insightsGrid: {
     flexDirection: 'row',
@@ -521,6 +773,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '400' as const,
     color: '#8E8E93',
+  },
+  savingsCard: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  savingsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  savingsAmount: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#166534',
+    marginBottom: 4,
+  },
+  savingsHint: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#6B7280',
   },
   notesText: {
     fontSize: 14,
