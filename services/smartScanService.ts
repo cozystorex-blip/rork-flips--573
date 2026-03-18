@@ -234,11 +234,15 @@ const smartScanSchema = z.object({
   is_receipt: z.boolean(),
 });
 
+import type { ScanTrustResult } from '@/types/scanTrust';
+
 export type SmartScanResult = z.infer<typeof smartScanSchema> & {
   reference_image_url?: string | null;
   short_summary?: string;
   image_description?: string;
   scanned_image_uri?: string;
+  visual_cues?: string[];
+  trustResult?: ScanTrustResult;
 };
 
 function extractDollarAmount(price: string | null): number | null {
@@ -412,10 +416,14 @@ MISCLASSIFICATION RULES — CRITICAL:
 11. If the image shows a food product but your first instinct is "furniture" — STOP and reconsider. Food is never furniture.
 12. If the image shows a shoe/sneaker but your first instinct is "furniture" — STOP and reconsider. Shoes are never furniture.
 
-NAMING:
-- Read visible text/labels/logos FIRST. Use the actual product name if readable.
-- Include brand only if visible on the item. Never invent brands.
-- Use descriptive names like "Barilla Spaghetti" or "Nike Air Max 90" — not "Item" or "Product".
+NAMING — TRUTH-FIRST RULES:
+- Read visible text/labels/logos FIRST. Use the actual product name ONLY if clearly readable.
+- Include brand only if visibly printed or embossed on the item. Never invent brands.
+- If the exact product name is NOT readable, use a descriptive name based on what you see:
+  GOOD: "8-Shelf Wooden Puzzle Rack", "Black Running Shoes", "Stainless Steel Water Bottle"
+  BAD: Inventing specific model names or brand names that are not visible.
+- Do NOT create overly specific polished product titles unless text/labels confirm them.
+- Use descriptive names like "Barilla Spaghetti" (label visible) or "Black Running Shoes" (no label visible) — not "Item" or "Product".
 
 CONFIDENCE (be strictly honest):
 - 0.85-0.95: Clear product, visible label/brand, obvious category, no ambiguity
@@ -427,30 +435,40 @@ CONFIDENCE (be strictly honest):
 - NEVER give 0.75+ for blurry/distant/dark photos
 - If you had to override your first instinct, cap confidence at 0.65
 
+visual_cues: List SPECIFIC things you actually see: "barcode visible", "brand logo Nike", "nutrition label", "price tag $12.99", "model number printed", "wood grain texture", "metal legs", etc. These must be REAL observations, not guesses.
+
 short_summary: 1-2 sentence summary of the item and its key use or characteristic.
 image_description: Detailed visual description — color, shape, material, texture, brand elements, notable features, approximate size. Specific enough to recreate as a clean product photo.`;
 
 function getDetailPrompt(itemType: SmartScanItemType): string {
   const base = `You are a product analyzer. Provide accurate, category-appropriate details about this item.
 
+TRUTH-FIRST RULES (CRITICAL):
+- Only state facts you can verify from the image.
+- If you cannot confirm a specific value (exact price, exact dimensions, exact brand), set it to null.
+- Do NOT invent specific dollar amounts unless you have strong evidence (visible price tag, known retail product).
+- Do NOT invent specific dimensions unless visible on packaging or matched to a known product listing.
+- Do NOT state specific brand names unless visible on the item (logo, label, text).
+- For materials: say "likely wood" or "appears to be metal" — do not state "birch plywood" or "304 stainless steel" unless confirmed.
+- For assembly info: use general language like "basic assembly likely" unless you have specific confirmed data.
+- For care tips: always present as general guidance, not product-specific instructions.
+- For companion/matching products: suggest item TYPES, not specific branded products, unless you can verify a real pairing.
+- Never use phrases like "Worth it", "Good value", "Great deal" unless you have actual comparison data. Set value_verdict and value_rating to null if uncertain.
+
 PRICING RULES:
-- Use real current retail prices as of March 2026. Do not invent prices.
-- Price range should be tight (within ~15% of estimate).
-- Use current 2026 market pricing — not outdated or historical prices.
+- Only provide an exact price if you can match to a known retail listing or see a price tag.
+- If unsure, provide a price_range instead of a single price. Use null for estimated_price / estimated_retail_price.
+- Price range should be realistic, based on similar products in the market.
 - If item is packaging, set price fields to null.
 - Never output "Free" or "$0.00" — set to null instead.
-- Use dollar format like "$X.XX" for real prices.
+- Use dollar format like "$X.XX" for confirmed prices only.
 
-RESALE VALUE RULES (CRITICAL — must reflect current 2026 market):
-- Resale value must reflect the CURRENT secondhand market price as of March 2026.
-- Use real current resale prices from platforms like eBay, StockX, Poshmark, Facebook Marketplace, OfferUp, Mercari, Grailed.
-- Resale must be LOWER than retail unless the item is a limited edition, rare, or hyped release with genuine above-retail demand.
-- For hyped/limited items (e.g. sold-out sneakers, rare collectibles), resale CAN exceed retail — use real current aftermarket prices.
-- Cheap items under $10 usually have no resale value — set to null.
-- Consumables, food, groceries, and single-use items have NO resale value.
-- Only provide resale for items people actually buy and sell secondhand.
-- If you are unsure of the current resale price, give a conservative estimate rather than inflating.
-- Never use old or outdated resale prices — always estimate based on current 2026 demand and availability.\n\n`;
+RESALE VALUE RULES:
+- Only provide resale value for items with real secondhand markets.
+- Resale must be LOWER than retail unless genuinely hyped/limited.
+- Cheap items under $10: set resale to null.
+- Consumables: NO resale value.
+- If unsure, set to null rather than guess.\n\n`;
 
   switch (itemType) {
     case 'food':
@@ -497,15 +515,29 @@ DO NOT fill furniture_details, fashion_details, food_details, grocery_details, h
 
     case 'furniture':
       return base + `Analyze this FURNITURE item. Fill furniture_details ONLY. Set all other detail fields to null.
-- item_type_specific, material, finish_color, style, estimated_dimensions
-- estimated_retail_price, estimated_price_range, value_level, value_rating
-- assembly_required, assembly_difficulty, estimated_build_time, people_needed
-- likely_tools_needed, likely_parts, mounting_type, assembly_summary
-- use_case, room_fit, room_fit_labels, matching_products
-- extra_purchase_items, total_estimated_cost, worth_it_verdict
-- care_tip, setup_notes, wall_anchor_note, long_term_value
-- tags, complementary_items
-If you recognize an IKEA product, use real IKEA product names and pricing.
+- item_type_specific: describe what kind of furniture (e.g. "puzzle storage rack", "bookshelf", "desk")
+- material: ONLY if you can tell from the image. Use "likely wood" or "likely MDF" — not specific wood species unless visible.
+- finish_color, style: describe what you see
+- estimated_dimensions: set to null UNLESS you recognize the exact product or see dimensions on packaging. Do NOT invent inch measurements from visual guessing.
+- estimated_retail_price: set to null UNLESS you can match to a known product listing. Use estimated_price_range instead if uncertain.
+- estimated_price_range: provide a realistic range based on similar items if you cannot confirm exact price.
+- value_level, value_rating: set to null unless you have real comparison data.
+- assembly_required, assembly_difficulty: use general terms. "Basic assembly likely" is fine if you're not sure.
+- estimated_build_time: set to null unless confirmed from listing data.
+- people_needed: set to null unless confirmed.
+- likely_tools_needed: only list tools that are TYPICAL for this category (e.g. "screwdriver" for flat-pack). Label these as typical, not confirmed.
+- likely_parts: set to empty array unless you can count or confirm parts.
+- mounting_type: infer only if obvious (wall-mounted vs freestanding).
+- assembly_summary: keep general. "Typical flat-pack assembly" is fine. Do not invent specific step counts.
+- use_case, room_fit, room_fit_labels: describe typical usage settings.
+- matching_products: suggest item TYPES only (e.g. "large knob puzzles", "storage bins"), NOT specific brand+model products unless verified.
+- extra_purchase_items: only suggest categories of items that are typically needed. Do not invent specific costs unless verified.
+- total_estimated_cost: set to null unless you have verified component prices.
+- worth_it_verdict: set to null. Do not make subjective value judgments without real data.
+- care_tip: provide GENERAL care guidance appropriate for the material type.
+- setup_notes, wall_anchor_note, long_term_value: keep general or set to null.
+- tags, complementary_items: item types only, not specific products.
+If you recognize an IKEA product by name/label, use real IKEA product names and pricing.
 DO NOT fill fashion_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'general':
@@ -954,8 +986,11 @@ Do NOT invent information. If you don't know a value, set it to null.`;
 
   stabilized.short_summary = classification.short_summary ?? '';
   stabilized.image_description = classification.image_description ?? '';
-
+  stabilized.visual_cues = classification.visual_cues ?? [];
   stabilized.scanned_image_uri = imageUri;
+
+  const { buildScanTrustResult } = await import('@/services/scanTrustEngine');
+  stabilized.trustResult = buildScanTrustResult(stabilized, classification.visual_cues ?? []);
 
   console.log('[SmartScan] Done:', stabilized.item_name, 'type:', stabilized.item_type, 'conf:', stabilized.confidence);
   return stabilized;

@@ -37,6 +37,8 @@ import {
   Lamp,
   Dumbbell,
   Sparkles,
+  ShieldCheck,
+  Info,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -678,8 +680,18 @@ export default function SmartScanScreen() {
 
             <View style={st.resultHeader}>
               <Text style={st.resultItemName}>
-                {isLowConfidence && result.confidence < 0.3 ? 'Item Not Confidently Identified' : result.item_name}
+                {isLowConfidence && result.confidence < 0.3 ? 'Item Not Confidently Identified' : (
+                  result.trustResult && result.trustResult.title.verificationStatus !== 'confirmed'
+                    ? result.item_name
+                    : result.item_name
+                )}
               </Text>
+              {result.trustResult && result.trustResult.title.verificationStatus !== 'confirmed' && !isLowConfidence && (
+                <View style={st.unverifiedTitleBadge}>
+                  <Info size={10} color="#D97706" />
+                  <Text style={st.unverifiedTitleText}>Exact product unverified</Text>
+                </View>
+              )}
               <View style={st.resultMetaRow}>
                 {typeConfig && (
                   <View style={[st.typeBadge, { backgroundColor: typeConfig.bg }]}>
@@ -696,6 +708,12 @@ export default function SmartScanScreen() {
                   </Text>
                 </View>
               </View>
+              {result.trustResult && (
+                <View style={st.verificationSummaryRow}>
+                  <ShieldCheck size={12} color="#636366" />
+                  <Text style={st.verificationSummaryText}>{result.trustResult.verificationSummary}</Text>
+                </View>
+              )}
             </View>
 
             {isLowConfidence && (
@@ -709,13 +727,7 @@ export default function SmartScanScreen() {
               </View>
             )}
 
-            {result.short_summary && !isLowConfidence ? (
-              <View style={st.summaryCard}>
-                <Text style={st.summaryText}>{result.short_summary}</Text>
-              </View>
-            ) : null}
-
-            {result.short_summary && isLowConfidence ? (
+            {result.short_summary ? (
               <View style={st.summaryCard}>
                 <Text style={st.summaryText}>{result.short_summary}</Text>
               </View>
@@ -962,4 +974,9 @@ const st = StyleSheet.create({
   upgradeBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
   upgradeDismissBtn: { paddingVertical: 10 },
   upgradeDismissText: { fontSize: 14, fontWeight: '500' as const, color: '#636366' },
+
+  unverifiedTitleBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#D9770615', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 6, alignSelf: 'flex-start' as const, borderWidth: 1, borderColor: '#D9770630' },
+  unverifiedTitleText: { fontSize: 11, fontWeight: '600' as const, color: '#D97706' },
+  verificationSummaryRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+  verificationSummaryText: { fontSize: 11, fontWeight: '500' as const, color: '#636366' },
 });

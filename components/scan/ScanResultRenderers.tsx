@@ -2,6 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { SmartScanResult } from '@/services/smartScanService';
+import {
+  ScanTrustResult,
+  TrustSectionItem,
+  VerificationStatus,
+  getVerificationLabel,
+  getVerificationColor,
+} from '@/types/scanTrust';
 
 const C = {
   bg: '#141414',
@@ -95,20 +102,128 @@ function TagsRow({ tags }: { tags: string[] }) {
   );
 }
 
-function ComplementarySection({ result }: { result: SmartScanResult }) {
-  const items = result.food_details?.complementary_items
-    ?? result.grocery_details?.complementary_items
-    ?? result.household_details?.complementary_items
-    ?? result.furniture_details?.complementary_items
-    ?? result.fashion_details?.complementary_items
-    ?? result.electronics_details?.complementary_items
-    ?? result.general_details?.complementary_items
-    ?? [];
+function VerificationBadge({ status }: { status: VerificationStatus }) {
+  const label = getVerificationLabel(status);
+  const color = getVerificationColor(status);
+  return (
+    <View style={[s.verificationBadge, { backgroundColor: `${color}18`, borderColor: `${color}40` }]}>
+      <View style={[s.verificationDot, { backgroundColor: color }]} />
+      <Text style={[s.verificationBadgeText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+function TrustLineItem({ item }: { item: TrustSectionItem }) {
+  return (
+    <View style={s.trustLineItem}>
+      <View style={s.trustLineTop}>
+        <Text style={s.lineItemLabel}>{item.label}</Text>
+        <View style={s.trustLineRight}>
+          <Text style={s.lineItemValue}>{item.value}</Text>
+        </View>
+      </View>
+      {item.verificationStatus !== 'confirmed' && (
+        <View style={s.trustBadgeRow}>
+          <VerificationBadge status={item.verificationStatus} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ConfirmedFactsSection({ items }: { items: TrustSectionItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <SectionLabel text="Confirmed Facts" />
+      <View style={s.confirmedCard}>
+        {items.map((item, i) => (
+          <View key={`cf-${item.label}-${i}`}>
+            <View style={s.confirmedRow}>
+              <Text style={s.confirmedLabel}>{item.label}</Text>
+              <Text style={s.confirmedValue}>{item.value}</Text>
+            </View>
+            {i < items.length - 1 && <View style={s.confirmedDivider} />}
+          </View>
+        ))}
+      </View>
+    </>
+  );
+}
+
+function LikelyDetailsSection({ items }: { items: TrustSectionItem[] }) {
   if (items.length === 0) return null;
   return (
     <>
       <Divider />
-      <SectionLabel text="Goes Well With" />
+      <SectionLabel text="Likely / Estimated Details" />
+      {items.map((item, i) => (
+        <TrustLineItem key={`ld-${item.label}-${i}`} item={item} />
+      ))}
+    </>
+  );
+}
+
+function CommonUseSection({ uses }: { uses: string[] }) {
+  if (uses.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <SectionLabel text="Common Use" />
+      {uses.map((use, i) => (
+        <View key={`use-${i}`} style={s.bulletRow}>
+          <Text style={s.bulletChar}>•</Text>
+          <Text style={s.bulletText}>{use}</Text>
+        </View>
+      ))}
+    </>
+  );
+}
+
+function CareTipsSection({ tips }: { tips: string[] }) {
+  if (tips.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <View style={s.genericSectionHeader}>
+        <SectionLabel text="General Care Tips" />
+        <VerificationBadge status="generic" />
+      </View>
+      {tips.map((tip, i) => (
+        <View key={`care-${i}`} style={s.bulletRow}>
+          <Text style={s.bulletChar}>•</Text>
+          <Text style={s.bulletText}>{tip}</Text>
+        </View>
+      ))}
+    </>
+  );
+}
+
+function AssemblySection({ items }: { items: TrustSectionItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <View style={s.genericSectionHeader}>
+        <SectionLabel text="Typical Assembly" />
+        <VerificationBadge status="generic" />
+      </View>
+      {items.map((item, i) => (
+        <TrustLineItem key={`asm-${item.label}-${i}`} item={item} />
+      ))}
+    </>
+  );
+}
+
+function CompanionItemsSection({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <View style={s.genericSectionHeader}>
+        <SectionLabel text="Often Used With" />
+        <VerificationBadge status="generic" />
+      </View>
       {items.map((item, i) => (
         <View key={`comp-${item}-${i}`} style={s.bulletRow}>
           <Text style={s.bulletChar}>+</Text>
@@ -116,6 +231,31 @@ function ComplementarySection({ result }: { result: SmartScanResult }) {
         </View>
       ))}
     </>
+  );
+}
+
+function SourceQualitySection({ sources, label }: { sources: string[]; label: string }) {
+  if (sources.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <SectionLabel text="Source Quality" />
+      <View style={s.sourceCard}>
+        <Text style={s.sourceLabel}>{label}</Text>
+        {sources.map((src, i) => (
+          <Text key={`src-${i}`} style={s.sourceItem}>• {src}</Text>
+        ))}
+      </View>
+    </>
+  );
+}
+
+function NoPriceRow() {
+  return (
+    <View style={s.noPriceRow}>
+      <Text style={s.noPriceText}>Price not confirmed</Text>
+      <Text style={s.noPriceSub}>Not enough data to estimate pricing</Text>
+    </View>
   );
 }
 
@@ -137,21 +277,16 @@ function ResaleBlock({ result }: { result: SmartScanResult }) {
   return (
     <>
       <Divider />
-      <SectionLabel text="Resale Estimate" />
+      <View style={s.genericSectionHeader}>
+        <SectionLabel text="Resale Estimate" />
+        <VerificationBadge status="likely" />
+      </View>
       <PriceLineItem label="Est. Resale" value={displayVal} large />
+      <Text style={s.resaleDisclaimer}>Estimated from similar products on secondhand platforms</Text>
       {platform && (
         <Text style={s.resalePlatform}>Best on: {platform}</Text>
       )}
     </>
-  );
-}
-
-function NoPriceRow() {
-  return (
-    <View style={s.noPriceRow}>
-      <Text style={s.noPriceText}>No price found</Text>
-      <Text style={s.noPriceSub}>Not enough data to estimate pricing</Text>
-    </View>
   );
 }
 
@@ -187,6 +322,29 @@ function EmptyFallbackSection({ result }: ResultProps) {
           <InfoBlock text="Could not extract detailed information. Try a clearer photo for better results." type="warning" />
         </>
       )}
+    </>
+  );
+}
+
+function TrustResultSection({ result, trustResult }: { result: SmartScanResult; trustResult: ScanTrustResult }) {
+  const tags = result.furniture_details?.tags
+    ?? result.household_details?.tags
+    ?? result.fashion_details?.tags
+    ?? result.electronics_details?.tags
+    ?? result.general_details?.tags
+    ?? [];
+
+  return (
+    <>
+      <ConfirmedFactsSection items={trustResult.sections.confirmedFacts} />
+      <LikelyDetailsSection items={trustResult.sections.likelyDetails} />
+      <CommonUseSection uses={trustResult.sections.commonUse} />
+      <CareTipsSection tips={trustResult.sections.generalCareTips} />
+      <AssemblySection items={trustResult.sections.typicalAssembly} />
+      <CompanionItemsSection items={trustResult.sections.companionItems} />
+      <ResaleBlock result={result} />
+      <SourceQualitySection sources={trustResult.sections.sourceQuality} label={trustResult.sourceQualityLabel} />
+      <TagsRow tags={tags} />
     </>
   );
 }
@@ -294,7 +452,10 @@ export function FoodResultSection({ result }: ResultProps) {
         </>
       )}
 
-      <ComplementarySection result={result} />
+      {result.trustResult ? (
+        <SourceQualitySection sources={result.trustResult.sections.sourceQuality} label={result.trustResult.sourceQualityLabel} />
+      ) : null}
+
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -350,7 +511,10 @@ export function GroceryResultSection({ result }: ResultProps) {
         </>
       )}
 
-      <ComplementarySection result={result} />
+      {result.trustResult ? (
+        <SourceQualitySection sources={result.trustResult.sections.sourceQuality} label={result.trustResult.sourceQualityLabel} />
+      ) : null}
+
       <TagsRow tags={gd.tags} />
     </>
   );
@@ -361,12 +525,12 @@ export function FurnitureResultSection({ result }: ResultProps) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
   }
-  const fd = result.furniture_details;
-  const matchingProducts = (fd as Record<string, unknown>).matching_products as string[] | undefined;
-  const wallAnchorNote = (fd as Record<string, unknown>).wall_anchor_note as string | null | undefined;
-  const setupNotes = (fd as Record<string, unknown>).setup_notes as string | null | undefined;
-  const longTermValue = (fd as Record<string, unknown>).long_term_value as string | null | undefined;
 
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+
+  const fd = result.furniture_details;
   return (
     <>
       <SectionLabel text="Product Details" />
@@ -374,10 +538,6 @@ export function FurnitureResultSection({ result }: ResultProps) {
       {fd.finish_color && <LineItem label="Color/Finish" value={fd.finish_color} />}
       {fd.style && <LineItem label="Style" value={fd.style} />}
       {fd.estimated_dimensions && <LineItem label="Dimensions" value={fd.estimated_dimensions} />}
-      {fd.value_level && <LineItem label="Price Tier" value={capitalize(fd.value_level)} />}
-      {fd.mounting_type && fd.mounting_type !== 'unknown' && (
-        <LineItem label="Type" value={capitalize(fd.mounting_type).replace('-', ' ')} />
-      )}
       {fd.use_case && <LineItem label="Use" value={fd.use_case} />}
       {fd.room_fit && <LineItem label="Room" value={fd.room_fit} />}
 
@@ -388,86 +548,18 @@ export function FurnitureResultSection({ result }: ResultProps) {
           <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />
           {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
         </>
+      ) : fd.estimated_price_range ? (
+        <>
+          <View style={s.genericSectionHeader}>
+            <SectionLabel text="" />
+            <VerificationBadge status="likely" />
+          </View>
+          <PriceLineItem label="Estimated Range" value={fd.estimated_price_range} large />
+          <Text style={s.resaleDisclaimer}>Estimated from similar products</Text>
+        </>
       ) : <NoPriceRow />}
 
-      {fd.value_verdict && (
-        <View style={[s.verdictStrip, {
-          backgroundColor: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.greenBg : C.amberBg,
-        }]}>
-          <Text style={[s.verdictText, {
-            color: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.green : C.amber,
-          }]}>{capitalize(fd.value_verdict)} Value{fd.value_reasoning ? ` — ${fd.value_reasoning}` : ''}</Text>
-        </View>
-      )}
-
-      {fd.budget_insight && <InfoBlock text={fd.budget_insight} type="tip" />}
-      {fd.cheaper_alternative && <InfoBlock text={`Alt: ${fd.cheaper_alternative}`} type="warning" />}
-      {longTermValue && <InfoBlock text={longTermValue} type="success" />}
-
-      <Divider />
-      {fd.assembly_required === false ? (
-        <>
-          <SectionLabel text="Assembly" />
-          <InfoBlock text="No assembly required — ready to use" type="success" />
-        </>
-      ) : (
-        <>
-          <SectionLabel text="Assembly" />
-          {fd.assembly_difficulty && <LineItem label="Difficulty" value={capitalize(fd.assembly_difficulty)} />}
-          {fd.estimated_build_time && <LineItem label="Build Time" value={fd.estimated_build_time} />}
-          {fd.people_needed && <LineItem label="People" value={fd.people_needed === '1' ? '1 person' : fd.people_needed === '2' ? '2 people' : '2+ people'} />}
-
-          {fd.likely_tools_needed.length > 0 && (
-            <>
-              <Divider />
-              <SectionLabel text="Tools Needed" />
-              {fd.likely_tools_needed.map((t, i) => (
-                <View key={`tool-${t}-${i}`} style={s.bulletRow}>
-                  <Text style={s.bulletChar}>•</Text>
-                  <Text style={s.bulletText}>{t}</Text>
-                </View>
-              ))}
-            </>
-          )}
-
-          {fd.assembly_summary && <InfoBlock text={fd.assembly_summary} type="warning" />}
-        </>
-      )}
-
-      {setupNotes && <InfoBlock text={setupNotes} type="tip" />}
-      {wallAnchorNote && <InfoBlock text={`⚠ ${wallAnchorNote}`} type="warning" />}
-
-      {fd.extra_purchase_items && fd.extra_purchase_items.length > 0 && (
-        <>
-          <Divider />
-          <SectionLabel text="Additional Items" />
-          {fd.extra_purchase_items.map((ep, i) => (
-            <View key={`extra-${ep.item}-${i}`} style={s.extraItemRow}>
-              <View style={s.extraItemHeader}>
-                <Text style={s.extraItemName}>{ep.item}</Text>
-                {ep.estimated_cost && <Text style={s.extraItemCost}>{ep.estimated_cost}</Text>}
-              </View>
-              <Text style={s.extraItemReason}>{ep.reason}</Text>
-            </View>
-          ))}
-        </>
-      )}
-
-      {fd.total_estimated_cost && (
-        <View style={s.totalCostBanner}>
-          <Text style={s.totalCostLabel}>TOTAL EST. COST</Text>
-          <Text style={s.totalCostValue}>{fd.total_estimated_cost}</Text>
-        </View>
-      )}
-
-      {fd.worth_it_verdict && <InfoBlock text={fd.worth_it_verdict} type="success" />}
       {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
-
-      {matchingProducts && matchingProducts.length > 0 && (
-        <ChipRow items={matchingProducts} label="MATCHING PRODUCTS" />
-      )}
-
-      <ComplementarySection result={result} />
       <ResaleBlock result={result} />
       <TagsRow tags={fd.tags} />
     </>
@@ -479,6 +571,11 @@ export function FashionResultSection({ result }: ResultProps) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
   }
+
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+
   const fd = result.fashion_details;
   const subcategoryLabels: Record<string, string> = {
     shoes: 'Shoes', clothing: 'Clothing', outerwear: 'Outerwear',
@@ -502,8 +599,6 @@ export function FashionResultSection({ result }: ResultProps) {
       {fd.material && <LineItem label="Material" value={fd.material} />}
       {fd.style && <LineItem label="Style" value={fd.style} />}
       {fd.condition && <LineItem label="Condition" value={capitalize(fd.condition)} />}
-      {fd.pattern && fd.pattern !== 'solid' && <LineItem label="Pattern" value={capitalize(fd.pattern)} />}
-      {fd.fit && <LineItem label="Fit" value={capitalize(fd.fit)} />}
 
       <Divider />
       <SectionLabel text="Price Check" />
@@ -515,26 +610,7 @@ export function FashionResultSection({ result }: ResultProps) {
         </>
       ) : <NoPriceRow />}
 
-      {fd.value_verdict && (
-        <View style={[s.verdictStrip, {
-          backgroundColor: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.greenBg : C.amberBg,
-        }]}>
-          <Text style={[s.verdictText, {
-            color: fd.value_verdict === 'strong' || fd.value_verdict === 'good' ? C.green : C.amber,
-          }]}>{capitalize(fd.value_verdict)} Value{fd.value_reasoning ? ` — ${fd.value_reasoning}` : ''}</Text>
-        </View>
-      )}
-
-      {fd.resale_demand && (
-        <LineItem label="Resale Demand" value={capitalize(fd.resale_demand)} />
-      )}
-
-      {fd.budget_insight && <InfoBlock text={fd.budget_insight} type="tip" />}
-      {fd.cheaper_alternative && <InfoBlock text={`Try instead: ${fd.cheaper_alternative}`} type="warning" />}
-      {fd.resale_suggestion && <InfoBlock text={fd.resale_suggestion} type="success" />}
       {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
-
-      <ComplementarySection result={result} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -545,6 +621,11 @@ export function ElectronicsResultSection({ result }: ResultProps) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
   }
+
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+
   const ed = result.electronics_details;
   return (
     <>
@@ -569,24 +650,7 @@ export function ElectronicsResultSection({ result }: ResultProps) {
         </>
       ) : <NoPriceRow />}
 
-      {ed.depreciation_note && <InfoBlock text={ed.depreciation_note} type="warning" />}
-
-      {ed.value_verdict && (
-        <View style={[s.verdictStrip, {
-          backgroundColor: ed.value_verdict === 'strong' || ed.value_verdict === 'good' ? C.greenBg : C.amberBg,
-        }]}>
-          <Text style={[s.verdictText, {
-            color: ed.value_verdict === 'strong' || ed.value_verdict === 'good' ? C.green : C.amber,
-          }]}>{capitalize(ed.value_verdict)} Value{ed.value_reasoning ? ` — ${ed.value_reasoning}` : ''}</Text>
-        </View>
-      )}
-
-      {ed.resale_demand && <LineItem label="Resale Demand" value={capitalize(ed.resale_demand)} />}
-      {ed.budget_insight && <InfoBlock text={ed.budget_insight} type="tip" />}
-      {ed.cheaper_alternative && <InfoBlock text={`Try instead: ${ed.cheaper_alternative}`} type="warning" />}
       {ed.care_tip && <InfoBlock text={ed.care_tip} type="tip" />}
-
-      <ComplementarySection result={result} />
       <ResaleBlock result={result} />
       <TagsRow tags={ed.tags} />
     </>
@@ -598,6 +662,11 @@ export function HouseholdResultSection({ result }: ResultProps) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
   }
+
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+
   const hd = result.household_details;
   const subcategoryLabels: Record<string, string> = {
     tools: 'Tools', fitness: 'Fitness Equipment', kitchenware: 'Kitchenware',
@@ -622,27 +691,11 @@ export function HouseholdResultSection({ result }: ResultProps) {
       {hd.estimated_price ? (
         <>
           <PriceLineItem label="Est. Price" value={hd.estimated_price} large />
-          {hd.estimated_resale_value && <PriceLineItem label="Resale Value" value={hd.estimated_resale_value} />}
           {hd.price_range && <LineItem label="Range" value={hd.price_range} />}
         </>
       ) : <NoPriceRow />}
 
-      {hd.value_verdict && (
-        <View style={[s.verdictStrip, {
-          backgroundColor: hd.value_verdict === 'strong' || hd.value_verdict === 'good' ? C.greenBg : C.amberBg,
-        }]}>
-          <Text style={[s.verdictText, {
-            color: hd.value_verdict === 'strong' || hd.value_verdict === 'good' ? C.green : C.amber,
-          }]}>{capitalize(hd.value_verdict)} Value{hd.value_reasoning ? ` — ${hd.value_reasoning}` : ''}</Text>
-        </View>
-      )}
-
-      {hd.budget_insight && <InfoBlock text={hd.budget_insight} type="tip" />}
-      {hd.cheaper_alternative && <InfoBlock text={`Try instead: ${hd.cheaper_alternative}`} type="warning" />}
-      {hd.practical_recommendation && <InfoBlock text={hd.practical_recommendation} type="success" />}
       {hd.care_tip && <InfoBlock text={hd.care_tip} type="tip" />}
-
-      <ComplementarySection result={result} />
       <ResaleBlock result={result} />
       <TagsRow tags={hd.tags} />
     </>
@@ -651,6 +704,11 @@ export function HouseholdResultSection({ result }: ResultProps) {
 
 export function GeneralResultSection({ result }: ResultProps) {
   if (!result.general_details) return <EmptyFallbackSection result={result} />;
+
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+
   const gd = result.general_details;
   return (
     <>
@@ -669,36 +727,13 @@ export function GeneralResultSection({ result }: ResultProps) {
       {gd.estimated_retail_price ? (
         <>
           <PriceLineItem label="Retail Price" value={gd.estimated_retail_price} large />
-          {gd.estimated_resale_value && <PriceLineItem label="Resale Value" value={gd.estimated_resale_value} />}
           {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
         </>
       ) : <NoPriceRow />}
 
-      {gd.value_verdict && (
-        <View style={[s.verdictStrip, {
-          backgroundColor: gd.value_verdict === 'strong' || gd.value_verdict === 'good' ? C.greenBg : C.amberBg,
-        }]}>
-          <Text style={[s.verdictText, {
-            color: gd.value_verdict === 'strong' || gd.value_verdict === 'good' ? C.green : C.amber,
-          }]}>{capitalize(gd.value_verdict)} Value{gd.value_reasoning ? ` — ${gd.value_reasoning}` : ''}</Text>
-        </View>
-      )}
-
-      {gd.budget_insight && <InfoBlock text={gd.budget_insight} type="tip" />}
-      {gd.cheaper_alternative && <InfoBlock text={`Try instead: ${gd.cheaper_alternative}`} type="warning" />}
-
-      {gd.fun_fact && (
-        <>
-          <Divider />
-          <SectionLabel text="Did You Know?" />
-          <InfoBlock text={gd.fun_fact} type="warning" />
-        </>
-      )}
-
       {gd.practical_tip && <InfoBlock text={gd.practical_tip} type="tip" />}
       {gd.care_tip && <InfoBlock text={gd.care_tip} type="tip" />}
 
-      <ComplementarySection result={result} />
       <ResaleBlock result={result} />
       <TagsRow tags={gd.tags} />
     </>
@@ -942,65 +977,12 @@ const s = StyleSheet.create({
     marginTop: 2,
     textAlign: 'right' as const,
   },
-  verdictStrip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginVertical: 6,
-  },
-  verdictText: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    lineHeight: 18,
-  },
-  extraItemRow: {
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: C.divider,
-  },
-  extraItemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  extraItemName: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: C.text,
-    flex: 1,
-  },
-  extraItemCost: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    color: C.text,
-  },
-  extraItemReason: {
-    fontSize: 11,
-    color: C.textMuted,
-    marginTop: 2,
-    lineHeight: 15,
-  },
-  totalCostBanner: {
-    backgroundColor: C.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.cardBorder,
-    padding: 14,
-    marginVertical: 8,
-    alignItems: 'center' as const,
-  },
-  totalCostLabel: {
+  resaleDisclaimer: {
     fontSize: 10,
-    fontWeight: '700' as const,
     color: C.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  totalCostValue: {
-    fontSize: 26,
-    fontWeight: '900' as const,
-    color: C.text,
-    letterSpacing: -0.5,
+    fontWeight: '400' as const,
+    marginTop: 2,
+    fontStyle: 'italic' as const,
   },
   fallbackBlock: {
     alignItems: 'center' as const,
@@ -1035,5 +1017,99 @@ const s = StyleSheet.create({
     fontWeight: '500' as const,
     marginTop: 2,
   },
-
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  verificationDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
+  trustLineItem: {
+    paddingVertical: 5,
+  },
+  trustLineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trustLineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '60%' as unknown as number,
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 3,
+  },
+  confirmedCard: {
+    backgroundColor: '#16A34A0D',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+    padding: 12,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  confirmedLabel: {
+    fontSize: 13,
+    color: '#16A34A',
+    fontWeight: '600' as const,
+  },
+  confirmedValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '700' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  confirmedDivider: {
+    height: 1,
+    backgroundColor: '#16A34A15',
+    marginVertical: 4,
+  },
+  genericSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  sourceCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    marginBottom: 6,
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+    marginLeft: 4,
+  },
 });
