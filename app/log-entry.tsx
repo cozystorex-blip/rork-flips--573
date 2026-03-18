@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   LayoutAnimation,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import {
   X,
   Camera,
@@ -128,9 +128,7 @@ const SCAN_PHASE_MESSAGES: Record<ScanPhase, string> = {
 export default function LogEntryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string; imageUri?: string }>();
   const { addExpense } = useExpenses();
-  const autoProcessedRef = useRef(false);
 
   const [title, setTitle] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -147,36 +145,6 @@ export default function LogEntryScreen() {
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
   const [manualExpanded, setManualExpanded] = useState<boolean>(false);
   const manualChevronRotation = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (params.imageUri && params.imageUri.length > 0 && !autoProcessedRef.current) {
-      autoProcessedRef.current = true;
-      console.log('[ReceiptScanner] Auto-processing image from smart scan:', params.imageUri.substring(0, 60));
-      const autoProcess = async () => {
-        try {
-          setScanning(true);
-          setScanPhase('idle');
-          setScanError(null);
-          startScanPulse();
-          resetProgress();
-          await runParsePipeline(params.imageUri!);
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.log('[ReceiptScanner] Auto-process error:', errorMessage);
-          setScanPhase('error');
-          progressWidth.setValue(0);
-          setScanError('Could not read this receipt automatically. Please try scanning again or enter manually.');
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        } finally {
-          setScanning(false);
-          stopScanPulse();
-        }
-      };
-      setTimeout(() => void autoProcess(), 300);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.imageUri]);
 
   const successOpacity = useRef(new Animated.Value(0)).current;
   const successScale = useRef(new Animated.Value(0.5)).current;
@@ -310,15 +278,9 @@ export default function LogEntryScreen() {
     setScanPhase('preprocessing');
     animateProgress(25, 1500);
 
-    let preProcessed;
-    try {
-      preProcessed = await preprocessReceiptImage(imageUri, 'receipt');
-    } catch (prepErr) {
-      console.log('[ReceiptScanner] Receipt preprocessing failed, trying auto mode:', prepErr);
-      preProcessed = await preprocessReceiptImage(imageUri, 'auto');
-    }
+    const preProcessed = await preprocessReceiptImage(imageUri, 'receipt');
     const quality = estimateImageQuality(preProcessed.width, preProcessed.height, preProcessed.sizeKB);
-    console.log('[ReceiptScanner] Image quality estimate:', quality, 'size:', preProcessed.sizeKB, 'KB');
+    console.log('[ReceiptScanner] Image quality estimate:', quality);
 
     if (quality === 'poor') {
       console.log('[ReceiptScanner] Warning: low quality image, results may be inaccurate');
@@ -327,56 +289,41 @@ export default function LogEntryScreen() {
     setScanPhase('extracting');
     animateProgress(70, 8000);
 
-    const receiptPrompt = `You are an expert receipt OCR parser. Extract ALL information from this receipt image with maximum accuracy.
-
-IMPORTANT: This tool works on ALL types of receipts:
-- Grocery store receipts (Walmart, Target, Kroger, Aldi, Whole Foods, etc.)
-- Restaurant receipts (dine-in, takeout, fast food, cafes, bars)
-- Gas station receipts (fuel, convenience store items)
-- Online order receipts (Amazon, delivery services)
-- Pharmacy receipts (CVS, Walgreens, prescriptions)
-- Hardware store receipts (Home Depot, Lowes)
-- Clothing store receipts (retail, department stores)
-- Service receipts (salon, car repair, laundry, subscriptions)
-- Handwritten receipts or invoices
-- Foreign/international receipts (convert currency labels if visible)
-- ANY printed or digital receipt image
+    const extracted = await generateObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', image: `data:image/jpeg;base64,${preProcessed.base64}` },
+            {
+              type: 'text',
+              text: `You are an expert receipt OCR parser. Extract ALL information from this receipt image with maximum accuracy.
 
 STEP 1 — READ THE ENTIRE RECEIPT TOP TO BOTTOM BEFORE EXTRACTING.
 Look at every line of text. Identify the structure: header → items → subtotal → tax → total → payment.
-If the receipt is rotated, upside down, or at an angle, still read all text.
-If the receipt is crumpled, folded, or partially obscured, extract what is visible.
 
 STEP 2 — MERCHANT NAME:
 - Usually the FIRST or LARGEST text at the very top.
 - Include store number/location if visible (e.g. "WALMART #1234").
-- For restaurants: use the restaurant name, not "SERVER" or waiter name.
-- For gas stations: use the station brand name.
-- For online orders: use the retailer name.
 - Do NOT use address lines as merchant name.
-- If no merchant name is readable, use "Unknown Store".
 
 STEP 3 — DATE:
 - Look in header, footer, and transaction detail lines.
 - Convert ANY format to YYYY-MM-DD.
-- Common formats: MM/DD/YYYY, MM-DD-YYYY, DD/MM/YYYY, YYYY/MM/DD, Month DD YYYY, DD-Mon-YY, DD.MM.YYYY.
-- Look for date near time stamps (e.g. "03/15/2026 14:32").
+- Common formats: MM/DD/YYYY, MM-DD-YYYY, DD/MM/YYYY, YYYY/MM/DD, Month DD YYYY, DD-Mon-YY.
 - Set null ONLY if absolutely no date visible anywhere.
 
 STEP 4 — ITEM EXTRACTION (CRITICAL — READ CAREFULLY):
 - Capture EVERY product/service line item with its name and price.
 - Items are lines with a product name AND a dollar amount on the same line or adjacent line.
 - For each: exact name as printed, quantity if shown (default 1), unit_price per unit, total_price for line.
-- For restaurant receipts: each menu item/dish is an item.
-- For gas receipts: fuel type and gallons are items (e.g. "REGULAR 10.5 GAL").
-- For service receipts: each service performed is an item.
 
 ITEM NAME ACCURACY RULES (MANDATORY):
 - Copy the item name EXACTLY as it appears on the receipt. Do NOT rename, rephrase, translate, or substitute.
 - Receipt items often use store-specific abbreviations and shorthand (e.g. "HNZ RELSH SQZ" = Heinz Relish Squeeze). Keep the abbreviation as-is.
-- Do NOT replace one product with a completely different product.
-- If the text is messy or ambiguous, keep the closest readable version of what is printed.
-- Only fix obvious OCR character errors (e.g. "0" read as "O", "1" read as "l") when clearly safe.
+- Do NOT replace one product with a completely different product. For example, do NOT turn a food item into a beauty/pharmacy item or vice versa.
+- If the text is messy or ambiguous, keep the closest readable version of what is printed. Do NOT invent a clean product name that differs from the source text.
+- Only fix obvious OCR character errors (e.g. "0" read as "O", "1" read as "l") when the correction is clearly safe.
 - Preserve store codes, SKU fragments, size/weight suffixes (e.g. "12.7OZ"), and department prefixes exactly as shown.
 - When in doubt, keep the raw text rather than guessing a product name.
 
@@ -392,7 +339,6 @@ ITEM NAME ACCURACY RULES (MANDATORY):
   × BALANCE, PAYMENT, CREDIT, DEBIT
 - Include ALL items even if abbreviated or unclear.
 - If a line shows weight × price/lb, calculate the total_price from that.
-- If items have modifiers (e.g. "ADD AVOCADO +$2.00"), include as separate item.
 
 STEP 5 — TOTALS (CRITICAL):
 - subtotal: Amount BEFORE tax/tip. Look for "SUBTOTAL" or "SUB TOTAL" label. null if not shown.
@@ -405,7 +351,6 @@ STEP 5 — TOTALS (CRITICAL):
   • "GRAND TOTAL" or "AMOUNT DUE" > "TOTAL" > "SUBTOTAL".
   • NEVER use CHANGE, CASH TENDERED, or SAVINGS as final_total.
   • Formula check: final_total ≈ subtotal + tax + tip - discount
-  • If only one dollar amount is visible on the entire receipt, use it as final_total.
 - all_total_candidates: List EVERY dollar amount next to any total-like label.
 
 STEP 6 — PAYMENT:
@@ -415,62 +360,13 @@ ACCURACY RULES:
 - Read numbers carefully. $1.99 vs $19.99 matters.
 - If text is blurry, use your best estimate for required fields, null for nullable.
 - Double-check that final_total > subtotal (unless discount makes it less).
-- Verify: sum of items ≈ subtotal (within reasonable tolerance).
-- NEVER return an empty result. Always extract at least merchant_name and final_total.
-- If the image is very blurry but you can see ANY numbers, extract what you can.
-- If you see a total amount but cannot read items, still provide the total.`;
-
-    let extracted: ReceiptExtraction | null = null;
-    let _lastError: unknown;
-    const maxRetries = 3;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[ReceiptScanner] Extraction attempt ${attempt}/${maxRetries}`);
-        extracted = await generateObject({
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'image', image: `data:image/jpeg;base64,${preProcessed.base64}` },
-                { type: 'text', text: receiptPrompt },
-              ],
+- Verify: sum of items ≈ subtotal (within reasonable tolerance).`,
             },
           ],
-          schema: receiptSchema,
-        });
-
-        if (extracted && (extracted.final_total > 0 || extracted.items.length > 0 || extracted.merchant_name)) {
-          console.log('[ReceiptScanner] Extraction succeeded on attempt', attempt);
-          break;
-        }
-
-        console.log('[ReceiptScanner] Extraction returned empty/zero result, retrying...');
-        extracted = null;
-      } catch (err) {
-        _lastError = err;
-        console.log(`[ReceiptScanner] Extraction attempt ${attempt} failed:`, err);
-        if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, 800 * attempt));
-        }
-      }
-    }
-
-    if (!extracted) {
-      console.log('[ReceiptScanner] All extraction attempts failed');
-      extracted = {
-        merchant_name: 'Unknown Store',
-        transaction_date: null,
-        items: [],
-        subtotal: null,
-        tax: null,
-        tip: null,
-        final_total: 0,
-        payment_method: null,
-        discount_amount: null,
-        all_total_candidates: [],
-      };
-    }
+        },
+      ],
+      schema: receiptSchema,
+    });
 
     setScanPhase('validating');
     animateProgress(95, 500);

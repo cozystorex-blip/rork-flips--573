@@ -38,7 +38,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { saveLocalDeal } from '@/services/localDealsService';
 import type { VerifiedDealRow } from '@/types';
-import { showInterstitialIfReady } from '@/services/adService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_HEIGHT = SCREEN_WIDTH * 0.65;
@@ -481,7 +480,6 @@ export default function PostDealScreen() {
       });
 
       setTimeout(() => {
-        void showInterstitialIfReady();
         router.back();
       }, 1400);
     } catch (err: unknown) {

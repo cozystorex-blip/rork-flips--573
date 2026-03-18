@@ -83,10 +83,14 @@ export function suggestCategory(merchantName: string | null, items: ReceiptItem[
 
 export function getItemsPreview(items: ReceiptItem[]): string {
   if (items.length === 0) return '';
-  return items.map((item) => {
+  const preview = items.slice(0, 4).map((item) => {
     const qty = item.quantity > 1 ? `${item.quantity}x ` : '';
-    return `${qty}${item.name} - ${item.totalPrice.toFixed(2)}`;
-  }).join('\n');
+    return `${qty}${item.name} ${item.totalPrice.toFixed(2)}`;
+  });
+  if (items.length > 4) {
+    preview.push(`+${items.length - 4} more`);
+  }
+  return preview.join(', ');
 }
 
 export function validateTotal(

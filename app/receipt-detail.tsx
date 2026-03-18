@@ -26,7 +26,6 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useExpenses } from '@/contexts/ExpenseContext';
-import AdMobBanner from '@/components/ads/AdMobBanner';
 import { ExpenseCategoryLabels } from '@/types/expense';
 import type { Expense, ExpenseCategoryType } from '@/types/expense';
 
@@ -456,8 +455,6 @@ export default function ReceiptDetailScreen() {
               </View>
             );
           })()}
-
-          <AdMobBanner />
 
           <View style={{ height: 40 }} />
         </Animated.View>

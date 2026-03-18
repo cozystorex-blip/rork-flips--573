@@ -195,57 +195,20 @@ export function ReceiptResultSection({ result }: ResultProps) {
   return (
     <>
       <SectionLabel text="Receipt Detected" />
-      <View style={s.receiptStatusCard}>
-        <Text style={s.receiptStatusIcon}>🧾</Text>
-        <View style={s.receiptStatusContent}>
-          <Text style={s.receiptStatusTitle}>{result.item_name || 'Receipt'}</Text>
-          <Text style={s.receiptStatusDesc}>This image has been identified as a receipt, invoice, or price tag.</Text>
-        </View>
-      </View>
-
+      <InfoBlock text="This image was identified as a receipt or price tag." type="tip" />
       <Divider />
-      <SectionLabel text="What We Found" />
-      <View style={s.receiptInfoGrid}>
-        <View style={s.receiptInfoItem}>
-          <Text style={s.receiptInfoLabel}>Type</Text>
-          <Text style={s.receiptInfoValue}>Receipt / Price Tag</Text>
-        </View>
-        <View style={s.receiptInfoItem}>
-          <Text style={s.receiptInfoLabel}>Confidence</Text>
-          <Text style={s.receiptInfoValue}>{Math.round(result.confidence * 100)}%</Text>
-        </View>
-        <View style={s.receiptInfoItem}>
-          <Text style={s.receiptInfoLabel}>Status</Text>
-          <Text style={[s.receiptInfoValue, { color: C.green }]}>Ready to Parse</Text>
-        </View>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>{result.item_name || 'Receipt'}</Text>
+        <Text style={s.fallbackSub}>
+          Use the Receipt Scanner for full receipt parsing with itemized totals, store detection, and expense logging.
+        </Text>
       </View>
-
       {result.short_summary ? (
         <>
           <Divider />
           <InfoBlock text={result.short_summary} type="success" />
         </>
       ) : null}
-
-      <Divider />
-      <SectionLabel text="Full Receipt Parsing" />
-      <View style={s.receiptFeatureList}>
-        {[
-          'Itemized line items with prices',
-          'Store/merchant detection',
-          'Tax, tip, and total breakdown',
-          'Auto-categorized expense logging',
-          'Date and payment method extraction',
-        ].map((feature) => (
-          <View key={feature} style={s.bulletRow}>
-            <Text style={s.bulletChar}>✓</Text>
-            <Text style={s.bulletText}>{feature}</Text>
-          </View>
-        ))}
-      </View>
-
-      <Divider />
-      <InfoBlock text="Use the Receipt Scanner for complete parsing — it will extract every line item, totals, tax, merchant, and date from your receipt." type="tip" />
     </>
   );
 }
