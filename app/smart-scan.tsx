@@ -65,6 +65,7 @@ import {
   ConfidenceBadge,
   getConfidenceInfo,
 } from '@/components/scan/ScannerComponents';
+import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 
 type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
@@ -688,6 +689,8 @@ export default function SmartScanScreen() {
             <View style={st.detailsSection}>
               {resultSection}
             </View>
+
+            <ResaleInsightsSection result={result} />
 
             <ScannerResultActions
               onScanAgain={resetScan}
