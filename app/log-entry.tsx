@@ -751,7 +751,9 @@ ACCURACY RULES:
           {scanning && (
             <View style={styles.scanProgressCard}>
               <View style={styles.scanProgressHeader}>
-                <ActivityIndicator size="small" color="#3B82F6" />
+                <Animated.View style={{ transform: [{ scale: scanPulse }] }}>
+                  <ScanLine size={16} color="#3B82F6" />
+                </Animated.View>
                 <Text style={styles.scanProgressText}>{SCAN_PHASE_MESSAGES[scanPhase]}</Text>
               </View>
               <View style={styles.progressBarBg}>
@@ -785,7 +787,7 @@ ACCURACY RULES:
               <View style={styles.errorActions}>
                 <Pressable style={styles.retryBtn} onPress={handleScanReceipt}>
                   <RefreshCw size={14} color={Colors.text} />
-                  <Text style={styles.retryBtnText}>Retake Photo</Text>
+                  <Text style={styles.retryBtnText}>Retake</Text>
                 </Pressable>
                 <Pressable style={styles.retryBtn} onPress={handlePickFromGallery}>
                   <ImageIcon size={14} color={Colors.text} />
@@ -1083,7 +1085,7 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12, backgroundColor: Colors.headerBg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border, ...Colors.headerShadow },
   closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
   topTitle: { fontSize: 16, fontWeight: '600' as const, color: Colors.text },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#262626', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, minWidth: 80, justifyContent: 'center' },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#3B82F6', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 14, minWidth: 80, justifyContent: 'center' },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { fontSize: 14, fontWeight: '600' as const, color: '#FFFFFF' },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20 },
@@ -1091,24 +1093,24 @@ const styles = StyleSheet.create({
   scanSectionTitle: { fontSize: 16, fontWeight: '600' as const, color: Colors.text, marginBottom: 4 },
   scanSectionSubtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 14, fontWeight: '400' as const },
   modeSwitch: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DBDBDB' },
-  modeBtnActive: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, backgroundColor: '#262626', borderWidth: 1, borderColor: '#262626' },
-  modeBtnText: { fontSize: 14, fontWeight: '500' as const, color: Colors.textSecondary },
-  modeBtnTextActive: { fontSize: 14, fontWeight: '500' as const, color: '#FFFFFF' },
-  scanProgressCard: { backgroundColor: '#EFF6FF', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#BFDBFE' },
+  modeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DBDBDB' },
+  modeBtnActive: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, backgroundColor: '#3B82F6', borderWidth: 1, borderColor: '#3B82F6' },
+  modeBtnText: { fontSize: 14, fontWeight: '600' as const, color: Colors.textSecondary },
+  modeBtnTextActive: { fontSize: 14, fontWeight: '600' as const, color: '#FFFFFF' },
+  scanProgressCard: { backgroundColor: '#262626', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#3B82F630' },
   scanProgressHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  scanProgressText: { fontSize: 14, fontWeight: '600' as const, color: '#1D4ED8' },
-  progressBarBg: { height: 6, backgroundColor: '#DBEAFE', borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
+  scanProgressText: { fontSize: 14, fontWeight: '600' as const, color: '#3B82F6' },
+  progressBarBg: { height: 6, backgroundColor: '#3A3A3C', borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
   progressBarFill: { height: 6, backgroundColor: '#3B82F6', borderRadius: 3 },
-  scanPhaseHint: { fontSize: 12, color: '#6B7280', lineHeight: 16 },
-  errorCard: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FECACA' },
+  scanPhaseHint: { fontSize: 12, color: '#8E8E93', lineHeight: 16 },
+  errorCard: { backgroundColor: '#FEF2F2', borderRadius: 14, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#FECACA' },
   errorHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   errorTitle: { fontSize: 15, fontWeight: '700' as const, color: '#991B1B' },
   errorMessage: { fontSize: 13, color: '#7F1D1D', lineHeight: 18, marginBottom: 14 },
   errorActions: { flexDirection: 'row', gap: 8 },
   retryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10, borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB' },
   retryBtnText: { fontSize: 12, fontWeight: '600' as const, color: Colors.text },
-  manualBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10, borderRadius: 10, backgroundColor: '#1C1C1E' },
+  manualBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10, borderRadius: 10, backgroundColor: '#3B82F6' },
   manualBtnText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
   manualEntryTrigger: {
     flexDirection: 'row',
@@ -1167,9 +1169,9 @@ const styles = StyleSheet.create({
   reviewTitle: { fontSize: 18, fontWeight: '700' as const, color: Colors.text },
   reviewScrollContent: { paddingBottom: 20 },
   confidenceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  confidenceBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  confidenceDot: { width: 7, height: 7, borderRadius: 4 },
-  confidenceText: { fontSize: 12, fontWeight: '700' as const },
+  confidenceBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  confidenceDot: { width: 6, height: 6, borderRadius: 3 },
+  confidenceText: { fontSize: 11, fontWeight: '600' as const },
   paymentMethod: { fontSize: 12, fontWeight: '600' as const, color: Colors.textSecondary },
   reviewRequiredBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#BFDBFE' },
   reviewRequiredText: { fontSize: 13, color: '#1D4ED8', flex: 1, fontWeight: '500' as const },
@@ -1191,7 +1193,7 @@ const styles = StyleSheet.create({
   itemsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: 1, borderTopColor: Colors.border },
   itemsHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   itemsHeaderTitle: { fontSize: 15, fontWeight: '700' as const, color: Colors.text },
-  itemCountBadge: { backgroundColor: '#262626', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  itemCountBadge: { backgroundColor: '#3B82F6', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
   itemCountText: { fontSize: 11, fontWeight: '700' as const, color: '#FFFFFF' },
   itemsHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   itemsTotalText: { fontSize: 14, fontWeight: '700' as const, color: Colors.text },
@@ -1216,9 +1218,9 @@ const styles = StyleSheet.create({
   breakdownTotalValue: { fontSize: 15, fontWeight: '800' as const, color: '#166534' },
   reviewCategorySection: { marginBottom: 14 },
   reviewActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  rescanBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, borderRadius: 12, backgroundColor: '#F3F4F6', paddingVertical: 13 },
+  rescanBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, borderRadius: 14, backgroundColor: '#F3F4F6', paddingVertical: 13 },
   rescanBtnText: { fontSize: 13, fontWeight: '600' as const, color: Colors.text },
-  confirmBtn: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, borderRadius: 12, backgroundColor: '#262626', paddingVertical: 13 },
+  confirmBtn: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, borderRadius: 14, backgroundColor: '#3B82F6', paddingVertical: 13 },
   confirmBtnText: { color: '#FFFFFF', fontWeight: '700' as const, fontSize: 14 },
   successOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   successContent: { alignItems: 'center', gap: 16 },

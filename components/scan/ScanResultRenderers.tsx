@@ -9,24 +9,25 @@ import {
   getVerificationLabel,
   getVerificationColor,
 } from '@/types/scanTrust';
+import { ScannerColors } from '@/constants/scannerTheme';
 
 const C = {
-  bg: '#141414',
-  card: '#1A1A1A',
-  cardBorder: '#2A2A2A',
-  text: '#F5F5F7',
-  textSecondary: '#AEAEB2',
-  textMuted: '#636366',
-  accent: '#3B82F6',
-  green: '#16A34A',
-  greenBg: '#16A34A18',
-  red: '#EF4444',
-  redBg: '#EF444418',
-  amber: '#D97706',
-  amberBg: '#D9770618',
-  blue: '#3B82F6',
-  blueBg: '#3B82F618',
-  divider: '#2A2A2A',
+  bg: ScannerColors.surface,
+  card: ScannerColors.card,
+  cardBorder: ScannerColors.cardBorder,
+  text: ScannerColors.text,
+  textSecondary: ScannerColors.textSecondary,
+  textMuted: ScannerColors.textMuted,
+  accent: ScannerColors.accent,
+  green: ScannerColors.success,
+  greenBg: ScannerColors.successBg,
+  red: ScannerColors.error,
+  redBg: ScannerColors.errorBg,
+  amber: ScannerColors.amber,
+  amberBg: ScannerColors.amberBg,
+  blue: ScannerColors.accent,
+  blueBg: ScannerColors.accentSoft,
+  divider: ScannerColors.divider,
 };
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
