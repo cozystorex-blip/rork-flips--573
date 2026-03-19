@@ -406,7 +406,7 @@ function stabilizePricing(result: SmartScanResult): SmartScanResult {
   return stabilized;
 }
 
-const CLASSIFICATION_PROMPT = `You are an expert universal product identifier. Analyze ONLY what is visible in the image. Do NOT default to any category — pick the single best match.
+const CLASSIFICATION_PROMPT = `You are an expert universal product and object identifier with years of retail, fashion, food, and electronics experience. Your job is to correctly identify what is in the image with HIGH ACCURACY. Analyze ONLY what is visible. Do NOT guess or assume. Do NOT default to any category.
 
 STEP 0 — DETERMINE IMAGE CONTENT TYPE:
 Before identifying any object, first determine what KIND of image this is:
@@ -433,87 +433,129 @@ IF image_content_type is "single_item" or "unclear":
 - Set page_topic to empty string ""
 - Continue with normal single-item classification below
 
-STEP 1 — DETERMINE WHAT THE OBJECT ACTUALLY IS:
-Before choosing a category, describe to yourself what you literally see: shape, color, material, text, labels, packaging, context. Then match to a category.
+STEP 1 — DESCRIBE WHAT YOU SEE (critical for accuracy):
+Before choosing a category, you MUST internally describe:
+1. What is the overall SHAPE of the object? (round, rectangular, cylindrical, irregular, etc.)
+2. What is the PRIMARY MATERIAL? (fabric, plastic, metal, wood, glass, paper, food, etc.)
+3. What SIZE is it relative to common objects? (handheld, tabletop, floor-standing, etc.)
+4. Is there any VISIBLE TEXT, LABEL, or LOGO? What does it say?
+5. What is the CONTEXT/SETTING? (on a plate, on a shelf, being worn, in packaging, etc.)
+6. Are there any DISTINCTIVE FEATURES? (laces, buttons, screen, handle, wheels, etc.)
+
+Use these observations — NOT assumptions — to determine the category.
 
 STEP 2 — PICK EXACTLY ONE CATEGORY:
 - "receipt" = printed receipt, invoice, price tag with totals, shelf label with barcodes/prices. Set is_receipt=true.
-- "food" = prepared/fresh food, meals, fruits, vegetables, cooked dishes, snacks being eaten, bakery items, food court items, restaurant plates, loose produce
-- "grocery" = packaged food products — cans, boxes, bottles, bags, jars, frozen meals, condiments, cereal, pasta, chips, soda, candy bars, protein bars, anything with a nutrition label or barcode from a grocery aisle
-- "fashion" = ANY wearable item: shoes, sneakers, boots, sandals, clothing, shirts, pants, jackets, coats, dresses, hats, bags, purses, backpacks, wallets, watches, jewelry, belts, scarves, sunglasses, gloves
-- "electronics" = phones, laptops, tablets, headphones, earbuds, speakers, gaming consoles, controllers, chargers, cables, monitors, keyboards, cameras, smart home devices, drones, power banks
-- "furniture" = LARGE home items that typically sit on the floor or mount to walls: desks, tables, chairs, sofas, couches, beds, shelving units, bookshelves, cabinets, wardrobes, dressers, nightstands, TV stands, benches. Must require placement/assembly in a room.
-- "household" = smaller home/lifestyle items: kitchenware, pots, pans, utensils, storage containers, lamps, rugs, curtains, pillows, towels, blankets, cleaning supplies, tools (drills, hammers), fitness equipment (dumbbells, kettlebells, yoga mats), bathroom items, candles, decor, beauty/skincare/makeup products, small appliances (toasters, blenders, coffee makers)
-- "general" = identifiable item that doesn't clearly fit the above
-- "unknown" = truly unrecognizable, very blurry, completely dark, or abstract with no identifiable object
+- "food" = prepared/fresh food, meals, fruits, vegetables, cooked dishes, snacks being eaten, bakery items, food court items, restaurant plates, loose produce, food being served
+- "grocery" = packaged food products still in retail packaging — cans, boxes, bottles, bags, jars, frozen meals, condiments, cereal, pasta, chips, soda, candy bars, protein bars, anything with a nutrition label or barcode from a grocery aisle. KEY: the packaging is the primary visible element.
+- "fashion" = ANY wearable item or personal accessory: shoes, sneakers, boots, sandals, clothing, shirts, pants, jackets, coats, dresses, hats, bags, purses, backpacks, wallets, watches, jewelry, belts, scarves, sunglasses, gloves. KEY: it is worn on the body or carried as an accessory.
+- "electronics" = devices with screens, circuits, batteries, or digital function: phones, laptops, tablets, headphones, earbuds, speakers, gaming consoles, controllers, chargers, cables, monitors, keyboards, cameras, smart home devices, drones, power banks. KEY: it uses electricity or batteries.
+- "furniture" = LARGE home items that typically sit on the floor or mount to walls: desks, tables, chairs, sofas, couches, beds, shelving units, bookshelves, cabinets, wardrobes, dressers, nightstands, TV stands, benches. KEY: it requires placement/assembly in a room and you sit on it, store things in it, or put things on it.
+- "household" = smaller home/lifestyle items that are NOT furniture and NOT food: kitchenware, pots, pans, utensils, storage containers, lamps, rugs, curtains, pillows, towels, blankets, cleaning supplies, tools (drills, hammers), fitness equipment (dumbbells, kettlebells, yoga mats), bathroom items, candles, decor, beauty/skincare/makeup products, small appliances (toasters, blenders, coffee makers). KEY: used around the home but not large enough to be furniture.
+- "general" = clearly identifiable physical item that doesn't fit any above category (toys, books, sports equipment, musical instruments, art supplies, automotive parts, pet supplies, etc.)
+- "unknown" = truly unrecognizable: extremely blurry, completely dark, abstract art with no identifiable object, or a close-up that shows no recognizable features
+
+CATEGORY DECISION TREE — USE THIS ORDER:
+1. Is it a receipt/price tag/invoice? → "receipt"
+2. Is it a document/screenshot/poster/infographic? → "document" (set via image_content_type above)
+3. Is it food on a plate/being eaten/fresh produce/prepared? → "food"
+4. Is it a packaged food product in retail packaging? → "grocery"
+5. Is it something you WEAR or carry as personal accessory? → "fashion"
+6. Does it use electricity/batteries/have a screen? → "electronics"
+7. Is it a large piece of home furniture? → "furniture"
+8. Is it a smaller home/lifestyle item? → "household"
+9. Is it identifiable but none of the above? → "general"
+10. Is it truly unrecognizable? → "unknown"
 
 MISCLASSIFICATION RULES — CRITICAL:
-1. Spaghetti, pasta, cereal, canned food, snack bags, drink bottles = "grocery". NEVER "furniture" or "household".
-2. Shoes, sneakers, boots, sandals = "fashion". NEVER "furniture" or "household".
-3. Dumbbells, kettlebells, yoga mats, resistance bands = "household". NEVER "furniture".
-4. Kitchen utensils, pans, small appliances = "household". NEVER "furniture".
-5. Skincare, moisturizer, shampoo, makeup = "household". NEVER "grocery".
-6. Chairs, desks, shelves, sofas = "furniture". NEVER "household".
-7. Phones, laptops, headphones, earbuds = "electronics". NEVER "general".
-8. Clothing on hangers or folded = "fashion". NEVER "household".
-9. If you see food INSIDE a bag/box with packaging = "grocery". If food is loose/plated = "food".
-10. Do NOT classify based on brand alone. Nike shoe = fashion. Nike shipping box = general.
-11. If the image shows a food product but your first instinct is "furniture" — STOP and reconsider. Food is never furniture.
-12. If the image shows a shoe/sneaker but your first instinct is "furniture" — STOP and reconsider. Shoes are never furniture.
+1. ANY food in packaging (pasta box, cereal box, canned soup, bottled drink, chip bag) = "grocery". NEVER "furniture" or "household".
+2. ANY shoe/sneaker/boot/sandal/heel = "fashion". NEVER "furniture" or "household" or "general".
+3. ANY clothing item (shirt, pants, jacket, dress) = "fashion". NEVER "household".
+4. Dumbbells, kettlebells, yoga mats, resistance bands, exercise equipment = "household" (subcategory fitness). NEVER "furniture".
+5. Kitchen utensils, pans, small appliances, blenders, coffee makers = "household". NEVER "furniture".
+6. Skincare, moisturizer, shampoo, makeup, beauty products = "household". NEVER "grocery".
+7. Chairs, desks, large shelving units, sofas, beds, tables = "furniture". NEVER "household".
+8. Phones, laptops, headphones, earbuds, game controllers = "electronics". NEVER "general".
+9. Fresh food on a plate or loose = "food". Packaged food with labels = "grocery".
+10. Brand name on an item tells you the BRAND, not the category. Nike shoe = fashion. Nike box = general. Apple iPhone = electronics. Apple (fruit) = food.
+11. If the image shows food but your first instinct is "furniture" — you are WRONG. Re-examine.
+12. If the image shows a shoe but your first instinct is "furniture" — you are WRONG. Re-examine.
+13. If you are unsure between two categories, look at the PHYSICAL PROPERTIES (material, shape, size) not the brand.
+14. Bags, backpacks, purses, luggage = "fashion" (accessories). NEVER "household" or "general".
+15. Books, board games, toys, sports balls = "general". NEVER "household" or "furniture".
 
 NAMING — TRUTH-FIRST RULES:
 - Read visible text/labels/logos FIRST. Use the actual product name ONLY if clearly readable.
 - Include brand only if visibly printed or embossed on the item. Never invent brands.
 - If the exact product name is NOT readable, use a descriptive name based on what you see:
-  GOOD: "8-Shelf Wooden Puzzle Rack", "Black Running Shoes", "Stainless Steel Water Bottle"
+  GOOD: "8-Shelf Wooden Puzzle Rack", "Black Running Shoes", "Stainless Steel Water Bottle", "Red Plaid Flannel Shirt"
   BAD: Inventing specific model names or brand names that are not visible.
-- Do NOT create overly specific polished product titles unless text/labels confirm them.
-- Use descriptive names like "Barilla Spaghetti" (label visible) or "Black Running Shoes" (no label visible) — not "Item" or "Product".
+- Be SPECIFIC in naming: "White Nike Air Force 1 Low" (if visible) is better than "White Sneakers" which is better than "Shoes"
+- Describe the PRIMARY distinguishing features: color, material, brand (if visible), type
+- Use descriptive names like "Barilla Spaghetti No. 5" (label visible) or "Black Mesh Running Shoes" (no label visible) — not "Item" or "Product".
 
-CONFIDENCE (be strictly honest):
-- 0.85-0.95: Clear product, visible label/brand, obvious category, no ambiguity
-- 0.70-0.84: Clear product, obvious category, no label but recognizable
-- 0.50-0.69: Partially visible, angled, or slightly ambiguous
-- 0.35-0.49: Blurry or dark but shape identifiable
-- Below 0.35: Very unclear, guessing
-- NEVER give 0.85+ if category could be something else
-- NEVER give 0.75+ for blurry/distant/dark photos
-- If you had to override your first instinct, cap confidence at 0.65
+CONFIDENCE (be strictly calibrated):
+- 0.90-0.95: Crystal clear image, visible brand/label/text, zero ambiguity about what this is, could list on eBay with this info
+- 0.80-0.89: Clear product photo, obvious what category it is, main features visible, minor details uncertain
+- 0.70-0.79: Good photo, category is clear, but details like brand/model not fully visible
+- 0.55-0.69: Reasonable photo but partially obscured, angled, or slightly ambiguous between 2 categories
+- 0.40-0.54: Blurry, dark, distant, or significantly obscured — shape recognizable but details lost
+- 0.25-0.39: Very poor quality — mostly guessing from shape/context alone
+- Below 0.25: Essentially unidentifiable
+- RULE: If you had ANY hesitation about the category, cap confidence at 0.75
+- RULE: If the photo is not well-lit and centered, cap confidence at 0.80
+- RULE: If you had to override your first instinct, cap confidence at 0.65
+- RULE: Never give 0.90+ unless you can read text/brand on the item
 
-visual_cues: List SPECIFIC things you actually see: "barcode visible", "brand logo Nike", "nutrition label", "price tag $12.99", "model number printed", "wood grain texture", "metal legs", etc. These must be REAL observations, not guesses.
+visual_cues: List 4-8 SPECIFIC things you actually see. These MUST be real observations from the image:
+- Text/labels: "brand logo Nike visible on side", "nutrition label on back", "price tag $12.99"
+- Materials: "wood grain texture visible", "brushed stainless steel", "leather upper", "mesh fabric"
+- Features: "rubber outsole", "four metal legs", "glass screen", "zipper closure", "barcode on packaging"
+- Context: "on white background", "held in hand", "on store shelf", "next to ruler for scale"
+Do NOT list vague observations like "product" or "item" or "object".
 
-short_summary: 1-2 sentence summary of the item and its key use or characteristic.
-image_description: Detailed visual description — color, shape, material, texture, brand elements, notable features, approximate size. Specific enough to recreate as a clean product photo.`;
+short_summary: 1-2 sentence summary of the item focusing on: what it IS, what it's USED FOR, and one KEY distinguishing feature.
+image_description: Detailed visual description — color, shape, material, texture, brand elements, notable features, approximate size. Must be specific enough that someone could identify this exact item from the description alone.`;
 
 function getDetailPrompt(itemType: SmartScanItemType): string {
-  const base = `You are a product analyzer. Provide accurate, category-appropriate details about this item.
+  const base = `You are an expert product analyst with deep knowledge of pricing, materials, brands, and market values. Analyze the item in this image with HIGH ACCURACY.
 
-TRUTH-FIRST RULES (CRITICAL):
-- Only state facts you can verify from the image.
-- If you cannot confirm a specific value (exact price, exact dimensions, exact brand), set it to null.
-- Do NOT invent specific dollar amounts unless you have strong evidence (visible price tag, known retail product).
-- Do NOT invent specific dimensions unless visible on packaging or matched to a known product listing.
-- Do NOT state specific brand names unless visible on the item (logo, label, text).
-- For materials: say "likely wood" or "appears to be metal" — do not state "birch plywood" or "304 stainless steel" unless confirmed.
-- For assembly info: use general language like "basic assembly likely" unless you have specific confirmed data.
-- For care tips: always present as general guidance, not product-specific instructions.
-- For companion/matching products: suggest item TYPES, not specific branded products, unless you can verify a real pairing.
-- Never use phrases like "Worth it", "Good value", "Great deal" unless you have actual comparison data. Set value_verdict and value_rating to null if uncertain.
+ACCURACY RULES (CRITICAL — follow these strictly):
+1. Only state facts you can VERIFY from the image or from well-known product knowledge.
+2. If you recognize the EXACT product (brand + model visible), use real-world data you know about it.
+3. If you recognize the brand but not the exact model, use the brand's typical price range for that product type.
+4. If you see NO brand/model, estimate based on the item's apparent quality, material, and size — but be honest about uncertainty.
+5. Do NOT invent specific dollar amounts like "$47.99" unless you have strong evidence. Use ranges instead.
+6. Do NOT invent specific dimensions unless visible on packaging or you recognize the exact product.
+7. Do NOT state specific brand names unless visible on the item (logo, label, text).
+8. For materials: say "likely wood" or "appears to be metal" if not 100% certain. But if you CAN tell (e.g. clearly canvas, obviously leather, visibly glass), state it.
+9. For assembly info: use general language like "basic assembly likely" unless you recognize the specific product.
+10. For companion/matching products: suggest item TYPES, not specific branded products, unless verified.
+11. Never use "Worth it", "Good value", "Great deal" without real comparison data. Set value_verdict and value_rating to null if uncertain.
 
-PRICING RULES:
-- Only provide an exact price if you can match to a known retail listing or see a price tag.
-- If unsure, provide a price_range instead of a single price. Use null for estimated_price / estimated_retail_price.
-- Price range should be realistic, based on similar products in the market.
-- If item is packaging, set price fields to null.
+PRICING ACCURACY RULES:
+- If you recognize the exact product, give its real retail price (or close estimate).
+- If you recognize the brand + category, give the brand's typical range for that product type.
+- If you don't recognize the brand, give a market-typical range for that type of item based on apparent quality.
+- Always provide price_range when possible — this is more useful than a potentially wrong exact price.
+- If item is clearly cheap (under $5), say so. If clearly premium ($100+), say so. Do not default to mid-range.
 - Never output "Free" or "$0.00" — set to null instead.
-- Use dollar format like "$X.XX" for confirmed prices only.
+- Use dollar format like "$X.XX" for specific prices.
 
 RESALE VALUE RULES:
-- Only provide resale value for items with real secondhand markets.
-- Resale must be LOWER than retail unless genuinely hyped/limited.
-- Cheap items under $10: set resale to null.
-- Consumables: NO resale value.
-- If unsure, set to null rather than guess.\n\n`;
+- Only provide resale value for items with real secondhand markets (fashion, electronics, furniture, collectibles).
+- Resale must be LOWER than retail unless genuinely hyped/limited edition.
+- Cheap items under $10 retail: set resale to null.
+- Consumables (food, grocery, cleaning supplies): NO resale value ever.
+- Used condition reduces value by 30-60% typically.
+- If unsure, set to null rather than guess.
+
+QUALITY CHECK — before returning your answer:
+- Does the item_name accurately describe what is in the image?
+- Are the details consistent with the category?
+- Are prices realistic for this type of item?
+- Did you fill ONLY the correct detail field for this category?
+\n\n`;
 
   switch (itemType) {
     case 'food':
@@ -714,29 +756,119 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
   return fixed;
 }
 
+function crossValidateClassification(classification: z.infer<typeof classificationSchema>): z.infer<typeof classificationSchema> {
+  const fixed = { ...classification };
+  const name = (fixed.item_name ?? '').toLowerCase();
+  const desc = (fixed.image_description ?? '').toLowerCase();
+  const summary = (fixed.short_summary ?? '').toLowerCase();
+  const cues = (fixed.visual_cues ?? []).map(c => c.toLowerCase());
+  const allText = name + ' ' + desc + ' ' + summary + ' ' + cues.join(' ');
+
+  const hasShoeWords = /\b(shoe|sneaker|boot|sandal|heel|loafer|slipper|trainer|kick|footwear|sole|lace-up|air force|air max|jordan|yeezy|dunk|retro)\b/.test(allText);
+  const hasClothingWords = /\b(shirt|pants|jeans|jacket|coat|dress|skirt|hoodie|sweater|cardigan|blazer|vest|legging|shorts|t-shirt|polo|blouse|top|tunic|romper|jumpsuit|overalls)\b/.test(allText);
+  const hasAccessoryWords = /\b(bag|purse|wallet|backpack|tote|clutch|watch|bracelet|necklace|ring|earring|sunglasses|glasses|hat|cap|beanie|scarf|belt|tie|bow tie)\b/.test(allText);
+  const hasFoodWords = /\b(spaghetti|pasta|rice|cereal|soup|sauce|bread|chips|cookie|cracker|candy|chocolate|granola|yogurt|milk|juice|soda|snack|nutrition|calories|protein bar|frozen meal|canned|ramen|noodle|oatmeal|flour|sugar|honey|jam|peanut butter|ketchup|mustard|mayo|vinegar|oil|spice|coffee|tea|cream|cheese|butter|egg|meat|chicken|beef|pork|fish|shrimp|fruit|vegetable|apple|banana|orange|grape|berry|tomato|lettuce|onion|potato|carrot|broccoli|pepper|corn|bean|lentil|pizza|burger|taco|sandwich|wrap|salad|steak|sushi|donut|cake|pie|muffin|bagel|croissant|waffle|pancake)\b/.test(allText);
+  const hasElectronicsWords = /\b(phone|laptop|tablet|headphone|earbuds|speaker|monitor|keyboard|mouse|charger|cable|usb|hdmi|controller|console|tv|television|camera|drone|smartwatch|power bank|printer|router|projector|microphone|webcam|iphone|ipad|macbook|airpod|samsung|pixel|dell|hp|lenovo|asus|sony|bose|jbl|playstation|xbox|nintendo|switch|roku|echo|alexa|kindle)\b/.test(allText);
+  const hasFurnitureWords = /\b(desk|table|chair|sofa|couch|bed|shelf|shelving|cabinet|wardrobe|dresser|nightstand|bookcase|bookshelf|bench|stool|ottoman|recliner|futon|loveseat|sectional|headboard|bed frame|mattress|tv stand|entertainment center|armoire|credenza|sideboard|hutch|vanity|bar cart|dining set)\b/.test(allText);
+
+  if (fixed.item_type === 'furniture' && hasFoodWords && !hasFurnitureWords) {
+    console.log('[SmartScan] Cross-validation: food item wrongly classified as furniture, correcting');
+    const hasPackaging = /\b(package|box|bag|can|bottle|jar|wrapper|label|barcode|nutrition)\b/.test(allText);
+    fixed.item_type = hasPackaging ? 'grocery' : 'food';
+    fixed.category = hasPackaging ? 'Grocery' : 'Food';
+    fixed.confidence = Math.min(fixed.confidence, 0.65);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'furniture' && (hasShoeWords || hasClothingWords || hasAccessoryWords) && !hasFurnitureWords) {
+    console.log('[SmartScan] Cross-validation: fashion item wrongly classified as furniture, correcting');
+    fixed.item_type = 'fashion';
+    fixed.category = 'Fashion';
+    fixed.confidence = Math.min(fixed.confidence, 0.65);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'furniture' && hasElectronicsWords && !hasFurnitureWords) {
+    console.log('[SmartScan] Cross-validation: electronics item wrongly classified as furniture, correcting');
+    fixed.item_type = 'electronics';
+    fixed.category = 'Electronics';
+    fixed.confidence = Math.min(fixed.confidence, 0.65);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'household' && (hasShoeWords || hasClothingWords) && !(/\b(kitchen|clean|bath|tool|fitness|decor|beauty|skincare|appliance)\b/.test(allText))) {
+    console.log('[SmartScan] Cross-validation: fashion item wrongly classified as household, correcting');
+    fixed.item_type = 'fashion';
+    fixed.category = 'Fashion';
+    fixed.confidence = Math.min(fixed.confidence, 0.65);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'general' && hasElectronicsWords) {
+    console.log('[SmartScan] Cross-validation: electronics item classified as general, upgrading');
+    fixed.item_type = 'electronics';
+    fixed.category = 'Electronics';
+    fixed.confidence = Math.min(fixed.confidence, 0.7);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'general' && (hasShoeWords || hasClothingWords || hasAccessoryWords)) {
+    console.log('[SmartScan] Cross-validation: fashion item classified as general, upgrading');
+    fixed.item_type = 'fashion';
+    fixed.category = 'Fashion';
+    fixed.confidence = Math.min(fixed.confidence, 0.7);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'general' && hasFoodWords) {
+    const hasPackaging = /\b(package|box|bag|can|bottle|jar|wrapper|label|barcode|nutrition)\b/.test(allText);
+    console.log('[SmartScan] Cross-validation: food item classified as general, upgrading');
+    fixed.item_type = hasPackaging ? 'grocery' : 'food';
+    fixed.category = hasPackaging ? 'Grocery' : 'Food';
+    fixed.confidence = Math.min(fixed.confidence, 0.65);
+    return fixed;
+  }
+
+  if ((fixed.item_type === 'food' || fixed.item_type === 'grocery') && hasElectronicsWords && !hasFoodWords) {
+    console.log('[SmartScan] Cross-validation: electronics item wrongly classified as food/grocery, correcting');
+    fixed.item_type = 'electronics';
+    fixed.category = 'Electronics';
+    fixed.confidence = Math.min(fixed.confidence, 0.6);
+    return fixed;
+  }
+
+  return fixed;
+}
+
 function recoverUnknown(classification: z.infer<typeof classificationSchema>): z.infer<typeof classificationSchema> {
   if (classification.item_type !== 'unknown') return classification;
   if (classification.image_content_type === 'printed_material' || classification.image_content_type === 'multi_item_page' || classification.image_content_type === 'screenshot' || classification.image_content_type === 'document') return classification;
   const fixed = { ...classification };
-  const combined = ((fixed.visual_cues ?? []).join(' ') + ' ' + (fixed.item_name ?? '')).toLowerCase();
+  const combined = ((fixed.visual_cues ?? []).join(' ') + ' ' + (fixed.item_name ?? '') + ' ' + (fixed.short_summary ?? '') + ' ' + (fixed.image_description ?? '')).toLowerCase();
 
   const checks: [string[], SmartScanItemType, string][] = [
-    [['shoe', 'sneaker', 'boot', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'shirt', 'hoodie', 'jacket', 'pants', 'dress', 'bag', 'hat', 'belt', 'watch', 'purse', 'sandal', 'heel', 'jeans', 'skirt', 'blazer', 'backpack'], 'fashion', 'Fashion'],
-    [['phone', 'laptop', 'tablet', 'headphone', 'earbuds', 'speaker', 'screen', 'charger', 'controller', 'console', 'keyboard', 'mouse', 'monitor', 'camera', 'drone', 'smart', 'airpod', 'iphone', 'ipad', 'macbook', 'samsung', 'power bank'], 'electronics', 'Electronics'],
-    [['dumbbell', 'kettlebell', 'wrench', 'drill', 'hammer', 'pan', 'pot', 'skillet', 'vacuum', 'broom', 'towel', 'blanket', 'pillow', 'candle', 'lamp', 'rug', 'curtain', 'moisturizer', 'shampoo', 'skincare', 'makeup', 'yoga mat', 'blender', 'toaster', 'coffee maker'], 'household', 'Household'],
-    [['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'cabinet', 'dresser', 'wardrobe', 'bookcase', 'nightstand', 'bench', 'ottoman', 'recliner', 'futon'], 'furniture', 'Furniture'],
-    [['cereal', 'bottle', 'can', 'package', 'barcode', 'nutrition facts', 'grocery', 'pasta', 'sauce', 'snack', 'chips', 'crackers', 'soda', 'juice', 'milk', 'yogurt', 'bread', 'rice', 'frozen', 'canned'], 'grocery', 'Grocery'],
-    [['meal', 'food', 'fruit', 'vegetable', 'cooked', 'pizza', 'burger', 'sandwich', 'salad', 'steak', 'chicken', 'sushi', 'taco', 'soup bowl', 'plate of'], 'food', 'Food'],
+    [['shoe', 'sneaker', 'boot', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'puma', 'new balance', 'converse', 'vans', 'shirt', 'hoodie', 'jacket', 'pants', 'dress', 'bag', 'hat', 'belt', 'watch', 'purse', 'sandal', 'heel', 'jeans', 'skirt', 'blazer', 'backpack', 'tote', 'scarf', 'glove', 'beanie', 'cap', 'wallet', 'sunglasses', 'legging', 'shorts', 'sweater', 'cardigan', 'coat', 'vest', 'tie', 'jewelry', 'bracelet', 'necklace', 'ring', 'earring'], 'fashion', 'Fashion'],
+    [['phone', 'laptop', 'tablet', 'headphone', 'earbuds', 'speaker', 'screen', 'charger', 'controller', 'console', 'keyboard', 'mouse', 'monitor', 'camera', 'drone', 'smart', 'airpod', 'iphone', 'ipad', 'macbook', 'samsung', 'power bank', 'cable', 'usb', 'hdmi', 'printer', 'router', 'modem', 'battery', 'remote', 'projector', 'tv', 'television', 'microphone', 'webcam', 'gaming', 'playstation', 'xbox', 'nintendo'], 'electronics', 'Electronics'],
+    [['dumbbell', 'kettlebell', 'wrench', 'drill', 'hammer', 'pan', 'pot', 'skillet', 'vacuum', 'broom', 'towel', 'blanket', 'pillow', 'candle', 'lamp', 'rug', 'curtain', 'moisturizer', 'shampoo', 'skincare', 'makeup', 'yoga mat', 'blender', 'toaster', 'coffee maker', 'iron', 'mop', 'sponge', 'soap', 'detergent', 'air freshener', 'vase', 'picture frame', 'clock', 'mirror', 'thermos', 'water filter', 'cutting board', 'knife set', 'bowl', 'plate set', 'mug', 'glass set', 'tupperware', 'container', 'basket', 'organizer', 'deodorant', 'perfume', 'cologne', 'lotion', 'cream', 'serum', 'mascara', 'lipstick', 'foundation'], 'household', 'Household'],
+    [['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'shelving', 'cabinet', 'dresser', 'wardrobe', 'bookcase', 'bookshelf', 'nightstand', 'bench', 'ottoman', 'recliner', 'futon', 'armoire', 'credenza', 'sideboard', 'hutch', 'tv stand', 'entertainment center', 'dining set', 'bar stool', 'headboard', 'bed frame', 'mattress', 'loveseat', 'sectional'], 'furniture', 'Furniture'],
+    [['cereal', 'bottle', 'can', 'package', 'barcode', 'nutrition facts', 'grocery', 'pasta', 'sauce', 'snack', 'chips', 'crackers', 'soda', 'juice', 'milk', 'yogurt', 'bread', 'rice', 'frozen', 'canned', 'protein bar', 'energy drink', 'granola', 'oatmeal', 'flour', 'sugar', 'condiment', 'ketchup', 'mustard', 'mayo', 'dressing', 'vinegar', 'oil', 'spice', 'seasoning', 'tea', 'coffee', 'creamer', 'popcorn', 'pretzel', 'cracker', 'cookie', 'candy', 'chocolate', 'gum', 'mint'], 'grocery', 'Grocery'],
+    [['meal', 'food', 'fruit', 'vegetable', 'cooked', 'pizza', 'burger', 'sandwich', 'salad', 'steak', 'chicken', 'sushi', 'taco', 'soup', 'plate of', 'bowl of', 'rice dish', 'noodle', 'egg', 'pancake', 'waffle', 'toast', 'bagel', 'donut', 'cake', 'pie', 'muffin', 'croissant', 'smoothie', 'acai', 'avocado', 'banana', 'apple', 'orange', 'grape', 'berry', 'melon', 'prepared food', 'raw meat', 'fish fillet', 'shrimp', 'lobster', 'crab'], 'food', 'Food'],
   ];
 
+  let bestMatch: [SmartScanItemType, string, number] | null = null;
   for (const [signals, type, category] of checks) {
-    if (signals.some(s => combined.includes(s))) {
-      console.log('[SmartScan] Recovering unknown as', type);
-      fixed.item_type = type;
-      fixed.category = category;
-      fixed.confidence = Math.max(fixed.confidence, 0.35);
-      return fixed;
+    const matchCount = signals.filter(s => combined.includes(s)).length;
+    if (matchCount > 0 && (!bestMatch || matchCount > bestMatch[2])) {
+      bestMatch = [type, category, matchCount];
     }
+  }
+
+  if (bestMatch) {
+    console.log('[SmartScan] Recovering unknown as', bestMatch[0], 'with', bestMatch[2], 'signal matches');
+    fixed.item_type = bestMatch[0];
+    fixed.category = bestMatch[1];
+    fixed.confidence = Math.max(fixed.confidence, bestMatch[2] >= 3 ? 0.5 : 0.35);
+    return fixed;
   }
 
   console.log('[SmartScan] Could not recover unknown, falling back to general');
@@ -828,6 +960,91 @@ function validateResult(result: SmartScanResult, classification: z.infer<typeof 
   }
 
   return validated;
+}
+
+function recalibrateConfidence(result: SmartScanResult, _classification: z.infer<typeof classificationSchema>): SmartScanResult {
+  const recalibrated = { ...result };
+  const type = recalibrated.item_type;
+  let detailRichness = 0;
+  let maxPossible = 0;
+
+  const checkField = (val: unknown) => {
+    maxPossible++;
+    if (val !== null && val !== undefined && val !== '' && val !== 'null') detailRichness++;
+  };
+
+  if (type === 'food' && recalibrated.food_details) {
+    const fd = recalibrated.food_details;
+    checkField(fd.serving_size);
+    checkField(fd.calories);
+    checkField(fd.health_summary);
+    checkField(fd.key_nutrients?.length > 0 ? fd.key_nutrients : null);
+    checkField(fd.tags?.length > 0 ? fd.tags : null);
+  } else if (type === 'grocery' && recalibrated.grocery_details) {
+    const gd = recalibrated.grocery_details;
+    checkField(gd.brand);
+    checkField(gd.package_size);
+    checkField(gd.estimated_price);
+    checkField(gd.tags?.length > 0 ? gd.tags : null);
+  } else if (type === 'fashion' && recalibrated.fashion_details) {
+    const fd = recalibrated.fashion_details;
+    checkField(fd.subcategory);
+    checkField(fd.brand);
+    checkField(fd.material);
+    checkField(fd.color);
+    checkField(fd.style);
+    checkField(fd.estimated_retail_price);
+  } else if (type === 'electronics' && recalibrated.electronics_details) {
+    const ed = recalibrated.electronics_details;
+    checkField(ed.product_type);
+    checkField(ed.brand);
+    checkField(ed.model);
+    checkField(ed.estimated_retail_price);
+  } else if (type === 'furniture' && recalibrated.furniture_details) {
+    const fd = recalibrated.furniture_details;
+    checkField(fd.item_type_specific);
+    checkField(fd.material);
+    checkField(fd.finish_color);
+    checkField(fd.estimated_price_range);
+    checkField(fd.use_case);
+  } else if (type === 'household' && recalibrated.household_details) {
+    const hd = recalibrated.household_details;
+    checkField(hd.item_description);
+    checkField(hd.subcategory);
+    checkField(hd.brand);
+    checkField(hd.material);
+    checkField(hd.estimated_price);
+  } else if (type === 'general' && recalibrated.general_details) {
+    const gd = recalibrated.general_details;
+    checkField(gd.item_description);
+    checkField(gd.subcategory);
+    checkField(gd.brand);
+    checkField(gd.material);
+    checkField(gd.color);
+  }
+
+  if (maxPossible > 0) {
+    const fillRate = detailRichness / maxPossible;
+    const currentConf = recalibrated.confidence;
+
+    if (fillRate >= 0.8 && currentConf < 0.7) {
+      const boost = Math.min(0.1, (0.7 - currentConf) * 0.5);
+      recalibrated.confidence = Math.min(currentConf + boost, 0.8);
+      console.log('[SmartScan] Confidence boosted by detail richness:', currentConf.toFixed(2), '->', recalibrated.confidence.toFixed(2), 'fillRate:', fillRate.toFixed(2));
+    } else if (fillRate < 0.3 && currentConf > 0.6) {
+      const penalty = Math.min(0.15, (currentConf - 0.5) * 0.4);
+      recalibrated.confidence = Math.max(currentConf - penalty, 0.35);
+      console.log('[SmartScan] Confidence reduced by sparse details:', currentConf.toFixed(2), '->', recalibrated.confidence.toFixed(2), 'fillRate:', fillRate.toFixed(2));
+    }
+  }
+
+  const name = (recalibrated.item_name ?? '').toLowerCase();
+  if (name.length < 5 || name === 'item' || name === 'product' || name === 'unknown' || name === 'scanned item') {
+    recalibrated.confidence = Math.min(recalibrated.confidence, 0.4);
+    console.log('[SmartScan] Confidence capped due to generic item name:', name);
+  }
+
+  return recalibrated;
 }
 
 function repairMissingDetails(result: SmartScanResult, classification: z.infer<typeof classificationSchema>): SmartScanResult {
@@ -1083,6 +1300,7 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
 
   classification = recoverUnknown(classification);
   classification = fixItemType(classification);
+  classification = crossValidateClassification(classification);
 
   if (classification.confidence < 0.25) {
     classification.confidence = 0.25;
@@ -1094,12 +1312,14 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
   const fullPrompt = `${detailPrompt}
 
 The item has been identified as: ${classification.item_name} (${classification.category}).
-Visual cues: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
+Visual description: ${classification.image_description || 'N/A'}.
+Visual cues observed: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
 item_type MUST be "${classification.item_type}". Do NOT change it. is_receipt must be false.
 confidence should be ${classification.confidence.toFixed(2)}.
 Keep item_name close to "${classification.item_name}" — only refine spelling/capitalization, don't replace with a different product.
 CRITICAL: ONLY populate the ${classification.item_type}_details field. ALL other detail fields (*_details) MUST be null.
-Do NOT invent information. If you don't know a value, set it to null.`;
+Do NOT invent information you cannot see or confidently infer. If you don't know a value, set it to null.
+Be ACCURATE: real prices for recognized products, realistic ranges for unrecognized ones. Do not hallucinate brand names, model numbers, or prices.`;
 
   const result = await callWithRetry(
     () => generateObject({
@@ -1124,7 +1344,8 @@ Do NOT invent information. If you don't know a value, set it to null.`;
 
   const repaired = repairMissingDetails(result, classification);
   const validated = validateResult(repaired, classification);
-  const stabilized = stabilizePricing(validated);
+  const recalibrated = recalibrateConfidence(validated, classification);
+  const stabilized = stabilizePricing(recalibrated);
 
   stabilized.short_summary = classification.short_summary ?? '';
   stabilized.image_description = classification.image_description ?? '';
