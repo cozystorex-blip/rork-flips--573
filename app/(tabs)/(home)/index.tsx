@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,17 @@ import {
   Platform,
   UIManager,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { Receipt, ReceiptText, ScanLine, ChevronRight, Package, FileText, RefreshCw } from 'lucide-react-native';
+import { ScanLine, ChevronRight, Package, RefreshCw, Wallet, Calendar, TrendingDown, Search, DollarSign, UtensilsCrossed, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, MoreHorizontal } from 'lucide-react-native';
+import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import { AppIllustrations } from '@/constants/illustrations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ExpenseCategoryLabels } from '@/types/expense';
+import type { ExpenseCategoryType } from '@/types/expense';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -28,15 +32,78 @@ import { generateAISuggestions, AISuggestion } from '@/services/aiSuggestionsSer
 import * as Haptics from 'expo-haptics';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const BUDGET_CHART_WIDTH = SCREEN_WIDTH - 64 - 32;
+
+const BUDGET_TIME_TABS = [
+  { key: 'week' as const, label: 'Week' },
+  { key: 'month' as const, label: 'Month' },
+  { key: 'all' as const, label: 'All' },
+];
+
+const BUDGET_CATEGORY_CHIPS: { key: ExpenseCategoryType; label: string; color: string }[] = [
+  { key: 'food', label: 'Food', color: '#22C55E' },
+  { key: 'grocery', label: 'Grocery', color: '#F59E0B' },
+  { key: 'transport', label: 'Transport', color: '#3B82F6' },
+  { key: 'utility_bills', label: 'Utility Bills', color: '#F97316' },
+  { key: 'shopping', label: 'Shopping', color: '#EC4899' },
+  { key: 'home', label: 'Home', color: '#14B8A6' },
+  { key: 'subscriptions', label: 'Subs', color: '#A855F7' },
+  { key: 'other', label: 'Other', color: '#9CA3AF' },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  food: '#22C55E',
+  grocery: '#F59E0B',
+  transport: '#3B82F6',
+  utility_bills: '#F97316',
+  shopping: '#EC4899',
+  home: '#14B8A6',
+  subscriptions: '#A855F7',
+  other: '#9CA3AF',
+};
+
+const budgetIconMap: Record<ExpenseCategoryType, React.ComponentType<{ size: number; color: string; strokeWidth?: number }>> = {
+  food: UtensilsCrossed,
+  grocery: ShoppingCart,
+  transport: Car,
+  utility_bills: Zap,
+  shopping: ShoppingBag,
+  home: Home,
+  subscriptions: Tv,
+  other: MoreHorizontal,
+};
+
+function getWeekStart(): Date {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function getMonthStart(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function timeAgoLabel(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 function buildSuggestionKey(scans: ScanHistoryEntry[], receipts: { id: string; category: string }[]): string {
   const scanPart = scans.slice(0, 5).map(s => `${s.id}-${s.result.item_type}`).join('|');
   const receiptPart = receipts.slice(0, 5).map(r => `${r.id}-${r.category}`).join('|');
   return `${scanPart}::${receiptPart}`;
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function getScanBrand(entry: ScanHistoryEntry): string {
@@ -55,6 +122,8 @@ export default function HomeScreen() {
   const { entries: scanEntries } = useScanHistory();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
+  const [budgetTimeTab, setBudgetTimeTab] = useState<'week' | 'month' | 'all'>('week');
+  const [budgetCategoryFilter, setBudgetCategoryFilter] = useState<ExpenseCategoryType | null>(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -78,9 +147,63 @@ export default function HomeScreen() {
       .slice(0, 5);
   }, [expenses]);
 
-  const receiptsTotal = useMemo(() => {
-    return recentReceipts.reduce((sum, e) => sum + e.amount, 0);
-  }, [recentReceipts]);
+
+  const budgetFilteredExpenses = useMemo(() => {
+    const weekStart = getWeekStart();
+    const monthStart = getMonthStart();
+    let filtered = expenses.filter((e) => e.amount > 0);
+    if (budgetTimeTab === 'week') {
+      filtered = filtered.filter((e) => new Date(e.createdAt) >= weekStart);
+    } else if (budgetTimeTab === 'month') {
+      filtered = filtered.filter((e) => new Date(e.createdAt) >= monthStart);
+    }
+    return filtered;
+  }, [expenses, budgetTimeTab]);
+
+  const budgetTotal = useMemo(() => budgetFilteredExpenses.reduce((s, e) => s + e.amount, 0), [budgetFilteredExpenses]);
+  const budgetAvg = useMemo(() => {
+    if (budgetFilteredExpenses.length === 0) return 0;
+    return budgetTotal / Math.max(budgetFilteredExpenses.length, 1);
+  }, [budgetFilteredExpenses, budgetTotal]);
+
+  const budgetDailyData = useMemo(() => {
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const weekStart = getWeekStart();
+    const result: { label: string; total: number }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const dayStart = new Date(weekStart);
+      dayStart.setDate(weekStart.getDate() + i);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayStart.getDate() + 1);
+      const total = budgetFilteredExpenses
+        .filter((e) => {
+          const d = new Date(e.createdAt);
+          return d >= dayStart && d < dayEnd;
+        })
+        .reduce((sum, e) => sum + e.amount, 0);
+      result.push({ label: days[i], total });
+    }
+    return result;
+  }, [budgetFilteredExpenses]);
+
+  const budgetDisplayExpenses = useMemo(() => {
+    let result = budgetFilteredExpenses
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (budgetCategoryFilter) {
+      result = result.filter((e) => e.category === budgetCategoryFilter);
+    }
+    return result;
+  }, [budgetFilteredExpenses, budgetCategoryFilter]);
+
+  const handleBudgetTimeTab = useCallback((key: 'week' | 'month' | 'all') => {
+    void Haptics.selectionAsync();
+    setBudgetTimeTab(key);
+  }, []);
+
+  const handleBudgetCategory = useCallback((key: ExpenseCategoryType) => {
+    void Haptics.selectionAsync();
+    setBudgetCategoryFilter((prev) => prev === key ? null : key);
+  }, []);
 
   const recentScans = useMemo(() => {
     return scanEntries.slice(0, 8);
@@ -125,10 +248,6 @@ export default function HomeScreen() {
     router.push('/smart-scan');
   }, [router]);
 
-  const handleReceiptPress = useCallback((expenseId: string) => {
-    void Haptics.selectionAsync();
-    router.push({ pathname: '/receipt-detail', params: { expenseId } });
-  }, [router]);
 
   return (
     <View style={styles.container}>
@@ -143,76 +262,215 @@ export default function HomeScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          {/* Recent Receipts */}
-          <View style={styles.sectionCard} testID="recent-receipts-card">
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <View style={styles.sectionIconBadge}>
-                  <Receipt size={14} color="#000000" strokeWidth={2} />
-                </View>
-                <Text style={styles.sectionTitle}>Recent Receipts</Text>
+          {/* Budget Overview */}
+          <View style={budgetStyles.budgetCard} testID="budget-overview-card">
+            <View style={budgetStyles.budgetHeaderRow}>
+              <View style={budgetStyles.budgetIconWrap}>
+                <Wallet size={16} color="#1B7A45" strokeWidth={2} />
               </View>
-              {recentReceipts.length > 3 && (
-                <Pressable onPress={() => router.push('/(tabs)/analytics')} hitSlop={8}>
-                  <Text style={styles.seeAllText}>See all</Text>
-                </Pressable>
-              )}
-            </View>
-
-            {recentReceipts.length > 0 && (
-              <Text style={styles.receiptSummary}>
-                <Text style={styles.receiptSummaryAmount}>${receiptsTotal.toFixed(2)}</Text>
-                <Text style={styles.receiptSummaryLabel}> from {recentReceipts.length} receipt{recentReceipts.length !== 1 ? 's' : ''}</Text>
+              <Text style={budgetStyles.budgetPeriodLabel}>
+                {budgetTimeTab === 'week' ? 'THIS WEEK' : budgetTimeTab === 'month' ? 'THIS MONTH' : 'ALL TIME'}
               </Text>
-            )}
+              <View style={budgetStyles.budgetMetaRight}>
+                <View style={budgetStyles.budgetMetaRow}>
+                  <Calendar size={11} color="#8E8E93" strokeWidth={1.5} />
+                  <Text style={budgetStyles.budgetMetaText}>{budgetFilteredExpenses.length} items</Text>
+                </View>
+                <View style={budgetStyles.budgetMetaRow}>
+                  <TrendingDown size={11} color="#8E8E93" strokeWidth={1.5} />
+                  <Text style={budgetStyles.budgetMetaText}>${budgetAvg.toFixed(2)} avg</Text>
+                </View>
+              </View>
+            </View>
+            <Text style={budgetStyles.budgetTotal}>${budgetTotal.toFixed(2)}</Text>
 
-            {recentReceipts.length === 0 ? (
-              <View style={styles.emptyState}>
-                <ExpoImage
-                  source={{ uri: AppIllustrations.receipt }}
-                  style={styles.emptyIllustration}
-                  contentFit="contain"
-                  cachePolicy="memory-disk"
-                />
-                <Text style={styles.emptyText}>No receipts yet</Text>
-                <Text style={styles.emptySubtext}>Scan a receipt to track your spending</Text>
-              </View>
-            ) : (
-              <View style={styles.receiptList}>
-                {recentReceipts.slice(0, 4).map((expense, idx) => (
-                  <Pressable
-                    key={expense.id}
-                    style={({ pressed }) => [
-                      styles.receiptRow,
-                      idx < Math.min(recentReceipts.length, 4) - 1 && styles.receiptRowBorder,
-                      pressed && styles.receiptRowPressed,
-                    ]}
-                    onPress={() => handleReceiptPress(expense.id)}
-                    testID={`receipt-row-${expense.id}`}
-                  >
-                    <View style={[
-                      styles.receiptThumb,
-                      expense.receiptConfidence ? styles.receiptThumbScanned : undefined,
-                    ]}>
-                      {expense.receiptConfidence ? (
-                        <ReceiptText size={18} color="#00C853" strokeWidth={1.8} />
-                      ) : (
-                        <FileText size={16} color="#636366" strokeWidth={1.5} />
-                      )}
-                    </View>
-                    <View style={styles.receiptInfo}>
-                      <Text style={styles.receiptStore} numberOfLines={1}>{expense.title || 'Receipt'}</Text>
-                      <Text style={styles.receiptDate}>{formatDate(expense.createdAt)}</Text>
-                    </View>
-                    <View style={styles.receiptAmountRow}>
-                      <Text style={styles.receiptAmount}>${expense.amount.toFixed(2)}</Text>
-                      <ChevronRight size={14} color="#48484A" strokeWidth={2} />
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            )}
+            <View style={budgetStyles.timeTabsRow}>
+              {BUDGET_TIME_TABS.map((tab) => (
+                <Pressable
+                  key={tab.key}
+                  style={[budgetStyles.timeTab, budgetTimeTab === tab.key && budgetStyles.timeTabActive]}
+                  onPress={() => handleBudgetTimeTab(tab.key)}
+                >
+                  <Text style={[budgetStyles.timeTabText, budgetTimeTab === tab.key && budgetStyles.timeTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
+
+          {budgetTimeTab === 'week' && (
+            <View style={budgetStyles.chartCard}>
+              {(() => {
+                const data = budgetDailyData;
+                const maxVal = Math.max(...data.map((d) => d.total), 1);
+                const barCount = data.length;
+                const barGap = 8;
+                const totalGaps = barGap * (barCount - 1);
+                const availW = BUDGET_CHART_WIDTH - 32;
+                const barWidth = Math.max(4, (availW - totalGaps) / barCount);
+                const chartHeight = 120;
+                const avgVal = data.reduce((s, d) => s + d.total, 0) / data.length;
+                const allZero = data.every((d) => d.total === 0);
+                const svgWidth = availW + 40;
+
+                return (
+                  <Svg width={svgWidth} height={chartHeight + 30} style={{ alignSelf: 'center' }}>
+                    {!allZero && (
+                      <Line
+                        x1={32}
+                        y1={chartHeight * (1 - avgVal / maxVal)}
+                        x2={svgWidth - 8}
+                        y2={chartHeight * (1 - avgVal / maxVal)}
+                        stroke="#D1D5DB"
+                        strokeWidth={1}
+                        strokeDasharray="3,3"
+                      />
+                    )}
+                    {data.map((day, i) => {
+                      const barHeight = maxVal > 0 ? (day.total / maxVal) * chartHeight : 0;
+                      const x = 32 + i * (barWidth + barGap);
+                      const y = chartHeight - barHeight;
+                      const isLast = i === data.length - 1;
+                      const opacity = isLast ? 1 : 0.55 + (i / data.length) * 0.35;
+                      return (
+                        <React.Fragment key={day.label + i}>
+                          <Rect
+                            x={x}
+                            y={Math.max(y, 2)}
+                            width={barWidth}
+                            height={Math.max(barHeight, 4)}
+                            rx={5}
+                            fill={isLast ? '#1B5E3B' : '#3D9B63'}
+                            opacity={opacity}
+                          />
+                          <SvgText
+                            x={x + barWidth / 2}
+                            y={chartHeight + 18}
+                            fontSize={11}
+                            fill="#8E8E93"
+                            textAnchor="middle"
+                            fontWeight="500"
+                          >
+                            {day.label}
+                          </SvgText>
+                        </React.Fragment>
+                      );
+                    })}
+                    {allZero && (
+                      <SvgText
+                        x={svgWidth / 2}
+                        y={chartHeight / 2}
+                        fontSize={13}
+                        fill="#C7C7CC"
+                        textAnchor="middle"
+                      >
+                        No data yet
+                      </SvgText>
+                    )}
+                  </Svg>
+                );
+              })()}
+            </View>
+          )}
+
+          {/* Scans row */}
+          <Pressable style={budgetStyles.noScansRow} onPress={handleScanPress} testID="no-scans-row">
+            <View style={budgetStyles.noScansIcon}>
+              <ScanLine size={18} color="#1B7A45" strokeWidth={2} />
+            </View>
+            <View style={budgetStyles.noScansTextWrap}>
+              <Text style={budgetStyles.noScansTitle}>
+                {recentScans.length === 0 ? 'No scans yet' : `${recentScans.length} scan${recentScans.length !== 1 ? 's' : ''}`}
+              </Text>
+              <Text style={budgetStyles.noScansSubtext}>
+                {recentScans.length === 0 ? 'Scan an item to see it here' : 'Tap to scan another item'}
+              </Text>
+            </View>
+            <ChevronRight size={16} color="#C7C7CC" strokeWidth={2} />
+          </Pressable>
+
+          {/* Search & Category Filters */}
+          <View style={budgetStyles.searchRow}>
+            <View style={budgetStyles.searchBox}>
+              <Search size={15} color="#8E8E93" strokeWidth={1.5} />
+              <Text style={budgetStyles.searchPlaceholder}>Search items...</Text>
+            </View>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={budgetStyles.chipRow}
+          >
+            {BUDGET_CATEGORY_CHIPS.map((chip) => {
+              const isActive = budgetCategoryFilter === chip.key;
+              return (
+                <Pressable
+                  key={chip.key}
+                  style={[
+                    budgetStyles.chip,
+                    isActive && { backgroundColor: chip.color + '18' },
+                  ]}
+                  onPress={() => handleBudgetCategory(chip.key)}
+                >
+                  <View style={[budgetStyles.chipDot, { backgroundColor: chip.color }]} />
+                  <Text style={[
+                    budgetStyles.chipText,
+                    isActive && { color: chip.color, fontWeight: '600' as const },
+                  ]}>{chip.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <Text style={budgetStyles.sectionLabel}>
+            {budgetTimeTab === 'week' ? 'This Week' : budgetTimeTab === 'month' ? 'This Month' : 'All Time'}
+          </Text>
+
+          {budgetDisplayExpenses.length === 0 ? (
+            <View style={budgetStyles.emptyCard}>
+              <DollarSign size={28} color="#C7C7CC" strokeWidth={1.5} />
+              <Text style={budgetStyles.emptyTitle}>No items yet</Text>
+              <Text style={budgetStyles.emptySubtext}>Scan an item or log a find to start building your list</Text>
+            </View>
+          ) : (
+            budgetDisplayExpenses.slice(0, 10).map((exp) => {
+              const cColor = CATEGORY_COLORS[exp.category] ?? '#9CA3AF';
+              const Icon = budgetIconMap[exp.category] ?? MoreHorizontal;
+              const cLabel = ExpenseCategoryLabels[exp.category as ExpenseCategoryType] ?? 'Other';
+              return (
+                <Pressable
+                  key={exp.id}
+                  style={({ pressed }) => [
+                    budgetStyles.txCard,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    router.push({ pathname: '/receipt-detail', params: { expenseId: exp.id } });
+                  }}
+                >
+                  <View style={[budgetStyles.txIcon, { backgroundColor: cColor + '14' }]}>
+                    <Icon size={18} color={cColor} strokeWidth={1.8} />
+                  </View>
+                  <View style={budgetStyles.txInfo}>
+                    <View style={budgetStyles.txTopRow}>
+                      <Text style={budgetStyles.txMerchant} numberOfLines={1}>{exp.merchant || exp.title}</Text>
+                      <Text style={budgetStyles.txAmount}>-${exp.amount.toFixed(2)}</Text>
+                    </View>
+                    <View style={budgetStyles.txMetaRow}>
+                      <View style={[budgetStyles.txCatPill, { backgroundColor: cColor + '12' }]}>
+                        <Text style={[budgetStyles.txCatText, { color: cColor }]}>{cLabel}</Text>
+                      </View>
+                      <Text style={budgetStyles.txTime}>{timeAgoLabel(exp.createdAt)}</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#C7C7CC" strokeWidth={2} />
+                </Pressable>
+              );
+            })
+          )}
 
           {/* Scanned Items */}
           <View style={styles.sectionCard} testID="scanned-items-card">
@@ -707,5 +965,283 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
+  },
+});
+
+const budgetStyles = StyleSheet.create({
+  budgetCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  budgetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  budgetIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#E8F5EE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  budgetPeriodLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  budgetMetaRight: {
+    alignItems: 'flex-end' as const,
+    gap: 3,
+  },
+  budgetMetaRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+  },
+  budgetMetaText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  budgetTotal: {
+    fontSize: 36,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -1,
+    marginBottom: 14,
+  },
+  timeTabsRow: {
+    flexDirection: 'row' as const,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 9,
+    padding: 2,
+  },
+  timeTab: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 7,
+    alignItems: 'center' as const,
+  },
+  timeTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  timeTabText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  timeTabTextActive: {
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+  },
+  chartCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  noScansRow: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  noScansIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#E8F5EE',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 12,
+  },
+  noScansTextWrap: {
+    flex: 1,
+  },
+  noScansTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+  },
+  noScansSubtext: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 1,
+  },
+  searchRow: {
+    marginBottom: 10,
+  },
+  searchBox: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  searchPlaceholder: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#C7C7CC',
+  },
+  chipRow: {
+    flexDirection: 'row' as const,
+    gap: 6,
+    marginBottom: 14,
+    paddingRight: 4,
+  },
+  chip: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  chipDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  sectionLabel: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+    marginBottom: 10,
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 36,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginBottom: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    marginTop: 4,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+  },
+  txCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  txIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 10,
+  },
+  txInfo: {
+    flex: 1,
+  },
+  txTopRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 4,
+  },
+  txMerchant: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    flex: 1,
+    marginRight: 8,
+  },
+  txAmount: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  txMetaRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
+  txCatPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  txCatText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+  },
+  txTime: {
+    fontSize: 11,
+    color: '#8E8E93',
+    fontWeight: '400' as const,
   },
 });
