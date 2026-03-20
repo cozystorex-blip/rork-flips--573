@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#00C853',
     letterSpacing: -0.2,
   },
   headerActions: {
