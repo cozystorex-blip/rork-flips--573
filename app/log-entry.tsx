@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   LayoutAnimation,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import {
   X,
   Camera,
@@ -128,7 +128,10 @@ const SCAN_PHASE_MESSAGES: Record<ScanPhase, string> = {
 export default function LogEntryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const { addExpense } = useExpenses();
+  const hasAutoTriggered = useRef(false);
+  const handleImageCaptureRef = useRef<((mode: 'camera' | 'gallery') => Promise<void>) | null>(null);
 
   const [title, setTitle] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -145,6 +148,7 @@ export default function LogEntryScreen() {
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
   const [manualExpanded, setManualExpanded] = useState<boolean>(false);
   const manualChevronRotation = useRef(new Animated.Value(0)).current;
+
 
   const successOpacity = useRef(new Animated.Value(0)).current;
   const successScale = useRef(new Animated.Value(0.5)).current;
@@ -470,6 +474,21 @@ ACCURACY RULES:
       stopScanPulse();
     }
   }, [runParsePipeline, startScanPulse, stopScanPulse, resetProgress, progressWidth]);
+
+  handleImageCaptureRef.current = handleImageCapture;
+
+  useEffect(() => {
+    if (params.mode === 'receipt' && !hasAutoTriggered.current) {
+      hasAutoTriggered.current = true;
+      console.log('[ReceiptScanner] Auto-triggering camera from receipt mode');
+      const timer = setTimeout(() => {
+        if (handleImageCaptureRef.current) {
+          void handleImageCaptureRef.current('camera');
+        }
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [params.mode]);
 
   const handleScanReceipt = useCallback(() => {
     void handleImageCapture('camera');
