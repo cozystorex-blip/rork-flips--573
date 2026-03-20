@@ -394,202 +394,6 @@ export default function ReceiptDetailScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          <View style={styles.heroCard}>
-            <View style={styles.heroIconWrap}>
-              <ReceiptText size={28} color="#00C853" strokeWidth={1.8} />
-            </View>
-            <Text style={styles.heroStore} numberOfLines={2}>
-              {expense.merchant || expense.title || 'Receipt'}
-            </Text>
-            <Text style={styles.heroAmount}>${expense.amount.toFixed(2)}</Text>
-            <View style={styles.heroMetaRow}>
-              <View style={styles.heroMetaItem}>
-                <Calendar size={13} color="#636366" strokeWidth={1.5} />
-                <Text style={styles.heroMetaText}>{formatFullDate(expense.createdAt)}</Text>
-              </View>
-              <View style={styles.heroMetaItem}>
-                <Clock size={13} color="#636366" strokeWidth={1.5} />
-                <Text style={styles.heroMetaText}>{formatTime(expense.createdAt)}</Text>
-              </View>
-            </View>
-            <View style={styles.heroBottomRow}>
-              <View style={[styles.categoryPill, { backgroundColor: catColor + '18' }]}>
-                <View style={[styles.categoryDot, { backgroundColor: catColor }]} />
-                <Text style={[styles.categoryPillText, { color: catColor }]}>{catLabel}</Text>
-              </View>
-              {receiptData.paymentMethod && (
-                <View style={styles.paymentPill}>
-                  <CreditCard size={11} color="#636366" strokeWidth={1.5} />
-                  <Text style={styles.paymentPillText}>{receiptData.paymentMethod}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {confidencePct !== null && (
-            <View style={styles.insightCard}>
-              <View style={styles.insightHeader}>
-                <View style={[styles.insightIconBadge, { backgroundColor: confidenceColor }]}>
-                  <CheckCircle2 size={14} color="#FFFFFF" strokeWidth={2} />
-                </View>
-                <Text style={styles.insightTitle}>Scan Confidence</Text>
-                <View style={[styles.confidenceBadge, { backgroundColor: `${confidenceColor}15` }]}>
-                  <View style={[styles.confidenceBadgeDot, { backgroundColor: confidenceColor }]} />
-                  <Text style={[styles.confidenceBadgeText, { color: confidenceColor }]}>{confidenceLabel}</Text>
-                </View>
-              </View>
-              <View style={styles.confidenceRow}>
-                <View style={styles.confidenceBarBg}>
-                  <View
-                    style={[
-                      styles.confidenceBarFill,
-                      {
-                        width: `${Math.min(confidencePct, 100)}%`,
-                        backgroundColor: confidenceColor,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.confidenceText}>{confidencePct}%</Text>
-              </View>
-              <Text style={styles.confidenceHint}>
-                {confidencePct >= 80
-                  ? 'High confidence — details were clearly extracted'
-                  : confidencePct >= 60
-                  ? 'Moderate confidence — some details may need review'
-                  : 'Low confidence — consider verifying the amounts'}
-              </Text>
-            </View>
-          )}
-
-          {receiptData.items.length > 0 && (
-            <View style={styles.insightCard}>
-              <View style={styles.insightHeader}>
-                <View style={[styles.insightIconBadge, { backgroundColor: '#D97706' }]}>
-                  <ShoppingCart size={14} color="#FFFFFF" strokeWidth={2} />
-                </View>
-                <Text style={styles.insightTitle}>Items</Text>
-                <View style={styles.itemCountBadge}>
-                  <Text style={styles.itemCountText}>{receiptData.items.length}</Text>
-                </View>
-              </View>
-              <View style={styles.itemsList}>
-                {receiptData.items.map((item, idx) => (
-                  <View
-                    key={`${item.name}-${idx}`}
-                    style={[
-                      styles.itemRow,
-                      idx < receiptData.items.length - 1 && styles.itemRowBorder,
-                    ]}
-                  >
-                    <View style={styles.itemLeft}>
-                      <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-                      {item.quantity > 1 && (
-                        <Text style={styles.itemQty}>{item.quantity} × ${item.unitPrice.toFixed(2)}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.itemPrice}>${item.totalPrice.toFixed(2)}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.breakdownSection}>
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Items Total</Text>
-                  <Text style={styles.breakdownValue}>${itemsTotal.toFixed(2)}</Text>
-                </View>
-                {receiptData.subtotal !== null && receiptData.subtotal > 0 && Math.abs(receiptData.subtotal - itemsTotal) > 0.01 && (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Subtotal</Text>
-                    <Text style={styles.breakdownValue}>${receiptData.subtotal.toFixed(2)}</Text>
-                  </View>
-                )}
-                {receiptData.tax !== null && receiptData.tax > 0 && (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Tax</Text>
-                    <Text style={styles.breakdownValue}>${receiptData.tax.toFixed(2)}</Text>
-                  </View>
-                )}
-                {receiptData.tip !== null && receiptData.tip > 0 && (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Tip</Text>
-                    <Text style={styles.breakdownValue}>${receiptData.tip.toFixed(2)}</Text>
-                  </View>
-                )}
-                {receiptData.discount !== null && receiptData.discount > 0 && (
-                  <View style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>Discount</Text>
-                    <Text style={[styles.breakdownValue, { color: '#16A34A' }]}>-${receiptData.discount.toFixed(2)}</Text>
-                  </View>
-                )}
-                <View style={[styles.breakdownRow, styles.breakdownTotal]}>
-                  <Text style={styles.breakdownTotalLabel}>Total Paid</Text>
-                  <Text style={styles.breakdownTotalValue}>${expense.amount.toFixed(2)}</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.insightCard}>
-            <View style={styles.insightHeader}>
-              <View style={[styles.insightIconBadge, { backgroundColor: '#3B82F6' }]}>
-                <PieChart size={14} color="#FFFFFF" strokeWidth={2} />
-              </View>
-              <Text style={styles.insightTitle}>Quick Insights</Text>
-            </View>
-            <View style={styles.insightsGrid}>
-              <View style={styles.insightTile}>
-                <DollarSign size={18} color="#00C853" strokeWidth={2} />
-                <Text style={styles.insightTileValue}>${expense.amount.toFixed(2)}</Text>
-                <Text style={styles.insightTileLabel}>Total Spent</Text>
-              </View>
-              <View style={styles.insightTile}>
-                <ShoppingCart size={18} color="#D97706" strokeWidth={2} />
-                <Text style={styles.insightTileValue}>{receiptData.items.length || '—'}</Text>
-                <Text style={styles.insightTileLabel}>Items</Text>
-              </View>
-              <View style={styles.insightTile}>
-                <TrendingDown size={18} color="#3B82F6" strokeWidth={2} />
-                <Text style={styles.insightTileValue}>
-                  {receiptData.items.length > 0
-                    ? `$${(expense.amount / receiptData.items.length).toFixed(2)}`
-                    : '—'}
-                </Text>
-                <Text style={styles.insightTileLabel}>Avg / Item</Text>
-              </View>
-            </View>
-          </View>
-
-          {receiptData.discount !== null && receiptData.discount > 0 && (
-            <View style={styles.savingsCard}>
-              <View style={styles.savingsHeader}>
-                <View style={[styles.insightIconBadge, { backgroundColor: '#16A34A' }]}>
-                  <Tag size={14} color="#FFFFFF" strokeWidth={2} />
-                </View>
-                <Text style={styles.insightTitle}>Savings</Text>
-              </View>
-              <Text style={styles.savingsAmount}>You saved ${receiptData.discount.toFixed(2)}</Text>
-              <Text style={styles.savingsHint}>Discounts and coupons applied to this receipt</Text>
-            </View>
-          )}
-
-          {(() => {
-            const rawNote = expense.notes || expense.note || '';
-            const displayNote = rawNote.startsWith('Scanned:') && receiptData.items.length > 0 ? '' : rawNote;
-            if (!displayNote) return null;
-            return (
-              <View style={styles.insightCard}>
-                <View style={styles.insightHeader}>
-                  <View style={[styles.insightIconBadge, { backgroundColor: '#8E8E93' }]}>
-                    <FileText size={14} color="#FFFFFF" strokeWidth={2} />
-                  </View>
-                  <Text style={styles.insightTitle}>Notes</Text>
-                </View>
-                <Text style={styles.notesText}>{displayNote}</Text>
-              </View>
-            );
-          })()}
-
           {/* Budget Overview Section */}
           <View style={budgetStyles.divider}>
             <View style={budgetStyles.dividerLine} />
@@ -788,6 +592,208 @@ export default function ReceiptDetailScreen() {
               );
             })
           )}
+
+          <View style={budgetStyles.receiptDivider}>
+            <View style={budgetStyles.dividerLine} />
+            <Text style={budgetStyles.dividerText}>Receipt Details</Text>
+            <View style={budgetStyles.dividerLine} />
+          </View>
+
+          <View style={styles.heroCard}>
+            <View style={styles.heroIconWrap}>
+              <ReceiptText size={28} color="#00C853" strokeWidth={1.8} />
+            </View>
+            <Text style={styles.heroStore} numberOfLines={2}>
+              {expense.merchant || expense.title || 'Receipt'}
+            </Text>
+            <Text style={styles.heroAmount}>${expense.amount.toFixed(2)}</Text>
+            <View style={styles.heroMetaRow}>
+              <View style={styles.heroMetaItem}>
+                <Calendar size={13} color="#636366" strokeWidth={1.5} />
+                <Text style={styles.heroMetaText}>{formatFullDate(expense.createdAt)}</Text>
+              </View>
+              <View style={styles.heroMetaItem}>
+                <Clock size={13} color="#636366" strokeWidth={1.5} />
+                <Text style={styles.heroMetaText}>{formatTime(expense.createdAt)}</Text>
+              </View>
+            </View>
+            <View style={styles.heroBottomRow}>
+              <View style={[styles.categoryPill, { backgroundColor: catColor + '18' }]}>
+                <View style={[styles.categoryDot, { backgroundColor: catColor }]} />
+                <Text style={[styles.categoryPillText, { color: catColor }]}>{catLabel}</Text>
+              </View>
+              {receiptData.paymentMethod && (
+                <View style={styles.paymentPill}>
+                  <CreditCard size={11} color="#636366" strokeWidth={1.5} />
+                  <Text style={styles.paymentPillText}>{receiptData.paymentMethod}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {confidencePct !== null && (
+            <View style={styles.insightCard}>
+              <View style={styles.insightHeader}>
+                <View style={[styles.insightIconBadge, { backgroundColor: confidenceColor }]}>
+                  <CheckCircle2 size={14} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <Text style={styles.insightTitle}>Scan Confidence</Text>
+                <View style={[styles.confidenceBadge, { backgroundColor: `${confidenceColor}15` }]}>
+                  <View style={[styles.confidenceBadgeDot, { backgroundColor: confidenceColor }]} />
+                  <Text style={[styles.confidenceBadgeText, { color: confidenceColor }]}>{confidenceLabel}</Text>
+                </View>
+              </View>
+              <View style={styles.confidenceRow}>
+                <View style={styles.confidenceBarBg}>
+                  <View
+                    style={[
+                      styles.confidenceBarFill,
+                      {
+                        width: `${Math.min(confidencePct, 100)}%`,
+                        backgroundColor: confidenceColor,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.confidenceText}>{confidencePct}%</Text>
+              </View>
+              <Text style={styles.confidenceHint}>
+                {confidencePct >= 80
+                  ? 'High confidence — details were clearly extracted'
+                  : confidencePct >= 60
+                  ? 'Moderate confidence — some details may need review'
+                  : 'Low confidence — consider verifying the amounts'}
+              </Text>
+            </View>
+          )}
+
+          {receiptData.items.length > 0 && (
+            <View style={styles.insightCard}>
+              <View style={styles.insightHeader}>
+                <View style={[styles.insightIconBadge, { backgroundColor: '#D97706' }]}>
+                  <ShoppingCart size={14} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <Text style={styles.insightTitle}>Items</Text>
+                <View style={styles.itemCountBadge}>
+                  <Text style={styles.itemCountText}>{receiptData.items.length}</Text>
+                </View>
+              </View>
+              <View style={styles.itemsList}>
+                {receiptData.items.map((item, idx) => (
+                  <View
+                    key={`${item.name}-${idx}`}
+                    style={[
+                      styles.itemRow,
+                      idx < receiptData.items.length - 1 && styles.itemRowBorder,
+                    ]}
+                  >
+                    <View style={styles.itemLeft}>
+                      <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                      {item.quantity > 1 && (
+                        <Text style={styles.itemQty}>{item.quantity} × ${item.unitPrice.toFixed(2)}</Text>
+                      )}
+                    </View>
+                    <Text style={styles.itemPrice}>${item.totalPrice.toFixed(2)}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.breakdownSection}>
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Items Total</Text>
+                  <Text style={styles.breakdownValue}>${itemsTotal.toFixed(2)}</Text>
+                </View>
+                {receiptData.subtotal !== null && receiptData.subtotal > 0 && Math.abs(receiptData.subtotal - itemsTotal) > 0.01 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Subtotal</Text>
+                    <Text style={styles.breakdownValue}>${receiptData.subtotal.toFixed(2)}</Text>
+                  </View>
+                )}
+                {receiptData.tax !== null && receiptData.tax > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Tax</Text>
+                    <Text style={styles.breakdownValue}>${receiptData.tax.toFixed(2)}</Text>
+                  </View>
+                )}
+                {receiptData.tip !== null && receiptData.tip > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Tip</Text>
+                    <Text style={styles.breakdownValue}>${receiptData.tip.toFixed(2)}</Text>
+                  </View>
+                )}
+                {receiptData.discount !== null && receiptData.discount > 0 && (
+                  <View style={styles.breakdownRow}>
+                    <Text style={styles.breakdownLabel}>Discount</Text>
+                    <Text style={[styles.breakdownValue, { color: '#16A34A' }]}>-${receiptData.discount.toFixed(2)}</Text>
+                  </View>
+                )}
+                <View style={[styles.breakdownRow, styles.breakdownTotal]}>
+                  <Text style={styles.breakdownTotalLabel}>Total Paid</Text>
+                  <Text style={styles.breakdownTotalValue}>${expense.amount.toFixed(2)}</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.insightCard}>
+            <View style={styles.insightHeader}>
+              <View style={[styles.insightIconBadge, { backgroundColor: '#3B82F6' }]}>
+                <PieChart size={14} color="#FFFFFF" strokeWidth={2} />
+              </View>
+              <Text style={styles.insightTitle}>Quick Insights</Text>
+            </View>
+            <View style={styles.insightsGrid}>
+              <View style={styles.insightTile}>
+                <DollarSign size={18} color="#00C853" strokeWidth={2} />
+                <Text style={styles.insightTileValue}>${expense.amount.toFixed(2)}</Text>
+                <Text style={styles.insightTileLabel}>Total Spent</Text>
+              </View>
+              <View style={styles.insightTile}>
+                <ShoppingCart size={18} color="#D97706" strokeWidth={2} />
+                <Text style={styles.insightTileValue}>{receiptData.items.length || '—'}</Text>
+                <Text style={styles.insightTileLabel}>Items</Text>
+              </View>
+              <View style={styles.insightTile}>
+                <TrendingDown size={18} color="#3B82F6" strokeWidth={2} />
+                <Text style={styles.insightTileValue}>
+                  {receiptData.items.length > 0
+                    ? `$${(expense.amount / receiptData.items.length).toFixed(2)}`
+                    : '—'}
+                </Text>
+                <Text style={styles.insightTileLabel}>Avg / Item</Text>
+              </View>
+            </View>
+          </View>
+
+          {receiptData.discount !== null && receiptData.discount > 0 && (
+            <View style={styles.savingsCard}>
+              <View style={styles.savingsHeader}>
+                <View style={[styles.insightIconBadge, { backgroundColor: '#16A34A' }]}>
+                  <Tag size={14} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <Text style={styles.insightTitle}>Savings</Text>
+              </View>
+              <Text style={styles.savingsAmount}>You saved ${receiptData.discount.toFixed(2)}</Text>
+              <Text style={styles.savingsHint}>Discounts and coupons applied to this receipt</Text>
+            </View>
+          )}
+
+          {(() => {
+            const rawNote = expense.notes || expense.note || '';
+            const displayNote = rawNote.startsWith('Scanned:') && receiptData.items.length > 0 ? '' : rawNote;
+            if (!displayNote) return null;
+            return (
+              <View style={styles.insightCard}>
+                <View style={styles.insightHeader}>
+                  <View style={[styles.insightIconBadge, { backgroundColor: '#8E8E93' }]}>
+                    <FileText size={14} color="#FFFFFF" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.insightTitle}>Notes</Text>
+                </View>
+                <Text style={styles.notesText}>{displayNote}</Text>
+              </View>
+            );
+          })()}
 
           <View style={{ height: 40 }} />
         </Animated.View>
@@ -1167,6 +1173,13 @@ const styles = StyleSheet.create({
 });
 
 const budgetStyles = StyleSheet.create({
+  receiptDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 16,
+  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
