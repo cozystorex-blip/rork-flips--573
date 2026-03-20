@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { House, Tag, CircleUserRound, Heart, X, UserPen, DollarSign } from 'lucide-react-native';
+import { House, Tag, Heart, X, UserPen, DollarSign, Users } from 'lucide-react-native';
 import ScanFrameIcon from '@/components/ScanFrameIcon';
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Pressable, StyleSheet, Platform, Animated, Modal, Text } from 'react-native';
@@ -325,9 +325,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: 'Profile',
+          title: 'Groups',
           tabBarIcon: ({ color, focused, size }) => (
-            <CircleUserRound size={size - 2} color={color} strokeWidth={focused ? 2.0 : 1.4} />
+            <Users size={size - 2} color={color} strokeWidth={focused ? 2.0 : 1.4} />
           ),
         }}
       />
