@@ -210,10 +210,10 @@ export default function DiscoverScreen() {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) {
             setFollowedIds(parsed);
-            console.log('[Discover] Loaded followed creators:', parsed.length);
+            console.log('[Profiles] Loaded followed creators:', parsed.length);
           }
         } catch {
-          console.log('[Discover] Failed to parse followed creators');
+          console.log('[Profiles] Failed to parse followed creators');
         }
       }
     });
@@ -222,7 +222,7 @@ export default function DiscoverScreen() {
   const discoverQuery = useQuery({
     queryKey: ['discover_profiles'],
     queryFn: async () => {
-      console.log('[Discover] Fetching profiles from profiles_peoples');
+      console.log('[Profiles] Fetching profiles from profiles_peoples');
       try {
         const { data, error } = await supabase
           .from('profiles_peoples')
@@ -232,13 +232,13 @@ export default function DiscoverScreen() {
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.log('[Discover] Fetch error:', error.message);
+          console.log('[Profiles] Fetch error:', error.message);
           return [];
         }
-        console.log('[Discover] Loaded', data?.length ?? 0, 'real profiles');
+        console.log('[Profiles] Loaded', data?.length ?? 0, 'real profiles');
         return (data as DiscoverProfile[]).map(mapToUserProfile);
       } catch (e) {
-        console.log('[Discover] Network error fetching profiles:', e);
+        console.log('[Profiles] Network error fetching profiles:', e);
         return [];
       }
     },
@@ -252,7 +252,7 @@ export default function DiscoverScreen() {
     const filteredReal = real.filter((p) => p.id !== ownId);
     const filteredMocks = mockProfiles.filter((p) => !realIds.has(p.id) && p.id !== ownId);
     const combined = [...filteredReal, ...filteredMocks];
-    console.log('[Discover] Display profiles:', filteredReal.length, 'real +', filteredMocks.length, 'mock =', combined.length);
+    console.log('[Profiles] Display profiles:', filteredReal.length, 'real +', filteredMocks.length, 'mock =', combined.length);
     return combined;
   }, [discoverQuery.data, userId]);
 
@@ -267,7 +267,7 @@ export default function DiscoverScreen() {
         ? prev.filter((id) => id !== profileId)
         : [...prev, profileId];
       void AsyncStorage.setItem(FOLLOWED_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
-      console.log('[Discover] Updated followed:', next.length);
+      console.log('[Profiles] Updated followed:', next.length);
       return next;
     });
   }, []);
@@ -314,8 +314,6 @@ export default function DiscoverScreen() {
     return elements;
   }, [displayProfiles, followedIds, userId, navigateToProfile, toggleFollow]);
 
-  const profileCount = displayProfiles.length;
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -325,8 +323,8 @@ export default function DiscoverScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.screenTitle}>Discover</Text>
-              <Text style={styles.screenSubtitle}>{profileCount} shoppers sharing deals</Text>
+              <Text style={styles.screenTitle}>Profiles</Text>
+              <Text style={styles.screenSubtitle}>Browse people</Text>
             </View>
             <Pressable
               onPress={() => {
@@ -351,7 +349,7 @@ export default function DiscoverScreen() {
         {followedProfiles.length > 0 && (
           <View style={styles.followingSection}>
             <View style={styles.followingHeader}>
-              <Text style={styles.followingLabel}>Following</Text>
+              <Text style={styles.followingLabel}>People You Added</Text>
               <View style={styles.followingCount}>
                 <Text style={styles.followingCountText}>{followedProfiles.length}</Text>
               </View>
@@ -386,7 +384,7 @@ export default function DiscoverScreen() {
         {discoverQuery.isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#8E8E93" />
-            <Text style={styles.loadingText}>Finding shoppers near you...</Text>
+            <Text style={styles.loadingText}>Loading profiles...</Text>
           </View>
         ) : discoverQuery.isError ? (
           <View style={styles.loadingContainer}>
