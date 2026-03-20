@@ -12,7 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { ScanLine, ChevronRight, Package, RefreshCw, Wallet, Calendar, TrendingDown, Search, DollarSign, UtensilsCrossed, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, MoreHorizontal } from 'lucide-react-native';
+import { ScanLine, ChevronRight, Package, RefreshCw, Wallet, Calendar, TrendingDown, DollarSign, UtensilsCrossed, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, MoreHorizontal } from 'lucide-react-native';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import { AppIllustrations } from '@/constants/illustrations';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,17 +39,6 @@ const BUDGET_TIME_TABS = [
   { key: 'week' as const, label: 'Week' },
   { key: 'month' as const, label: 'Month' },
   { key: 'all' as const, label: 'All' },
-];
-
-const BUDGET_CATEGORY_CHIPS: { key: ExpenseCategoryType; label: string; color: string }[] = [
-  { key: 'food', label: 'Food', color: '#22C55E' },
-  { key: 'grocery', label: 'Grocery', color: '#F59E0B' },
-  { key: 'transport', label: 'Transport', color: '#3B82F6' },
-  { key: 'utility_bills', label: 'Utility Bills', color: '#F97316' },
-  { key: 'shopping', label: 'Shopping', color: '#EC4899' },
-  { key: 'home', label: 'Home', color: '#14B8A6' },
-  { key: 'subscriptions', label: 'Subs', color: '#A855F7' },
-  { key: 'other', label: 'Other', color: '#9CA3AF' },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -123,7 +112,7 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const [budgetTimeTab, setBudgetTimeTab] = useState<'week' | 'month' | 'all'>('week');
-  const [budgetCategoryFilter, setBudgetCategoryFilter] = useState<ExpenseCategoryType | null>(null);
+
 
   useEffect(() => {
     Animated.parallel([
@@ -187,23 +176,16 @@ export default function HomeScreen() {
   }, [budgetFilteredExpenses]);
 
   const budgetDisplayExpenses = useMemo(() => {
-    let result = budgetFilteredExpenses
+    return budgetFilteredExpenses
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (budgetCategoryFilter) {
-      result = result.filter((e) => e.category === budgetCategoryFilter);
-    }
-    return result;
-  }, [budgetFilteredExpenses, budgetCategoryFilter]);
+  }, [budgetFilteredExpenses]);
 
   const handleBudgetTimeTab = useCallback((key: 'week' | 'month' | 'all') => {
     void Haptics.selectionAsync();
     setBudgetTimeTab(key);
   }, []);
 
-  const handleBudgetCategory = useCallback((key: ExpenseCategoryType) => {
-    void Haptics.selectionAsync();
-    setBudgetCategoryFilter((prev) => prev === key ? null : key);
-  }, []);
+
 
   const recentScans = useMemo(() => {
     return scanEntries.slice(0, 8);
@@ -374,59 +356,33 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Scans row */}
-          <Pressable style={budgetStyles.noScansRow} onPress={handleScanPress} testID="no-scans-row">
-            <View style={budgetStyles.noScansIcon}>
-              <ScanLine size={18} color="#1B7A45" strokeWidth={2} />
+          {/* Quick Scan Action */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickActionCard,
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+            ]}
+            onPress={handleScanPress}
+            testID="quick-scan-action"
+          >
+            <View style={styles.quickActionIconWrap}>
+              <ScanLine size={20} color="#FFFFFF" strokeWidth={2.2} />
             </View>
-            <View style={budgetStyles.noScansTextWrap}>
-              <Text style={budgetStyles.noScansTitle}>
-                {recentScans.length === 0 ? 'No scans yet' : `${recentScans.length} scan${recentScans.length !== 1 ? 's' : ''}`}
-              </Text>
-              <Text style={budgetStyles.noScansSubtext}>
-                {recentScans.length === 0 ? 'Scan an item to see it here' : 'Tap to scan another item'}
-              </Text>
+            <View style={styles.quickActionTextWrap}>
+              <Text style={styles.quickActionTitle}>Scan Something</Text>
+              <Text style={styles.quickActionSubtitle}>Items, receipts, food — just point and scan</Text>
             </View>
-            <ChevronRight size={16} color="#C7C7CC" strokeWidth={2} />
+            <ChevronRight size={18} color="rgba(255,255,255,0.6)" strokeWidth={2} />
           </Pressable>
 
-          {/* Search & Category Filters */}
-          <View style={budgetStyles.searchRow}>
-            <View style={budgetStyles.searchBox}>
-              <Search size={15} color="#8E8E93" strokeWidth={1.5} />
-              <Text style={budgetStyles.searchPlaceholder}>Search items...</Text>
-            </View>
+          <View style={budgetStyles.sectionHeaderRow}>
+            <Text style={budgetStyles.sectionLabel}>
+              Recent Expenses
+            </Text>
+            <Text style={budgetStyles.sectionCount}>
+              {budgetDisplayExpenses.length} {budgetDisplayExpenses.length === 1 ? 'item' : 'items'}
+            </Text>
           </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={budgetStyles.chipRow}
-          >
-            {BUDGET_CATEGORY_CHIPS.map((chip) => {
-              const isActive = budgetCategoryFilter === chip.key;
-              return (
-                <Pressable
-                  key={chip.key}
-                  style={[
-                    budgetStyles.chip,
-                    isActive && { backgroundColor: chip.color + '18' },
-                  ]}
-                  onPress={() => handleBudgetCategory(chip.key)}
-                >
-                  <View style={[budgetStyles.chipDot, { backgroundColor: chip.color }]} />
-                  <Text style={[
-                    budgetStyles.chipText,
-                    isActive && { color: chip.color, fontWeight: '600' as const },
-                  ]}>{chip.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <Text style={budgetStyles.sectionLabel}>
-            {budgetTimeTab === 'week' ? 'This Week' : budgetTimeTab === 'month' ? 'This Month' : 'All Time'}
-          </Text>
 
           {budgetDisplayExpenses.length === 0 ? (
             <View style={budgetStyles.emptyCard}>
@@ -435,7 +391,7 @@ export default function HomeScreen() {
               <Text style={budgetStyles.emptySubtext}>Scan an item or log a find to start building your list</Text>
             </View>
           ) : (
-            budgetDisplayExpenses.slice(0, 10).map((exp) => {
+            budgetDisplayExpenses.slice(0, 5).map((exp) => {
               const cColor = CATEGORY_COLORS[exp.category] ?? '#9CA3AF';
               const Icon = budgetIconMap[exp.category] ?? MoreHorizontal;
               const cLabel = ExpenseCategoryLabels[exp.category as ExpenseCategoryType] ?? 'Other';
@@ -471,6 +427,8 @@ export default function HomeScreen() {
               );
             })
           )}
+
+          <View style={{ height: 8 }} />
 
           {/* Scanned Items */}
           <View style={styles.sectionCard} testID="scanned-items-card">
@@ -618,28 +576,6 @@ export default function HomeScreen() {
           )}
 
           <AdMobBanner />
-
-          {/* Quick Action */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.quickActionCard,
-              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-            ]}
-            onPress={handleScanPress}
-            testID="quick-scan-action"
-          >
-            <ExpoImage
-              source={{ uri: AppIllustrations.scanner }}
-              style={styles.quickActionIllustration}
-              contentFit="contain"
-              cachePolicy="memory-disk"
-            />
-            <View style={styles.quickActionTextWrap}>
-              <Text style={styles.quickActionTitle}>Scan Something</Text>
-              <Text style={styles.quickActionSubtitle}>Items, receipts, food — just point and scan</Text>
-            </View>
-            <ChevronRight size={18} color="#FFFFFF" strokeWidth={2} />
-          </Pressable>
 
         </Animated.View>
 
@@ -918,23 +854,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   quickActionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     backgroundColor: '#1B7A45',
     borderRadius: 14,
     padding: 16,
-    marginBottom: 12,
-    gap: 14,
+    marginBottom: 14,
+    gap: 12,
     shadowColor: '#1B7A45',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 4,
   },
-  quickActionIllustration: {
-    width: 46,
-    height: 46,
+  quickActionIconWrap: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   quickActionTextWrap: {
     flex: 1,
@@ -1063,100 +1002,23 @@ const budgetStyles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  noScansRow: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
+  sectionHeaderRow: {
     flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
     alignItems: 'center' as const,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  noScansIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#E8F5EE',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    marginRight: 12,
-  },
-  noScansTextWrap: {
-    flex: 1,
-  },
-  noScansTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-  },
-  noScansSubtext: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 1,
-  },
-  searchRow: {
     marginBottom: 10,
-  },
-  searchBox: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  searchPlaceholder: {
-    fontSize: 14,
-    fontWeight: '400' as const,
-    color: '#C7C7CC',
-  },
-  chipRow: {
-    flexDirection: 'row' as const,
-    gap: 6,
-    marginBottom: 14,
-    paddingRight: 4,
-  },
-  chip: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 5,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    height: 32,
-    borderRadius: 16,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  chipDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
+    marginTop: 4,
   },
   sectionLabel: {
     fontSize: 18,
     fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.3,
-    marginBottom: 10,
+  },
+  sectionCount: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
