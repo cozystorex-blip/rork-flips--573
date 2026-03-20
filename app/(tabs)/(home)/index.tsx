@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   headerBrand: {
     fontSize: 30,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#00C853',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
