@@ -220,3 +220,10 @@ All features above are complete and stable as of this checkpoint.
 
 All features above are complete and stable as of this checkpoint.
 Includes: truth-first scanner result model, infographic/multi-item detection, unified scanner consistency pass, resale intelligence layer, and scan accuracy improvements.
+
+---
+
+## === SAVE 8 ===
+
+All features above are complete and stable as of this checkpoint.
+Includes: budget overview at top of receipt details, Discover tab renamed to Groups, and all prior scanner/deal/profile features.
