@@ -213,3 +213,10 @@ All features above are complete and stable as of this checkpoint.
 ## === SAVE 6.cc ===
 
 All features above are complete and stable as of this checkpoint.
+
+---
+
+## === SAVE 7 ===
+
+All features above are complete and stable as of this checkpoint.
+Includes: truth-first scanner result model, infographic/multi-item detection, unified scanner consistency pass, resale intelligence layer, and scan accuracy improvements.
