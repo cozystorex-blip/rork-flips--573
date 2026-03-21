@@ -227,3 +227,10 @@ Includes: truth-first scanner result model, infographic/multi-item detection, un
 
 All features above are complete and stable as of this checkpoint.
 Includes: budget overview at top of receipt details, Discover tab renamed to Groups, and all prior scanner/deal/profile features.
+
+---
+
+## === SAVE 1.2s ===
+
+All features above are complete and stable as of this checkpoint.
+Includes: all prior features — unified scan, deal trust scoring, premium/scan history limits, budget overview, Groups tab, profile navigation, verified deal pipeline, smart scan, and app store readiness pass.
