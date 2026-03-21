@@ -535,12 +535,7 @@ export default function DealsScreen() {
       <View style={[styles.headerBar, { paddingTop: insets.top }]}>
         <Animated.View style={[styles.headerInner, { opacity: fadeAnim }]}>
           <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <View style={styles.dealsBadge}>
-                <Tag size={13} color="#FFFFFF" strokeWidth={1.8} />
-              </View>
-              <Text style={styles.headerTitle}>Finds</Text>
-            </View>
+            <View style={styles.headerLeft} />
             <Pressable
               onPress={() => router.push('/post-deal')}
               style={({ pressed }) => [styles.postDealIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
