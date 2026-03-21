@@ -263,12 +263,7 @@ const TAB_SCREEN_OPTIONS = {
   tabBarInactiveTintColor: '#8E8E93',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
-  tabBarLabelStyle: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    letterSpacing: 0,
-    marginTop: -2,
-  },
+  tabBarShowLabel: false,
   tabBarIconStyle: {
     marginBottom: -1,
   },
@@ -283,7 +278,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(home)"
         options={{
-          title: 'Home',
+          title: '',
           tabBarIcon: ({ color, focused, size }) => (
             <House size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
           ),
@@ -292,7 +287,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saved"
         options={{
-          title: 'Saved',
+          title: '',
           tabBarIcon: ({ color, focused, size }) => (
             <Heart size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
           ),
@@ -301,7 +296,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="create"
         options={{
-          title: 'Scan',
+          title: '',
           tabBarButton: () => <CenterTabButton />,
           tabBarItemStyle: {
             flex: 1,
@@ -316,7 +311,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Finds',
+          title: '',
           tabBarIcon: ({ color, focused, size }) => (
             <Tag size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
           ),
@@ -325,7 +320,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: 'Groups',
+          title: '',
           tabBarIcon: ({ color, focused, size }) => (
             <Users size={size - 2} color={color} strokeWidth={focused ? 2.0 : 1.4} />
           ),

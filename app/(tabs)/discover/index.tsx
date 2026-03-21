@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { User, UserPlus, TrendingUp } from 'lucide-react-native';
+import { User, UserPlus } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { mockProfiles } from '@/mocks/data';
@@ -348,12 +348,7 @@ export default function DiscoverScreen() {
           </View>
         )}
 
-        <View style={styles.sectionDivider}>
-          <View style={styles.trendingRow}>
-            <TrendingUp size={14} color="#1B7A45" strokeWidth={2.2} />
-            <Text style={styles.sectionLabel}>Popular Profiles</Text>
-          </View>
-        </View>
+
 
         {discoverQuery.isLoading ? (
           <View style={styles.loadingContainer}>
