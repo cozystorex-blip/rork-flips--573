@@ -20,7 +20,7 @@ import {
   DollarSign,
   TrendingDown,
   Tag,
-  Camera,
+
   Flame,
   ChevronRight,
 } from 'lucide-react-native';
@@ -546,7 +546,7 @@ export default function DealsScreen() {
               style={({ pressed }) => [styles.postDealIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
               testID="post-deal-header-btn"
             >
-              <Camera size={20} color="#1B5E3B" strokeWidth={1.8} />
+              <Tag size={20} color="#1B5E3B" strokeWidth={1.8} />
             </Pressable>
           </View>
           {syncMutation.isPending && syncStatus ? (
