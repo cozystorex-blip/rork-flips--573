@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "Item Scanner",
+    "slug": "grocery-tracker-map-clone-cl-v42ss0s",
+    "version": "1.0.3",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "rork-app",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "buildNumber": "4",
+      "bundleIdentifier": "app.rork.grocery-tracker-map-clone-cl-v42ss0s",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Item Scanner needs camera access to scan receipts, products, and food items for budget analysis.",
+        "NSPhotoLibraryUsageDescription": "Item Scanner needs photo library access to select images of receipts, products, and deals.",
+        "NSLocationWhenInUseUsageDescription": "Item Scanner uses your location to find nearby stores and deals in your area.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "versionCode": 4,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "app.rork.grocery_tracker_map_clone_cl_v42ss0s"
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://rork.com/"
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Item Scanner needs photo library access to select images of receipts, products, and deals.",
+          "cameraPermission": "Item Scanner needs camera access to scan receipts, products, and food items for budget analysis."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Item Scanner uses your location to find nearby stores and deals in your area."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
