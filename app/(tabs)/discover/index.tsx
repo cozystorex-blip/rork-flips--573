@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import { User, UserPlus } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { mockProfiles } from '@/mocks/data';
+
 import { supabase } from '@/services/supabase';
 import { CategoryColors } from '@/constants/colors';
 import { CategoryLabels, UserProfile, CategoryType } from '@/types';
@@ -247,13 +247,10 @@ export default function DiscoverScreen() {
 
   const displayProfiles = useMemo(() => {
     const real = discoverQuery.data ?? [];
-    const realIds = new Set(real.map((p) => p.id));
     const ownId = userId ?? '';
     const filteredReal = real.filter((p) => p.id !== ownId);
-    const filteredMocks = mockProfiles.filter((p) => !realIds.has(p.id) && p.id !== ownId);
-    const combined = [...filteredReal, ...filteredMocks];
-    console.log('[Profiles] Display profiles:', filteredReal.length, 'real +', filteredMocks.length, 'mock =', combined.length);
-    return combined;
+    console.log('[Profiles] Display profiles:', filteredReal.length, 'real');
+    return filteredReal;
   }, [discoverQuery.data, userId]);
 
   const followedProfiles = useMemo(() => {

@@ -16,10 +16,10 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Plus, BadgeCheck, User, ImageIcon, Layers, SquarePen, DoorOpen, Grid3X3, X, Tag, Heart, Share2, ChevronDown } from 'lucide-react-native';
-import { BlockTagLeft, CategoryLabels, CategoryType, UserProfile, UserProfileBlock } from '@/types';
+import { BlockTagLeft, CategoryLabels, CategoryType, UserProfileBlock } from '@/types';
 import Colors, { CategoryColors } from '@/constants/colors';
 import CategoryIcon from '@/components/CategoryIcon';
-import { mockProfiles } from '@/mocks/data';
+
 import { useProfile } from '@/contexts/ProfileContext';
 import { useBlocks, useUserBlocks } from '@/contexts/BlocksContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -481,23 +481,7 @@ export default function ProfileScreen() {
     retry: 1,
   });
 
-  const mockFallback = useMemo(() => {
-    if (otherProfileQuery.data || otherProfileQuery.isLoading) return null;
-    const found = (mockProfiles as UserProfile[]).find((p) => p.id === profileUserId);
-    if (!found) return null;
-    console.log('[ProfileScreen] Using mock profile fallback:', found.name);
-    return {
-      user_id: found.id,
-      display_name: found.name,
-      bio: found.bio,
-      avatar_url: found.avatar,
-      style: found.dominantStyle,
-      weekly_spend: found.weeklyAvgSpend,
-      logs_count: found.totalLogs,
-    } as OtherUserProfile;
-  }, [otherProfileQuery.data, otherProfileQuery.isLoading, profileUserId]);
-
-  const otherProfile = otherProfileQuery.data ?? mockFallback;
+  const otherProfile = otherProfileQuery.data ?? null;
 
   const myBlocks = useUserBlocks(profileUserId);
 
