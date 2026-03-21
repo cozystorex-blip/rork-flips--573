@@ -2,7 +2,7 @@
   "expo": {
     "name": "Item Scanner",
     "slug": "grocery-tracker-map-clone-cl-v42ss0s",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "6",
+      "buildNumber": "7",
       "bundleIdentifier": "app.rork.grocery-tracker-map-clone-cl-v42ss0s",
       "infoPlist": {
         "NSCameraUsageDescription": "Item Scanner needs camera access to scan receipts, products, and food items for budget analysis.",
@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -60,8 +60,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy",
-          "iosAppId": "ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ]
     ],
