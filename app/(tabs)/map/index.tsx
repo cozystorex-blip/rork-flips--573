@@ -17,11 +17,10 @@ import {
   AlertCircle,
   ShoppingBag,
   Store,
-  RefreshCw,
   DollarSign,
   TrendingDown,
   Tag,
-  Plus,
+  Camera,
   Flame,
   ChevronRight,
 } from 'lucide-react-native';
@@ -480,12 +479,6 @@ export default function DealsScreen() {
     return sorted;
   }, [deals, dealTrustMap]);
 
-  const handleManualSync = useCallback(() => {
-    if (syncMutation.isPending) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    syncMutation.mutate();
-  }, [syncMutation]);
-
   const navigateToDealDetail = useCallback((deal: VerifiedDealRow) => {
     const params: Record<string, string> = {
       dealId: deal.id,
@@ -548,29 +541,13 @@ export default function DealsScreen() {
               </View>
               <Text style={styles.headerTitle}>Finds</Text>
             </View>
-            <View style={styles.headerActions}>
-              {Platform.OS !== 'web' && !syncMutation.isPending && (
-                <Pressable
-                  onPress={handleManualSync}
-                  disabled={syncMutation.isPending}
-                  style={({ pressed }) => [
-                    styles.syncBtn,
-                    pressed && { opacity: 0.7 },
-                  ]}
-                  testID="deals-sync-btn"
-                >
-                  <RefreshCw size={14} color="#1B5E3B" strokeWidth={1.8} />
-                </Pressable>
-              )}
-              <Pressable
-                onPress={() => router.push('/post-deal')}
-                style={({ pressed }) => [styles.postDealHeaderBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
-                testID="post-deal-header-btn"
-              >
-                <Plus size={13} color="#FFFFFF" strokeWidth={2.5} />
-                <Text style={styles.postDealHeaderBtnText}>Post Deal</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => router.push('/post-deal')}
+              style={({ pressed }) => [styles.postDealIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
+              testID="post-deal-header-btn"
+            >
+              <Camera size={20} color="#1B5E3B" strokeWidth={1.8} />
+            </Pressable>
           </View>
           {syncMutation.isPending && syncStatus ? (
             <View style={styles.syncStatusRow}>
@@ -712,19 +689,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  postDealHeaderBtn: {
-    flexDirection: 'row',
+  postDealIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1B7A4512',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#1B7A45',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
-  },
-  postDealHeaderBtnText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
   },
   feedContent: {
     paddingHorizontal: 16,
