@@ -320,12 +320,6 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
-        <View style={styles.headerSection}>
-          <View style={styles.headerTop}>
-            <Text style={styles.screenTitle}>Discover</Text>
-          </View>
-        </View>
-
         {followedProfiles.length > 0 && (
           <View style={styles.followingSection}>
             <View style={styles.followingHeader}>
