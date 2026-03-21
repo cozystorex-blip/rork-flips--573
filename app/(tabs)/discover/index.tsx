@@ -365,6 +365,14 @@ export default function DiscoverScreen() {
               <Text style={styles.retryBtnText}>Retry</Text>
             </Pressable>
           </View>
+        ) : displayProfiles.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconWrap}>
+              <User size={32} color="#C7C7CC" strokeWidth={1.3} />
+            </View>
+            <Text style={styles.emptyTitle}>No profiles yet</Text>
+            <Text style={styles.emptySubtext}>Be the first to set up your profile and start connecting with other shoppers</Text>
+          </View>
         ) : (
           <Animated.View style={[styles.grid, { opacity: fadeAnim }]}>
             {gridElements}
@@ -643,5 +651,38 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 6,
     backgroundColor: '#F2F2F7',
+  },
+  emptyContainer: {
+    width: '100%',
+    paddingVertical: 64,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+  },
+  emptySubtext: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+    textAlign: 'center' as const,
+    paddingHorizontal: 40,
+    lineHeight: 18,
   },
 });

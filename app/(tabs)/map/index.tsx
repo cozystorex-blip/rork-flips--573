@@ -33,9 +33,7 @@ import type { CategoryType } from '@/types';
 import type { VerifiedDealRow } from '@/types';
 import { useRouter } from 'expo-router';
 import { syncStoreBrandDeals, shouldSync, computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
-import { SEED_DEALS, DEAL_POSTER_MAP } from '@/mocks/seedDeals';
 import { getProductImageUrl } from '@/constants/productImages';
-import { mockProfiles } from '@/mocks/data';
 import { getLocalDeals } from '@/services/localDealsService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
@@ -97,20 +95,7 @@ async function fetchDeals(): Promise<VerifiedDealRow[]> {
   return combined;
 }
 
-function mergeWithSeedDeals(supabaseDeals: VerifiedDealRow[]): VerifiedDealRow[] {
-  const realTitles = new Set(
-    supabaseDeals.map((d) => `${(d.store_name ?? '').toLowerCase()}::${(d.title ?? '').toLowerCase()}`)
-  );
 
-  const missingSeeds = SEED_DEALS.filter((seed) => {
-    const key = `${(seed.store_name ?? '').toLowerCase()}::${(seed.title ?? '').toLowerCase()}`;
-    return !realTitles.has(key);
-  });
-
-  const combined = [...supabaseDeals, ...missingSeeds];
-  console.log('[Deals] Merged:', supabaseDeals.length, 'real +', missingSeeds.length, 'seed =', combined.length);
-  return combined;
-}
 
 function isValidPhotoUrl(url: string | null | undefined): boolean {
   if (!url) return false;
@@ -185,12 +170,7 @@ function getPriceDisplay(deal: VerifiedDealRow): { hasPrice: boolean; priceText:
   return { hasPrice: !!priceText, priceText, valueText };
 }
 
-function getDealPoster(deal: VerifiedDealRow): { name: string; avatar: string } | null {
-  if (DEAL_POSTER_MAP[deal.id]) return DEAL_POSTER_MAP[deal.id];
-  if (deal.user_id) {
-    const profile = mockProfiles.find((p) => p.id === deal.user_id);
-    if (profile) return { name: profile.name, avatar: profile.avatar };
-  }
+function getDealPoster(_deal: VerifiedDealRow): { name: string; avatar: string } | null {
   return null;
 }
 
@@ -403,7 +383,7 @@ export default function DealsScreen() {
 
   const deals = useMemo(() => {
     if (!rawDeals) return null;
-    return mergeWithSeedDeals(rawDeals);
+    return rawDeals;
   }, [rawDeals]);
 
   const syncMutation = useMutation({
