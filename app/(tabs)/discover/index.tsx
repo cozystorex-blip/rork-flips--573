@@ -323,7 +323,6 @@ export default function DiscoverScreen() {
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.screenTitle}>Profiles</Text>
               <Text style={styles.screenSubtitle}>Browse people</Text>
             </View>
             <Pressable
