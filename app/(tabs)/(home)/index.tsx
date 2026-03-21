@@ -22,7 +22,6 @@ import {
   Home,
   Tv,
   MoreHorizontal,
-  SlidersHorizontal,
 } from 'lucide-react-native';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -190,14 +189,7 @@ export default function HomeScreen() {
       <View style={[styles.headerArea, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerRow}>
           <Text style={styles.brandTitle}>Flips</Text>
-          <View style={styles.headerRight}>
-            <Pressable
-              style={({ pressed }) => [styles.filterBtn, pressed && { opacity: 0.6 }]}
-              onPress={() => void Haptics.selectionAsync()}
-            >
-              <SlidersHorizontal size={18} color="#8E8E93" strokeWidth={1.8} />
-            </Pressable>
-          </View>
+          <View style={styles.headerRight} />
         </View>
       </View>
 
