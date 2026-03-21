@@ -66,6 +66,7 @@ import {
   getConfidenceInfo,
 } from '@/components/scan/ScannerComponents';
 import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
+import ReferenceSection from '@/components/scan/ReferenceSection';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 
 type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
@@ -207,6 +208,7 @@ export default function SmartScanScreen() {
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
   const [generatingImage, setGeneratingImage] = useState<boolean>(false);
+  const [showReferenceSection, setShowReferenceSection] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [viewingEntryId, setViewingEntryId] = useState<string | null>(null);
@@ -408,6 +410,7 @@ export default function SmartScanScreen() {
     setReferenceImageUrl(null);
     setScannedImageUri(null);
     setViewingEntryId(null);
+    setShowReferenceSection(false);
 
     setScanPhase('idle');
     resultFade.setValue(0);
@@ -604,7 +607,15 @@ export default function SmartScanScreen() {
           <Animated.View style={{ opacity: resultFade }}>
             <View style={st.imageGallery}>
               {scannedImageUri && (
-                <View style={st.scannedImageContainer}>
+                <Pressable
+                  style={st.scannedImageContainer}
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    setShowReferenceSection(prev => !prev);
+                    console.log('[SmartScan] Photo tapped, toggling reference section');
+                  }}
+                  testID="scan-photo-tap"
+                >
                   <ExpoImage
                     source={{ uri: scannedImageUri }}
                     style={st.scannedImage}
@@ -615,7 +626,10 @@ export default function SmartScanScreen() {
                     <Camera size={10} color="#FFFFFF" />
                     <Text style={st.scannedImageBadgeText}>Your Scan</Text>
                   </View>
-                </View>
+                  <View style={st.tapHintBadge}>
+                    <Text style={st.tapHintText}>{showReferenceSection ? 'Tap to close' : 'Tap for reference'}</Text>
+                  </View>
+                </Pressable>
               )}
               {(referenceImageUrl || generatingImage) && (
                 <View style={st.referenceImageContainer}>
@@ -639,6 +653,14 @@ export default function SmartScanScreen() {
                 </View>
               )}
             </View>
+
+            {result && (
+              <ReferenceSection
+                result={result}
+                referenceImageUrl={referenceImageUrl}
+                visible={showReferenceSection}
+              />
+            )}
 
             <View style={st.resultHeader}>
               <Text style={st.resultItemName}>
@@ -819,6 +841,8 @@ const st = StyleSheet.create({
   scannedImage: { width: '100%', height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
   scannedImageBadge: { position: 'absolute' as const, bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
   scannedImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+  tapHintBadge: { position: 'absolute' as const, top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: ScannerRadius.sm },
+  tapHintText: { fontSize: 9, fontWeight: '600' as const, color: 'rgba(255,255,255,0.85)' },
   referenceImageContainer: { flex: 1, position: 'relative' as const, borderRadius: ScannerRadius.xxl, overflow: 'hidden' },
   referenceImage: { width: '100%', height: 220, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
   referenceImageSmall: { width: '100%', height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
