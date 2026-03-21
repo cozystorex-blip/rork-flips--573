@@ -40,12 +40,6 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const BUDGET_TIME_TABS = [
-  { key: 'week' as const, label: 'Week' },
-  { key: 'month' as const, label: 'Month' },
-  { key: 'all' as const, label: 'All' },
-];
-
 const CATEGORY_CHIPS: { key: ExpenseCategoryType; label: string; color: string; icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }> }[] = [
   { key: 'food', label: 'Food', color: '#22C55E', icon: UtensilsCrossed },
   { key: 'grocery', label: 'Grocery', color: '#F59E0B', icon: ShoppingCart },
@@ -121,7 +115,7 @@ export default function HomeScreen() {
   const { entries: scanEntries } = useScanHistory();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
-  const [budgetTimeTab, setBudgetTimeTab] = useState<'week' | 'month' | 'all'>('week');
+  const budgetTimeTab = 'week' as const;
 
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategoryType | null>(null);
 
@@ -190,11 +184,6 @@ export default function HomeScreen() {
 
   const recentScans = useMemo(() => scanEntries.slice(0, 8), [scanEntries]);
 
-  const handleBudgetTimeTab = useCallback((key: 'week' | 'month' | 'all') => {
-    void Haptics.selectionAsync();
-    setBudgetTimeTab(key);
-  }, []);
-
   const handleScanPress = useCallback(() => {
     void Haptics.selectionAsync();
     router.push('/smart-scan');
@@ -224,19 +213,6 @@ export default function HomeScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.brandTitle}>Flips</Text>
           <View style={styles.headerRight}>
-            <View style={styles.headerTimeTabs}>
-              {BUDGET_TIME_TABS.map((tab) => (
-                <Pressable
-                  key={tab.key}
-                  style={[styles.headerTab, budgetTimeTab === tab.key && styles.headerTabActive]}
-                  onPress={() => handleBudgetTimeTab(tab.key)}
-                >
-                  <Text style={[styles.headerTabText, budgetTimeTab === tab.key && styles.headerTabTextActive]}>
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
             <Pressable
               style={({ pressed }) => [styles.filterBtn, pressed && { opacity: 0.6 }]}
               onPress={() => void Haptics.selectionAsync()}
