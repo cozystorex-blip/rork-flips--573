@@ -81,14 +81,6 @@ function formatTimeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function isThisWeek(dateStr: string): boolean {
-  const now = new Date();
-  const then = new Date(dateStr);
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  weekStart.setHours(0, 0, 0, 0);
-  return then >= weekStart;
-}
 
 function getDetailsRecord(r: SmartScanResult): Record<string, unknown> | null {
   if (r.fashion_details) return r.fashion_details as unknown as Record<string, unknown>;
@@ -312,7 +304,7 @@ export default function SavedScreen() {
     const scanEntry = item.type === 'scan' ? item.raw as ScanHistoryEntry : null;
     const valueRating = scanEntry ? getValueRating(scanEntry) : null;
     const valueBadge = getValueBadgeStyle(valueRating);
-    const isRecent = isThisWeek(item.savedAt);
+
     const catColor = getCategoryColor(item.category);
 
     return (
@@ -343,16 +335,7 @@ export default function SavedScreen() {
               )}
             </View>
           )}
-          {isRecent && (
-            <View style={styles.recentBadge}>
-              <Text style={styles.recentBadgeText}>New</Text>
-            </View>
-          )}
-          {item.type === 'scan' && (
-            <View style={styles.scanBadge}>
-              <ScanLine size={9} color="#FFFFFF" strokeWidth={2.5} />
-            </View>
-          )}
+
         </View>
 
         <View style={styles.cardBody}>
