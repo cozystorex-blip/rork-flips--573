@@ -35,13 +35,7 @@ import SavedUpgradeModal from '@/components/SavedUpgradeModal';
 import type { SmartScanResult } from '@/services/smartScanService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
-type FilterKey = 'all' | 'scans' | 'value';
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'scans', label: 'Scans' },
-  { key: 'value', label: 'Good Values' },
-];
 
 const RELATED_ITEMS: Record<string, string[]> = {
   drill: ['Drill bits', 'Battery pack'],
@@ -191,7 +185,6 @@ export default function SavedScreen() {
   } = useSavedItems();
   const { isPremium } = usePremium();
   const queryClient = useQueryClient();
-  const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [upgradeVisible, setUpgradeVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -250,21 +243,7 @@ export default function SavedScreen() {
     );
   }, [scanEntries, savedDeals]);
 
-  const filteredItems = useMemo(() => {
-    switch (activeFilter) {
-      case 'scans':
-        return unifiedItems.filter((i) => i.type === 'scan');
-      case 'value':
-        return unifiedItems.filter((i) => i.hasResaleValue || (i.price !== null));
-      default:
-        return unifiedItems;
-    }
-  }, [unifiedItems, activeFilter]);
-
-  const handleFilterPress = useCallback((key: FilterKey) => {
-    void Haptics.selectionAsync();
-    setActiveFilter(key);
-  }, []);
+  const filteredItems = unifiedItems;
 
   const handleDelete = useCallback((item: UnifiedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -311,11 +290,7 @@ export default function SavedScreen() {
 
   const isLoading = scanLoading || dealsLoading;
 
-  const counts = useMemo(() => ({
-    all: unifiedItems.length,
-    scans: unifiedItems.filter((i) => i.type === 'scan').length,
-    value: unifiedItems.filter((i) => i.hasResaleValue || i.price !== null).length,
-  }), [unifiedItems]);
+
 
   const getCategoryColor = useCallback((cat: string): string => {
     const lower = cat.toLowerCase();
@@ -476,35 +451,6 @@ export default function SavedScreen() {
         }
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-          >
-            {FILTERS.map((f) => {
-              const isActive = activeFilter === f.key;
-              return (
-                <Pressable
-                  key={f.key}
-                  onPress={() => handleFilterPress(f.key)}
-                  style={[styles.filterChip, isActive && styles.filterChipActive]}
-                  testID={`saved-filter-${f.key}`}
-                >
-                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                    {f.label}
-                  </Text>
-                  {counts[f.key] > 0 && (
-                    <View style={[styles.filterCount, isActive && styles.filterCountActive]}>
-                      <Text style={[styles.filterCountText, isActive && styles.filterCountTextActive]}>
-                        {counts[f.key]}
-                      </Text>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
           {isLoading ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.loadingText}>Loading...</Text>
@@ -517,20 +463,8 @@ export default function SavedScreen() {
                 contentFit="contain"
                 cachePolicy="memory-disk"
               />
-              <Text style={styles.emptyTitle}>
-                {activeFilter === 'all'
-                  ? 'Nothing saved yet'
-                  : activeFilter === 'scans'
-                  ? 'No saved scans'
-                  : 'No good-value items yet'}
-              </Text>
-              <Text style={styles.emptySubtitle}>
-                {activeFilter === 'scans'
-                  ? 'Scan items to check their value and save them here'
-                  : activeFilter === 'value'
-                  ? 'Items with strong value or resale potential will appear here'
-                  : 'Save scans and items here to build your collection'}
-              </Text>
+              <Text style={styles.emptyTitle}>Nothing saved yet</Text>
+              <Text style={styles.emptySubtitle}>Save scans and items here to build your collection</Text>
               <View style={styles.emptyActions}>
                 <Pressable
                   onPress={() => {
@@ -564,9 +498,7 @@ export default function SavedScreen() {
                     <View style={styles.sectionIconBadge}>
                       <Bookmark size={14} color="#FFFFFF" strokeWidth={2} />
                     </View>
-                    <Text style={styles.sectionTitle}>
-                      {activeFilter === 'all' ? 'All Items' : activeFilter === 'scans' ? 'Scanned Items' : 'Good Values'}
-                    </Text>
+                    <Text style={styles.sectionTitle}>All Items</Text>
                   </View>
                   <Text style={styles.sectionCount}>{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</Text>
                 </View>
