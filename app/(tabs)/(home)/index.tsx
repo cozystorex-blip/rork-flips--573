@@ -15,7 +15,6 @@ import { Image as ExpoImage } from 'expo-image';
 import { ScanLine, ChevronRight, Package, RefreshCw, Wallet, Calendar, TrendingDown, DollarSign, UtensilsCrossed, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, MoreHorizontal } from 'lucide-react-native';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import { AppIllustrations } from '@/constants/illustrations';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExpenseCategoryLabels } from '@/types/expense';
@@ -105,7 +104,6 @@ function getScanBrand(entry: ScanHistoryEntry): string {
 }
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { expenses } = useExpenses();
   const { entries: scanEntries } = useScanHistory();
@@ -233,11 +231,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerBar, { paddingTop: insets.top + 6 }]}>
-        <Text style={styles.headerBrand}>Flips</Text>
-        <Text style={styles.headerSubtitle}>Your scan & save companion</Text>
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
