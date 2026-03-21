@@ -241,3 +241,10 @@ Includes: all prior features — unified scan, deal trust scoring, premium/scan 
 
 All features above are complete and stable as of this checkpoint.
 Includes: all prior features plus UI cleanup — removed search bars, tab segments, filter tabs, "Finds" wording, "Groups" header text, menu icons, "New" badges, "Discover" header, tab label text, and "Popular Profiles" section.
+
+---
+
+## === SAVE 1.2 ===
+
+All features above are complete and stable as of this checkpoint.
+Includes: all prior saves plus iOS compatibility fixes, App Store submission readiness, production stability hardening, fake/mock data removal, photo tap reference expansion, and full build/navigation verification.
