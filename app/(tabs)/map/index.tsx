@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,15 +26,14 @@ import {
 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import Colors, { CategoryColors } from '@/constants/colors';
 import type { CategoryType } from '@/types';
 import type { VerifiedDealRow } from '@/types';
 import { useRouter } from 'expo-router';
-import { syncStoreBrandDeals, shouldSync, computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
+import { computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
 import { getProductImageUrl } from '@/constants/productImages';
-import { getLocalDeals } from '@/services/localDealsService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -64,35 +63,33 @@ function getCategoryColor(cat: string | null): string {
 }
 
 async function fetchDeals(): Promise<VerifiedDealRow[]> {
-  console.log('[Deals] Fetching deals from Supabase...');
-  let supabaseDeals: VerifiedDealRow[] = [];
-
+  console.log('[Deals] Fetching real deals from Supabase only...');
   try {
     const { data, error } = await supabase
       .from('deals')
       .select('*')
+      .eq('source_type', 'user')
       .order('created_at', { ascending: false })
       .limit(200);
 
     if (error) {
       console.log('[Deals] Supabase error:', error.message);
-    } else {
-      supabaseDeals = (data ?? []) as VerifiedDealRow[];
-      console.log('[Deals] Fetched', supabaseDeals.length, 'deals from Supabase');
+      return [];
     }
+    const deals = (data ?? []) as VerifiedDealRow[];
+    const validDeals = deals.filter((d) => {
+      if (!d.id) {
+        console.log('[Deals] Blocked deal without backend id:', d.title);
+        return false;
+      }
+      return true;
+    });
+    console.log('[Deals] Fetched', validDeals.length, 'real user-posted deals from Supabase');
+    return validDeals;
   } catch (err) {
     console.log('[Deals] Supabase fetch failed:', err);
+    return [];
   }
-
-  const localDeals = await getLocalDeals();
-  console.log('[Deals] Fetched', localDeals.length, 'local deals');
-
-  const supabaseIds = new Set(supabaseDeals.map((d) => d.id));
-  const uniqueLocalDeals = localDeals.filter((d) => !supabaseIds.has(d.id));
-
-  const combined = [...supabaseDeals, ...uniqueLocalDeals];
-  console.log('[Deals] Combined total:', combined.length, '(supabase:', supabaseDeals.length, '+ local:', uniqueLocalDeals.length, ')');
-  return combined;
 }
 
 
@@ -368,9 +365,7 @@ const DealCard = React.memo(function DealCard({ deal, timeAgo, trust, onPress }:
 export default function DealsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const queryClient = useQueryClient();
 
-  const [syncStatus, setSyncStatus] = useState<string>('');
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const { data: rawDeals, isLoading, error, refetch, isRefetching } = useQuery({
@@ -386,38 +381,9 @@ export default function DealsScreen() {
     return rawDeals;
   }, [rawDeals]);
 
-  const syncMutation = useMutation({
-    mutationFn: () => syncStoreBrandDeals((msg) => setSyncStatus(msg)),
-    onSuccess: (result) => {
-      console.log('[Deals] Sync done:', result.totalDeals, 'deals from', result.brandsProcessed, 'brands');
-      setSyncStatus('');
-      void queryClient.invalidateQueries({ queryKey: ['deals'] });
-      void queryClient.invalidateQueries({ queryKey: ['deals-last-sync'] });
-      if (result.totalDeals > 0) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    },
-    onError: (err) => {
-      console.log('[Deals] Sync error:', err);
-      setSyncStatus('');
-    },
-  });
-
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
   }, [fadeAnim]);
-
-  useEffect(() => {
-    const checkAndSync = async () => {
-      const needsSync = await shouldSync();
-      if (needsSync) {
-        console.log('[Deals] Auto-syncing store brand deals...');
-        syncMutation.mutate();
-      }
-    };
-    void checkAndSync();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const dealTrustMap = useMemo(() => {
     if (!deals) return new Map<string, DealTrustInfo>();
@@ -524,12 +490,7 @@ export default function DealsScreen() {
               <Tag size={20} color="#1B5E3B" strokeWidth={1.8} />
             </Pressable>
           </View>
-          {syncMutation.isPending && syncStatus ? (
-            <View style={styles.syncStatusRow}>
-              <ActivityIndicator size="small" color="#1B5E3B" />
-              <Text style={styles.syncStatusText}>{syncStatus}</Text>
-            </View>
-          ) : null}
+
         </Animated.View>
       </View>
 
@@ -557,8 +518,14 @@ export default function DealsScreen() {
           <View style={styles.emptyIcon}>
             <ShoppingBag size={22} color="#1B5E3B" strokeWidth={1.5} />
           </View>
-          <Text style={styles.stateTitle}>No finds yet</Text>
-          <Text style={styles.stateText}>Check back soon for verified savings</Text>
+          <Text style={styles.stateTitle}>No flips yet</Text>
+          <Text style={styles.stateText}>Real flips will appear here once they are posted.</Text>
+          <Pressable
+            style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85 }]}
+            onPress={() => router.push('/post-deal')}
+          >
+            <Text style={styles.retryBtnText}>Post your first flip</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -578,10 +545,8 @@ export default function DealsScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={() => {
+                console.log('[Deals] Pull-to-refresh: fetching fresh backend-only data');
                 void refetch();
-                if (Platform.OS !== 'web' && !syncMutation.isPending) {
-                  syncMutation.mutate();
-                }
               }}
               tintColor="#1B5E3B"
             />
