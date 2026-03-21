@@ -749,11 +749,7 @@ export default function ProfileScreen() {
                 <Text style={styles.statBlockLabel}>Posts</Text>
               </View>
               <View style={styles.statDivider} />
-              <View style={styles.statBlock}>
-                <Text style={styles.statBlockValue}>{otherProfile.logs_count ?? 0}</Text>
-                <Text style={styles.statBlockLabel}>Deals</Text>
-              </View>
-              <View style={styles.statDivider} />
+
               <View style={styles.statBlock}>
                 <Text style={styles.statBlockValue}>0</Text>
                 <Text style={styles.statBlockLabel}>Saved</Text>

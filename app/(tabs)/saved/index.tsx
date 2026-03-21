@@ -11,7 +11,6 @@ import {
 
 import { Image } from 'expo-image';
 import {
-  Bookmark,
   Tag,
   ScanLine,
   TrendingUp,
@@ -463,8 +462,8 @@ export default function SavedScreen() {
                 contentFit="contain"
                 cachePolicy="memory-disk"
               />
-              <Text style={styles.emptyTitle}>Nothing saved yet</Text>
-              <Text style={styles.emptySubtitle}>Save scans and items here to build your collection</Text>
+              <Text style={styles.emptyTitle}>Nothing here yet</Text>
+              <Text style={styles.emptySubtitle}>Scan items or save deals to start your list</Text>
               <View style={styles.emptyActions}>
                 <Pressable
                   onPress={() => {
@@ -486,7 +485,7 @@ export default function SavedScreen() {
                   testID="saved-empty-finds"
                 >
                   <ShoppingBag size={15} color="#6B7280" strokeWidth={2} />
-                  <Text style={styles.emptyBtnOutlineText}>Browse Finds</Text>
+                  <Text style={styles.emptyBtnOutlineText}>Browse Deals</Text>
                 </Pressable>
               </View>
             </View>
@@ -495,10 +494,7 @@ export default function SavedScreen() {
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleRow}>
-                    <View style={styles.sectionIconBadge}>
-                      <Bookmark size={14} color="#FFFFFF" strokeWidth={2} />
-                    </View>
-                    <Text style={styles.sectionTitle}>All Items</Text>
+                    <Text style={styles.sectionTitle}>Your Items</Text>
                   </View>
                   <Text style={styles.sectionCount}>{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</Text>
                 </View>
