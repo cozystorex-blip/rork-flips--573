@@ -234,3 +234,10 @@ Includes: budget overview at top of receipt details, Discover tab renamed to Gro
 
 All features above are complete and stable as of this checkpoint.
 Includes: all prior features — unified scan, deal trust scoring, premium/scan history limits, budget overview, Groups tab, profile navigation, verified deal pipeline, smart scan, and app store readiness pass.
+
+---
+
+## === SAVE 1.3 ===
+
+All features above are complete and stable as of this checkpoint.
+Includes: all prior features plus UI cleanup — removed search bars, tab segments, filter tabs, "Finds" wording, "Groups" header text, menu icons, "New" badges, "Discover" header, tab label text, and "Popular Profiles" section.
