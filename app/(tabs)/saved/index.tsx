@@ -8,7 +8,7 @@ import {
   Animated,
   RefreshControl,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { Image } from 'expo-image';
 import {
   Bookmark,
@@ -183,7 +183,6 @@ function getValueRating(entry: ScanHistoryEntry): string | null {
 }
 
 export default function SavedScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { entries: scanEntries, deleteEntry, isLoading: scanLoading } = useScanHistory();
   const {
@@ -467,23 +466,7 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.headerBar, { paddingTop: insets.top + 6 }]}>
-        <View style={styles.headerTitleRow}>
-          <Text style={styles.headerBrand}>Saved</Text>
-          {unifiedItems.length > 0 && (
-            <View style={styles.countBubble}>
-              <Text style={styles.countText}>{unifiedItems.length}</Text>
-            </View>
-          )}
-          {isPremium && (
-            <View style={styles.premiumBadge}>
-              <Crown size={11} color="#D4A017" strokeWidth={2.2} />
-              <Text style={styles.premiumBadgeText}>PRO</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.headerSubtitle}>Your scans, finds & saved items</Text>
-      </View>
+
 
       <ScrollView
         showsVerticalScrollIndicator={false}
