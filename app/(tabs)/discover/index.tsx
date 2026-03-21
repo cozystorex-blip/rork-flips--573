@@ -322,7 +322,7 @@ export default function DiscoverScreen() {
       >
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
-            <Text style={styles.screenTitle}>Finds</Text>
+            <Text style={styles.screenTitle}>Groups</Text>
           </View>
         </View>
 

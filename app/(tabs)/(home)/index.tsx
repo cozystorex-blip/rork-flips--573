@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ScanLine,
   ChevronRight,
   Package,
   UtensilsCrossed,
@@ -35,7 +34,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 import { useExpenses } from '@/contexts/ExpenseContext';
-import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
+import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -99,20 +98,12 @@ function timeAgoLabel(iso: string): string {
   return `${days}d ago`;
 }
 
-function getScanBrand(entry: ScanHistoryEntry): string {
-  const r = entry.result;
-  if (r.grocery_details?.brand) return r.grocery_details.brand;
-  if (r.household_details?.brand) return r.household_details.brand;
-  if (r.fashion_details?.brand) return r.fashion_details.brand;
-  if (r.electronics_details?.brand) return r.electronics_details.brand;
-  return r.category || 'Item';
-}
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { expenses } = useExpenses();
-  const { entries: scanEntries } = useScanHistory();
+  useScanHistory();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const budgetTimeTab = 'week' as const;
@@ -182,20 +173,7 @@ export default function HomeScreen() {
     return items;
   }, [budgetFilteredExpenses, selectedCategory]);
 
-  const recentScans = useMemo(() => scanEntries.slice(0, 8), [scanEntries]);
 
-  const handleScanPress = useCallback(() => {
-    void Haptics.selectionAsync();
-    router.push('/smart-scan');
-  }, [router]);
-
-  const handleScanCardPress = useCallback((entry: ScanHistoryEntry) => {
-    void Haptics.selectionAsync();
-    router.push({
-      pathname: '/smart-scan',
-      params: { historyEntryId: entry.id },
-    });
-  }, [router]);
 
   const handleCategoryPress = useCallback((key: ExpenseCategoryType) => {
     void Haptics.selectionAsync();
@@ -323,30 +301,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Scan Preview Card */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.scanPreviewCard,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.985 }] },
-            ]}
-            onPress={recentScans.length > 0 ? () => handleScanCardPress(recentScans[0]) : handleScanPress}
-            testID="scan-preview-card"
-          >
-            <View style={styles.scanPreviewIcon}>
-              <ScanLine size={20} color="#1B7A45" strokeWidth={2.2} />
-            </View>
-            <View style={styles.scanPreviewTextWrap}>
-              <Text style={styles.scanPreviewTitle}>
-                {recentScans.length > 0 ? getScanBrand(recentScans[0]) : 'No scans yet'}
-              </Text>
-              <Text style={styles.scanPreviewSubtitle}>
-                {recentScans.length > 0
-                  ? (recentScans[0].result.item_name || 'Tap to view scan')
-                  : 'Scan an item to see it here'}
-              </Text>
-            </View>
-            <ChevronRight size={18} color="#C7C7CC" strokeWidth={2} />
-          </Pressable>
+
 
 
           {/* Category Chips */}
