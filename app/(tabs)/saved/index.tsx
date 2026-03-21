@@ -13,15 +13,11 @@ import { Image } from 'expo-image';
 import {
   Tag,
   ScanLine,
-  TrendingUp,
   Trash2,
   Package,
   Crown,
-  ChevronRight,
   Wrench,
   ShoppingBag,
-  Clock,
-  Sparkles,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { AppIllustrations } from '@/constants/illustrations';
@@ -33,8 +29,6 @@ import { usePremium } from '@/contexts/PremiumContext';
 import SavedUpgradeModal from '@/components/SavedUpgradeModal';
 import type { SmartScanResult } from '@/services/smartScanService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
-
-
 
 const RELATED_ITEMS: Record<string, string[]> = {
   drill: ['Drill bits', 'Battery pack'],
@@ -80,7 +74,6 @@ function formatTimeAgo(dateStr: string): string {
   if (diffDay < 7) return `${diffDay}d ago`;
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
 
 function getDetailsRecord(r: SmartScanResult): Record<string, unknown> | null {
   if (r.fashion_details) return r.fashion_details as unknown as Record<string, unknown>;
@@ -158,13 +151,6 @@ function hasResale(entry: ScanHistoryEntry): boolean {
   const details = getDetailsRecord(entry.result);
   if (!details) return false;
   return !!(details.estimated_resale_value || details.resale_demand || details.best_selling_platform || details.estimated_retail_price);
-}
-
-function getValueRating(entry: ScanHistoryEntry): string | null {
-  const details = getDetailsRecord(entry.result);
-  if (!details) return null;
-  if (details.value_rating && typeof details.value_rating === 'string') return details.value_rating;
-  return null;
 }
 
 export default function SavedScreen() {
@@ -281,32 +267,7 @@ export default function SavedScreen() {
 
   const isLoading = scanLoading || dealsLoading;
 
-
-
-  const getCategoryColor = useCallback((cat: string): string => {
-    const lower = cat.toLowerCase();
-    if (lower.includes('furniture') || lower.includes('home')) return '#D97706';
-    if (lower.includes('electronic')) return '#0284C7';
-    if (lower.includes('fashion')) return '#E11D48';
-    if (lower.includes('food') || lower.includes('grocery')) return '#16A34A';
-    if (lower.includes('tool')) return '#7C3AED';
-    return '#6B7280';
-  }, []);
-
-  const getValueBadgeStyle = useCallback((rating: string | null) => {
-    if (rating === 'great') return { bg: '#ECFDF5', text: '#059669', label: 'Great Value' };
-    if (rating === 'good') return { bg: '#F0FDF4', text: '#16A34A', label: 'Good Value' };
-    if (rating === 'average') return { bg: '#FFF7ED', text: '#D97706', label: 'Fair Value' };
-    return null;
-  }, []);
-
   const renderSavedCard = useCallback((item: UnifiedItem) => {
-    const scanEntry = item.type === 'scan' ? item.raw as ScanHistoryEntry : null;
-    const valueRating = scanEntry ? getValueRating(scanEntry) : null;
-    const valueBadge = getValueBadgeStyle(valueRating);
-
-    const catColor = getCategoryColor(item.category);
-
     return (
       <Pressable
         key={item.id}
@@ -317,7 +278,7 @@ export default function SavedScreen() {
         ]}
         testID={`saved-card-${item.id}`}
       >
-        <View style={styles.cardImageSection}>
+        <View style={styles.cardImageWrap}>
           {item.imageUri ? (
             <Image
               source={{ uri: item.imageUri }}
@@ -329,72 +290,53 @@ export default function SavedScreen() {
           ) : (
             <View style={styles.cardImagePlaceholder}>
               {item.type === 'deal' ? (
-                <Tag size={22} color="#C7C7CC" strokeWidth={1.5} />
+                <Tag size={20} color="#C7C7CC" strokeWidth={1.5} />
               ) : (
-                <Package size={22} color="#C7C7CC" strokeWidth={1.5} />
+                <Package size={20} color="#C7C7CC" strokeWidth={1.5} />
               )}
             </View>
           )}
-
+          {item.type === 'scan' && (
+            <View style={styles.scanDot}>
+              <ScanLine size={10} color="#1B7A45" strokeWidth={2} />
+            </View>
+          )}
         </View>
 
         <View style={styles.cardBody}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-
-          <View style={styles.cardChipRow}>
-            <View style={[styles.categoryChip, { backgroundColor: catColor + '14' }]}>
-              <Text style={[styles.categoryChipText, { color: catColor }]}>{item.category}</Text>
-            </View>
-            {valueBadge && (
-              <View style={[styles.valueChip, { backgroundColor: valueBadge.bg }]}>
-                <Sparkles size={9} color={valueBadge.text} strokeWidth={2} />
-                <Text style={[styles.valueChipText, { color: valueBadge.text }]}>{valueBadge.label}</Text>
-              </View>
-            )}
-            {item.hasResaleValue && !valueBadge && (
-              <View style={styles.resaleChip}>
-                <TrendingUp size={9} color="#16A34A" strokeWidth={2} />
-                <Text style={styles.resaleChipText}>Resale</Text>
-              </View>
-            )}
+          <View style={styles.cardTopRow}>
+            <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+            <Pressable
+              onPress={() => handleDelete(item)}
+              style={styles.deleteBtn}
+              hitSlop={12}
+              testID={`saved-delete-${item.id}`}
+            >
+              <Trash2 size={15} color="#D1D5DB" strokeWidth={1.5} />
+            </Pressable>
           </View>
 
           {item.price && (
             <Text style={styles.cardPrice}>{item.price}</Text>
           )}
 
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardSource} numberOfLines={1}>{item.source}</Text>
-            <View style={styles.cardTimeRow}>
-              <Clock size={10} color="#AEAEB2" strokeWidth={1.5} />
-              <Text style={styles.cardTime}>{formatTimeAgo(item.savedAt)}</Text>
-            </View>
+          <View style={styles.cardMetaRow}>
+            <Text style={styles.cardSubtext} numberOfLines={1}>{item.source.toLowerCase()}</Text>
+            <Text style={styles.cardTime}>{formatTimeAgo(item.savedAt)}</Text>
           </View>
 
           {item.relatedNeeds.length > 0 && (
             <View style={styles.relatedRow}>
-              <Wrench size={10} color="#9CA3AF" strokeWidth={1.5} />
+              <Wrench size={10} color="#B0B0B6" strokeWidth={1.5} />
               <Text style={styles.relatedText} numberOfLines={1}>
                 May need: {item.relatedNeeds.join(', ')}
               </Text>
             </View>
           )}
         </View>
-
-        <View style={styles.cardActions}>
-          <Pressable
-            onPress={() => handleDelete(item)}
-            style={styles.deleteBtn}
-            hitSlop={10}
-            testID={`saved-delete-${item.id}`}
-          >
-            <Trash2 size={14} color="#D1D5DB" strokeWidth={1.5} />
-          </Pressable>
-          <ChevronRight size={14} color="#D1D5DB" strokeWidth={1.8} />
-        </View>
       </Pressable>
     );
-  }, [handleCardPress, handleDelete, getCategoryColor, getValueBadgeStyle]);
+  }, [handleCardPress, handleDelete]);
 
   const savedUpgradeCard = useMemo(() => {
     if (isPremium || !isAtFreeLimit) return null;
@@ -423,8 +365,6 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -474,18 +414,15 @@ export default function SavedScreen() {
             </View>
           ) : (
             <View style={styles.contentArea}>
-              <View style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionTitleRow}>
-                    <Text style={styles.sectionTitle}>Your Items</Text>
-                  </View>
-                  <Text style={styles.sectionCount}>{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</Text>
-                </View>
-
-                <View style={styles.cardList}>
-                  {filteredItems.map(renderSavedCard)}
-                </View>
+              <View style={styles.headerRow}>
+                <Text style={styles.headerTitle}>Your Items</Text>
+                <Text style={styles.headerCount}>{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</Text>
               </View>
+
+              <View style={styles.cardList}>
+                {filteredItems.map(renderSavedCard)}
+              </View>
+
               <AdMobBanner />
               {savedUpgradeCard}
             </View>
@@ -510,110 +447,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  headerBar: {
-    backgroundColor: '#FFFFFF',
-    paddingBottom: 12,
-    paddingHorizontal: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
-    zIndex: 1,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
-  headerTitleRow: {
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 2,
   },
-  headerBrand: {
-    fontSize: 30,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: '700' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  countBubble: {
-    backgroundColor: '#1B7A45',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
-  premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FFF8E1',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#F5E6A3',
-  },
-  premiumBadgeText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#B8860B',
-    letterSpacing: 0.5,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-    paddingRight: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  filterChipActive: {
-    backgroundColor: '#1B7A45',
-    borderColor: '#1B7A45',
-  },
-  filterChipText: {
-    fontSize: 13,
+  headerCount: {
+    fontSize: 14,
     fontWeight: '500' as const,
     color: '#8E8E93',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
-  filterCount: {
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  filterCountActive: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  filterCountText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-  },
-  filterCountTextActive: {
-    color: '#FFFFFF',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -622,14 +476,14 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 28,
     alignItems: 'center',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   emptyIllustration: {
     width: 80,
@@ -690,232 +544,132 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   contentArea: {
-    gap: 12,
-  },
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionIconBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#1B7A45',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  sectionCount: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
+    gap: 0,
   },
   cardList: {
-    gap: 8,
+    gap: 12,
   },
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E5EA',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+    padding: 12,
+    gap: 14,
+    alignItems: 'flex-start',
   },
   cardPressed: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F9F9F9',
     transform: [{ scale: 0.98 }],
   },
-  cardImageSection: {
-    width: 80,
-    height: 96,
+  cardImageWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    overflow: 'hidden',
     position: 'relative',
   },
   cardImage: {
-    width: 80,
-    height: 96,
+    width: 72,
+    height: 72,
   },
   cardImagePlaceholder: {
-    width: 80,
-    height: 96,
+    width: 72,
+    height: 72,
     backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  recentBadge: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    backgroundColor: '#1B7A45',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  recentBadgeText: {
-    fontSize: 9,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  scanBadge: {
+  scanDot: {
     position: 'absolute',
     bottom: 4,
     right: 4,
-    width: 18,
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: '#1B7A45',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(27, 122, 69, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
   },
   cardBody: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
     justifyContent: 'center',
+    minHeight: 72,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
   },
   cardTitle: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 16,
     fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.2,
-    marginBottom: 4,
-    lineHeight: 19,
+    lineHeight: 21,
   },
-  cardChipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-    marginBottom: 4,
-  },
-  categoryChip: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  categoryChipText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    letterSpacing: 0.1,
-  },
-  valueChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  valueChipText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-  },
-  resaleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  resaleChipText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: '#16A34A',
+  deleteBtn: {
+    padding: 4,
+    marginTop: -2,
   },
   cardPrice: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700' as const,
     color: '#1B7A45',
     letterSpacing: -0.3,
-    marginBottom: 3,
+    marginTop: 4,
   },
-  cardFooter: {
+  cardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 4,
   },
-  cardSource: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-    flex: 1,
-    marginRight: 6,
-  },
-  cardTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  cardTime: {
-    fontSize: 10,
+  cardSubtext: {
+    fontSize: 13,
     fontWeight: '400' as const,
     color: '#AEAEB2',
+    flex: 1,
+    marginRight: 8,
+  },
+  cardTime: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#C7C7CC',
   },
   relatedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 3,
-    paddingTop: 3,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
+    gap: 5,
+    marginTop: 6,
   },
   relatedText: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
     flex: 1,
-  },
-  cardActions: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 9,
-    paddingRight: 10,
-    paddingLeft: 2,
-  },
-  deleteBtn: {
-    padding: 6,
   },
   upgradeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFDF5',
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     borderColor: '#F5E6A3',
     gap: 12,
+    marginTop: 12,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   upgradeCardIcon: {
     width: 40,
