@@ -9,42 +9,49 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  retryCount: number;
 }
 
 class ProfileErrorBoundaryClass extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, retryCount: 0 };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    console.log('[ProfileErrorBoundary] Caught error:', error.message);
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    console.log('[ErrorBoundary] Caught error:', error.message);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.log('[ProfileErrorBoundary] Error details:', error.message);
-    console.log('[ProfileErrorBoundary] Component stack:', info.componentStack);
+    console.log('[ErrorBoundary] Error details:', error.message);
+    console.log('[ErrorBoundary] Component stack:', info.componentStack?.slice(0, 500));
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState((prev) => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
   };
 
   render() {
     if (this.state.hasError) {
+      const tooManyRetries = this.state.retryCount >= 3;
       return (
         <View style={styles.container}>
           <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.message}>
-            The profile could not be loaded. This is usually temporary.
+            {tooManyRetries
+              ? 'This issue keeps happening. Please restart the app.'
+              : 'An unexpected error occurred. This is usually temporary.'}
           </Text>
-          <Pressable
-            style={styles.retryBtn}
-            onPress={this.handleRetry}
-          >
-            <Text style={styles.retryText}>Try Again</Text>
-          </Pressable>
+          {!tooManyRetries && (
+            <Pressable
+              style={styles.retryBtn}
+              onPress={this.handleRetry}
+              testID="error-boundary-retry"
+            >
+              <Text style={styles.retryText}>Try Again</Text>
+            </Pressable>
+          )}
         </View>
       );
     }
