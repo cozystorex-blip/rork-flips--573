@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { User, UserPlus, CircleUserRound, TrendingUp } from 'lucide-react-native';
+import { User, UserPlus, TrendingUp } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { mockProfiles } from '@/mocks/data';
@@ -322,26 +322,7 @@ export default function DiscoverScreen() {
       >
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.screenSubtitle}>Browse people</Text>
-            </View>
-            <Pressable
-              onPress={() => {
-                if (userId) {
-                  router.push(`/profile/${userId}`);
-                } else {
-                  router.push('/auth');
-                }
-              }}
-              style={({ pressed }) => [
-                styles.accountBtn,
-                pressed && { opacity: 0.6 },
-              ]}
-              hitSlop={8}
-              testID="header-account-btn"
-            >
-              <CircleUserRound size={24} color="#1C1C1E" strokeWidth={1.6} />
-            </Pressable>
+            <Text style={styles.screenTitle}>Finds</Text>
           </View>
         </View>
 
