@@ -9,14 +9,12 @@ import {
   Platform,
   UIManager,
   Dimensions,
-  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ScanLine,
   ChevronRight,
   Package,
-  Search,
   UtensilsCrossed,
   ShoppingCart,
   Car,
@@ -124,7 +122,7 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const [budgetTimeTab, setBudgetTimeTab] = useState<'week' | 'month' | 'all'>('week');
-  const [searchText, setSearchText] = useState('');
+
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategoryType | null>(null);
 
   useEffect(() => {
@@ -187,15 +185,8 @@ export default function HomeScreen() {
     if (selectedCategory) {
       items = items.filter((e) => e.category === selectedCategory);
     }
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      items = items.filter((e) =>
-        e.title.toLowerCase().includes(q) ||
-        (e.merchant && e.merchant.toLowerCase().includes(q))
-      );
-    }
     return items;
-  }, [budgetFilteredExpenses, selectedCategory, searchText]);
+  }, [budgetFilteredExpenses, selectedCategory]);
 
   const recentScans = useMemo(() => scanEntries.slice(0, 8), [scanEntries]);
 
@@ -381,19 +372,6 @@ export default function HomeScreen() {
             <ChevronRight size={18} color="#C7C7CC" strokeWidth={2} />
           </Pressable>
 
-          {/* Search Bar */}
-          <View style={styles.searchBarWrap}>
-            <Search size={16} color="#AEAEB2" strokeWidth={2} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search items..."
-              placeholderTextColor="#C7C7CC"
-              value={searchText}
-              onChangeText={setSearchText}
-              returnKeyType="search"
-              testID="home-search-input"
-            />
-          </View>
 
           {/* Category Chips */}
           <ScrollView
@@ -665,29 +643,7 @@ const styles = StyleSheet.create({
     color: '#AEAEB2',
     marginTop: 2,
   },
-  searchBarWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'web' ? 12 : 10,
-    marginBottom: 12,
-    gap: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '400' as const,
-    color: '#1C1C1E',
-    padding: 0,
-    margin: 0,
-  },
+
   chipsScroll: {
     marginBottom: 16,
   },
