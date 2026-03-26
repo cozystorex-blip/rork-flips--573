@@ -41,6 +41,9 @@ const foodDetailsSchema = z.object({
   cheaper_alternative: z.string().nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const groceryDetailsSchema = z.object({
@@ -56,6 +59,9 @@ const groceryDetailsSchema = z.object({
   total_cost_note: z.string().nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const householdDetailsSchema = z.object({
@@ -86,6 +92,9 @@ const householdDetailsSchema = z.object({
   care_tip: z.string().nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const fashionDetailsSchema = z.object({
@@ -122,6 +131,9 @@ const fashionDetailsSchema = z.object({
   resale_suggestion: z.string().nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const electronicsDetailsSchema = z.object({
@@ -146,6 +158,9 @@ const electronicsDetailsSchema = z.object({
   care_tip: z.string().nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const generalDetailsSchema = z.object({
@@ -175,6 +190,9 @@ const generalDetailsSchema = z.object({
   rarity: z.enum(['common', 'uncommon', 'rare', 'very-rare', 'unique']).nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const furnitureDetailsSchema = z.object({
@@ -222,6 +240,9 @@ const furnitureDetailsSchema = z.object({
   long_term_value: z.string().nullable(),
   tags: z.array(z.string()),
   complementary_items: z.array(z.string()),
+  purpose: z.string().nullable(),
+  value_insight: z.string().nullable(),
+  next_scan_suggestion: z.string().nullable(),
 });
 
 const documentDetailsSchema = z.object({
@@ -451,8 +472,8 @@ STEP 2 — PICK EXACTLY ONE CATEGORY:
 - "fashion" = ANY wearable item or personal accessory: shoes, sneakers, boots, sandals, clothing, shirts, pants, jackets, coats, dresses, hats, bags, purses, backpacks, wallets, watches, jewelry, belts, scarves, sunglasses, gloves. KEY: it is worn on the body or carried as an accessory.
 - "electronics" = devices with screens, circuits, batteries, or digital function: phones, laptops, tablets, headphones, earbuds, speakers, gaming consoles, controllers, chargers, cables, monitors, keyboards, cameras, smart home devices, drones, power banks. KEY: it uses electricity or batteries.
 - "furniture" = LARGE home items that typically sit on the floor or mount to walls: desks, tables, chairs, sofas, couches, beds, shelving units, bookshelves, cabinets, wardrobes, dressers, nightstands, TV stands, benches. KEY: it requires placement/assembly in a room and you sit on it, store things in it, or put things on it.
-- "household" = smaller home/lifestyle items that are NOT furniture and NOT food: kitchenware, pots, pans, utensils, storage containers, lamps, rugs, curtains, pillows, towels, blankets, cleaning supplies, tools (drills, hammers), fitness equipment (dumbbells, kettlebells, yoga mats), bathroom items, candles, decor, beauty/skincare/makeup products, small appliances (toasters, blenders, coffee makers). KEY: used around the home but not large enough to be furniture.
-- "general" = clearly identifiable physical item that doesn't fit any above category (toys, books, sports equipment, musical instruments, art supplies, automotive parts, pet supplies, etc.)
+- "household" = smaller home/lifestyle items that are NOT furniture and NOT food: kitchenware, pots, pans, utensils, cutting boards, colanders, mixing bowls, spatulas, ladles, tongs, whisks, peelers, graters, measuring cups, storage containers, food storage bags, tupperware, mason jars, bins, baskets, organizers, shelf organizers, drawer dividers, lamps, light bulbs, rugs, mats, curtains, pillows, cushions, throws, towels, blankets, bedding sets, cleaning supplies (spray bottles, sponges, mops, brooms, dustpans, brushes, detergent, dish soap, all-purpose cleaner), tools (drills, hammers, screwdrivers, pliers, wrenches, tape measures, levels, utility knives, saws), fitness equipment (dumbbells, kettlebells, yoga mats, resistance bands, jump ropes), bathroom items (soap dispensers, toothbrush holders, shower caddies, bath mats, toilet brushes), candles, air fresheners, diffusers, vases, picture frames, clocks, mirrors, wall hooks, coat hooks, hangers, laundry baskets, ironing boards, irons, decor items, plant pots, planters, watering cans, garden tools, beauty/skincare/makeup products, small appliances (toasters, blenders, coffee makers, kettles, rice cookers, air fryers, instant pots, food processors, mixers, slow cookers, can openers, electric grills). KEY: used around the home but not large enough to be furniture. This includes ALL kitchen tools, ALL cleaning products, ALL storage/organization items, ALL bathroom accessories, ALL home decor, ALL garden tools, and ALL small appliances.
+- "general" = clearly identifiable physical item that doesn't fit any above category (toys, board games, puzzles, books, magazines, sports equipment, balls, rackets, musical instruments, art supplies, paints, brushes, automotive parts, car accessories, pet supplies, pet toys, pet beds, leashes, collars, stationery, pens, notebooks, planners, gift wrap, party supplies, seasonal decorations, craft supplies, sewing supplies, hobby items, collectibles, figurines, models, trading cards)
 - "unknown" = truly unrecognizable: extremely blurry, completely dark, abstract art with no identifiable object, or a close-up that shows no recognizable features
 
 CATEGORY DECISION TREE — USE THIS ORDER:
@@ -463,9 +484,19 @@ CATEGORY DECISION TREE — USE THIS ORDER:
 5. Is it something you WEAR or carry as personal accessory? → "fashion"
 6. Does it use electricity/batteries/have a screen? → "electronics"
 7. Is it a large piece of home furniture? → "furniture"
-8. Is it a smaller home/lifestyle item? → "household"
-9. Is it identifiable but none of the above? → "general"
+8. Is it a smaller home/lifestyle item (kitchenware, cleaning, tools, storage, decor, bathroom, garden, small appliance, beauty)? → "household"
+9. Is it identifiable but none of the above (toys, books, sports, music, art, auto, pets, stationery)? → "general"
 10. Is it truly unrecognizable? → "unknown"
+
+EVERYDAY ITEM RECOGNITION GUIDANCE:
+- Kitchen items (pots, pans, utensils, cutting boards, storage containers, small appliances) = ALWAYS "household"
+- Cleaning products (sprays, sponges, mops, detergents, wipes, brushes) = ALWAYS "household"
+- Storage/organization (bins, baskets, shelving inserts, drawer organizers, hangers, hooks) = ALWAYS "household"
+- Bathroom accessories (soap dispensers, shower caddies, bath mats, toilet brushes) = ALWAYS "household"
+- Home decor (candles, vases, picture frames, clocks, wall art, mirrors, throws, cushions) = ALWAYS "household"
+- Garden/outdoor tools (watering cans, pruners, plant pots, garden gloves) = ALWAYS "household"
+- Tools/hardware (hammers, screwdrivers, drills, tape, nails, screws, pliers) = ALWAYS "household"
+- Packaged products with barcodes/labels (cleaning sprays, laundry pods, dishwasher tabs) = "household" NOT "grocery" (only packaged FOOD goes to grocery)
 
 MISCLASSIFICATION RULES — CRITICAL:
 1. ANY food in packaging (pasta box, cereal box, canned soup, bottled drink, chip bag) = "grocery". NEVER "furniture" or "household".
@@ -564,6 +595,9 @@ QUALITY CHECK — before returning your answer:
 - key_nutrients, health_benefits (2+ items), health_summary, quick_tip
 - estimated_price, price_range, value_rating, budget_insight
 - tags and complementary_items
+- purpose: One sentence explaining what this food is typically used for or how it's eaten (e.g. "A high-protein breakfast option often paired with fruit and granola")
+- value_insight: One practical insight about this food's value (e.g. "Good protein-to-calorie ratio for the price" or "Premium brand — store-brand alternatives offer similar quality for 40% less")
+- next_scan_suggestion: What to scan next for better accuracy (e.g. "Scan the nutrition label on the back for exact calorie and macro data" or "Scan the barcode for exact product match")
 DO NOT fill furniture_details, fashion_details, electronics_details, household_details, or general_details.`;
 
     case 'grocery':
@@ -571,15 +605,31 @@ DO NOT fill furniture_details, fashion_details, electronics_details, household_d
 - brand (from label), package_size, estimated_price, price_range, unit_price
 - value_rating, budget_insight, cheaper_alternative
 - what_else_needed, tags, complementary_items
+- purpose: One sentence explaining what this product is for (e.g. "A pantry staple used as a base for pasta dishes, casseroles, and soups")
+- value_insight: One practical insight (e.g. "Buying the larger 28oz can saves ~30% per ounce vs the 14oz" or "Store brand version is nearly identical in taste tests")
+- next_scan_suggestion: What to scan next (e.g. "Scan the barcode for exact price comparison" or "Scan the nutrition label for detailed ingredient info")
 DO NOT fill furniture_details, fashion_details, electronics_details, household_details, or general_details.`;
 
     case 'household':
       return base + `Analyze this HOUSEHOLD item. Fill household_details ONLY. Set all other detail fields to null.
-- item_description, subcategory (tools/fitness/kitchenware/cleaning/bathroom/decor/garden/storage/lighting/small_appliance/other)
-- brand, model, material, condition
+- item_description: Describe the item clearly — what it looks like and what makes it identifiable. Be specific about type (e.g. "Stainless steel 10-inch non-stick skillet" not just "pan").
+- subcategory (tools/fitness/kitchenware/cleaning/bathroom/decor/garden/storage/lighting/small_appliance/other) — pick the most accurate one
+- brand, model, material, condition — fill what you can see or confidently infer
 - estimated_price, price_range, estimated_resale_value (only if item has real resale market)
-- practical_recommendation, care_tip
+- practical_recommendation: A genuinely useful recommendation about this specific item
+- care_tip: How to maintain or care for this item
 - tags, complementary_items
+- purpose: One clear sentence about what this item is used for in everyday life (e.g. "Used for frying, sautéing, and searing foods on the stovetop" or "Organizes bathroom toiletries and keeps countertops tidy")
+- value_insight: One practical insight about this item's value or usefulness (e.g. "Cast iron retains value well — a well-maintained pan can last decades" or "Budget option — premium brands offer better durability for heavy use")
+- next_scan_suggestion: What to scan next for better accuracy (e.g. "Flip over and scan the bottom stamp for brand and model" or "Scan the product label or barcode on the packaging")
+
+IMPORTANT FOR HOUSEHOLD ITEMS:
+- Kitchen items: identify the specific tool type, material, and likely use
+- Cleaning products: identify product type, what surfaces it's for, and if it's concentrated
+- Storage items: identify capacity, material, and what it's designed to store
+- Decor items: identify style, material, and where it would be placed
+- Tools: identify tool type, size, and common uses
+- Small appliances: identify type, likely wattage/capacity, and key features
 DO NOT fill furniture_details, fashion_details, electronics_details, food_details, grocery_details, or general_details.`;
 
     case 'fashion':
@@ -590,6 +640,9 @@ DO NOT fill furniture_details, fashion_details, electronics_details, food_detail
 - For clothing: fit, pattern, neckline, sleeve_length if visible
 - estimated_retail_price, estimated_resale_value, resale_demand
 - value_verdict, care_tip, tags, complementary_items
+- purpose: One sentence about what this item is for (e.g. "Casual everyday sneakers designed for all-day comfort and street style" or "A layering piece for cool weather, suitable for both casual and smart-casual outfits")
+- value_insight: One practical insight (e.g. "Limited colorway with strong resale demand — holds value well" or "Fast-fashion piece — comparable quality available at lower price points")
+- next_scan_suggestion: What to scan next (e.g. "Scan the inside label for exact size, model number, and care instructions" or "Scan the sole/bottom for model identification")
 DO NOT fill furniture_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'electronics':
@@ -598,6 +651,9 @@ DO NOT fill furniture_details, electronics_details, food_details, grocery_detail
 - estimated_retail_price, estimated_resale_value, depreciation_note
 - resale_demand, value_verdict, care_tip
 - tags, complementary_items
+- purpose: One sentence about what this device is used for (e.g. "Wireless noise-cancelling headphones for music, calls, and focused work" or "A portable power bank for charging phones and tablets on the go")
+- value_insight: One practical insight (e.g. "Previous generation model — current version offers marginal improvements at 30% higher price" or "High depreciation rate — loses ~40% value in first year")
+- next_scan_suggestion: What to scan next (e.g. "Scan the serial number sticker for exact model and storage capacity" or "Scan the box barcode for product verification")
 DO NOT fill furniture_details, fashion_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'furniture':
@@ -625,18 +681,29 @@ DO NOT fill furniture_details, fashion_details, food_details, grocery_details, h
 - setup_notes, wall_anchor_note, long_term_value: keep general or set to null.
 - tags, complementary_items: item types only, not specific products.
 If you recognize an IKEA product by name/label, use real IKEA product names and pricing.
+- purpose: One sentence about what this furniture piece is for (e.g. "A compact desk designed for small home offices or study spaces" or "A multi-tier shelf for displaying books, plants, and decorative items")
+- value_insight: One practical insight (e.g. "Solid wood construction holds value better than particle board alternatives" or "IKEA flat-pack — easy to transport but resale value drops significantly once assembled")
+- next_scan_suggestion: What to scan next (e.g. "Look for a sticker on the back or underside with the model name and article number" or "Scan the assembly instruction booklet for exact product identification")
 DO NOT fill fashion_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'general':
       return base + `Analyze this item. Fill general_details ONLY. Set all other detail fields to null.
-- item_description, subcategory, brand, model, material, color, condition
+- item_description: Describe the item clearly and specifically — what it is, what it looks like, key identifying features
+- subcategory: Be specific (e.g. "board game", "art supplies", "pet toy", "sports equipment", "book", "collectible")
+- brand, model, material, color, condition
 - estimated_retail_price, estimated_resale_value, price_range
 - value_rating, fun_fact, practical_tip, care_tip
 - tags, complementary_items
+- purpose: One clear sentence about what this item is used for (e.g. "A strategy board game for 2-4 players, typically played in 30-60 minute sessions" or "A dog chew toy designed to clean teeth while keeping pets entertained")
+- value_insight: One practical insight (e.g. "Popular title with strong secondhand demand" or "Consumable item — needs periodic replacement")
+- next_scan_suggestion: What to scan next (e.g. "Scan the barcode or product label for exact identification" or "Scan the back of the packaging for more details")
 DO NOT fill furniture_details, fashion_details, electronics_details, food_details, grocery_details, or household_details.`;
 
     default:
-      return base + `Do your best to analyze this item. Fill general_details. Set all other detail fields to null.`;
+      return base + `Do your best to analyze this item. Fill general_details. Set all other detail fields to null.
+- purpose: What is this item used for?
+- value_insight: One useful practical insight about this item's value
+- next_scan_suggestion: What should the user scan next for better results?`;
   }
 }
 
@@ -679,6 +746,7 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
   const FASHION_SIGNALS = ['shoe', 'sneaker', 'boot', 'heel', 'sandal', 'sole', 'lace', 'swoosh', 'nike', 'adidas', 'jordan', 'puma', 'vans', 'converse', 'new balance', 'shirt', 'hoodie', 'jacket', 'pants', 'jeans', 'dress', 'hat', 'handbag', 'purse', 'wallet', 'watch', 'belt', 'gucci', 'louis vuitton', 'coach', 'yeezy', 'air max', 'air force', 'reebok', 'asics', 'skechers', 'under armour', 'lululemon', 'zara', 'h&m', 'uniqlo', 'polo', 'ralph lauren', 'tommy hilfiger', 'levis', 'wrangler', 'north face', 'patagonia', 'columbia', 'timberland', 'birkenstock', 'crocs', 'ugg', 'ray-ban', 'oakley', 'skirt', 'blazer', 'cardigan', 'sweater', 'vest', 'scarf', 'glove', 'beanie', 'cap', 'snapback', 'backpack', 'tote bag', 'crossbody', 'loafer', 'oxford', 'stiletto', 'flip flop', 'slipper', 'running shoe', 'basketball shoe', 'tennis shoe', 'trail shoe', 'cleat', 'footwear', 'kicks', 'trainers'];
   const ELECTRONICS_SIGNALS = ['iphone', 'ipad', 'macbook', 'airpod', 'samsung galaxy', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'switch', 'laptop', 'tablet', 'headphones', 'earbuds', 'speaker', 'monitor', 'keyboard', 'charger', 'bose', 'jbl', 'sony', 'dell', 'hp', 'lenovo', 'asus', 'acer', 'surface', 'pixel', 'galaxy watch', 'apple watch', 'fitbit', 'garmin', 'gopro', 'drone', 'dji', 'roku', 'fire stick', 'chromecast', 'echo', 'alexa', 'google home', 'smart plug', 'ring', 'nest', 'power bank', 'usb', 'hdmi', 'mouse', 'webcam', 'microphone', 'printer', 'scanner', 'projector', 'tv', 'television', 'soundbar', 'subwoofer', 'amplifier', 'turntable', 'kindle', 'e-reader', 'smartphone', 'cell phone', 'mobile phone'];
   const FITNESS_SIGNALS = ['dumbbell', 'kettlebell', 'barbell', 'weight plate', 'resistance band', 'yoga mat', 'foam roller', 'exercise', 'gym equipment', 'pull-up bar', 'jump rope', 'ab roller', 'medicine ball', 'stability ball', 'exercise bike', 'treadmill', 'elliptical', 'rowing machine', 'bench press', 'squat rack', 'boxing glove', 'punching bag', 'weight bench', 'battle rope'];
+  const HOUSEHOLD_GENERAL_SIGNALS = ['pan', 'skillet', 'pot', 'saucepan', 'wok', 'baking sheet', 'cutting board', 'knife', 'spatula', 'ladle', 'tongs', 'whisk', 'peeler', 'grater', 'colander', 'strainer', 'mixing bowl', 'measuring cup', 'measuring spoon', 'rolling pin', 'can opener', 'bottle opener', 'corkscrew', 'tupperware', 'food container', 'storage bin', 'storage box', 'basket', 'organizer', 'drawer divider', 'shelf liner', 'hanger', 'coat hook', 'wall hook', 'command strip', 'adhesive hook', 'laundry basket', 'hamper', 'ironing board', 'iron', 'lint roller', 'steamer', 'spray bottle', 'sponge', 'scrub brush', 'dish soap', 'dish rack', 'drying mat', 'paper towel holder', 'trash can', 'recycling bin', 'dustpan', 'broom', 'mop', 'vacuum', 'duster', 'cleaning cloth', 'microfiber', 'wipe', 'detergent', 'bleach', 'all-purpose cleaner', 'glass cleaner', 'disinfectant', 'air freshener', 'candle', 'diffuser', 'essential oil', 'vase', 'picture frame', 'photo frame', 'wall art', 'clock', 'mirror', 'throw pillow', 'cushion', 'throw blanket', 'rug', 'mat', 'curtain', 'blinds', 'lamp', 'light bulb', 'nightlight', 'extension cord', 'power strip', 'surge protector', 'timer', 'thermometer', 'scale', 'soap dispenser', 'toothbrush holder', 'shower caddy', 'bath mat', 'toilet brush', 'plunger', 'towel rack', 'robe hook', 'shower curtain', 'plant pot', 'planter', 'watering can', 'garden glove', 'pruner', 'trowel', 'garden hose', 'sprinkler', 'toaster', 'blender', 'coffee maker', 'kettle', 'rice cooker', 'air fryer', 'instant pot', 'slow cooker', 'food processor', 'mixer', 'electric grill', 'sandwich maker', 'waffle maker', 'juicer', 'ice maker', 'water filter', 'pitcher', 'thermos', 'insulated bottle', 'lunch box', 'bento box', 'wine opener', 'ice tray', 'oven mitt', 'pot holder', 'apron', 'dish towel', 'kitchen towel', 'napkin holder', 'salt shaker', 'pepper mill', 'spice rack', 'utensil holder', 'knife block', 'bread box', 'fruit bowl', 'trivet', 'coaster', 'placemat', 'tablecloth'];
   const FURNITURE_SIGNALS = ['desk', 'table', 'chair', 'sofa', 'couch', 'bed', 'shelf', 'shelving', 'cabinet', 'wardrobe', 'dresser', 'nightstand', 'bookcase', 'bookshelf', 'tv stand', 'bench', 'stool', 'rack', 'storage unit', 'room divider', 'ikea', 'kallax', 'billy', 'malm', 'lack', 'hemnes', 'expedit', 'poang', 'ektorp', 'detolf', 'besta', 'pax', 'alex', 'linnmon', 'micke', 'dining table', 'coffee table', 'end table', 'console table', 'ottoman', 'recliner', 'loveseat', 'futon', 'bunk bed', 'crib', 'headboard', 'vanity', 'hutch', 'armoire', 'credenza', 'sideboard', 'bar cart', 'shoe rack', 'coat rack'];
   const BEAUTY_SIGNALS = ['moisturizer', 'serum', 'sunscreen', 'cleanser', 'toner', 'foundation', 'concealer', 'mascara', 'lipstick', 'lip gloss', 'eyeshadow', 'blush', 'bronzer', 'primer', 'setting spray', 'face wash', 'face cream', 'eye cream', 'retinol', 'vitamin c', 'hyaluronic', 'niacinamide', 'shampoo', 'conditioner', 'hair mask', 'dry shampoo', 'hair spray', 'curling iron', 'flat iron', 'blow dryer', 'trimmer', 'razor', 'cologne', 'perfume', 'deodorant', 'body lotion', 'body wash', 'hand cream', 'nail polish', 'skincare', 'makeup', 'cosmetic', 'beauty'];
 
@@ -688,6 +756,7 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
   const hasFitness = FITNESS_SIGNALS.some(s => combined.includes(s));
   const hasFurniture = FURNITURE_SIGNALS.some(s => combined.includes(s));
   const hasBeauty = BEAUTY_SIGNALS.some(s => combined.includes(s));
+  const hasHouseholdGeneral = HOUSEHOLD_GENERAL_SIGNALS.some(s => combined.includes(s));
 
   const countSignals = (signals: string[]) => signals.filter(s => combined.includes(s)).length;
 
@@ -753,6 +822,17 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
     return fixed;
   }
 
+  if (hasHouseholdGeneral && fixed.item_type !== 'household' && !hasFood && !hasFashion && !hasElectronics && !hasFurniture) {
+    const householdCount = countSignals(HOUSEHOLD_GENERAL_SIGNALS);
+    const foodCount = hasFood ? countSignals(FOOD_SIGNALS) : 0;
+    if (householdCount > foodCount) {
+      console.log('[SmartScan] Household general signals strongest (' + householdCount + '), correcting from', fixed.item_type);
+      fixed.item_type = 'household';
+      fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.8);
+      return fixed;
+    }
+  }
+
   return fixed;
 }
 
@@ -770,6 +850,7 @@ function crossValidateClassification(classification: z.infer<typeof classificati
   const hasFoodWords = /\b(spaghetti|pasta|rice|cereal|soup|sauce|bread|chips|cookie|cracker|candy|chocolate|granola|yogurt|milk|juice|soda|snack|nutrition|calories|protein bar|frozen meal|canned|ramen|noodle|oatmeal|flour|sugar|honey|jam|peanut butter|ketchup|mustard|mayo|vinegar|oil|spice|coffee|tea|cream|cheese|butter|egg|meat|chicken|beef|pork|fish|shrimp|fruit|vegetable|apple|banana|orange|grape|berry|tomato|lettuce|onion|potato|carrot|broccoli|pepper|corn|bean|lentil|pizza|burger|taco|sandwich|wrap|salad|steak|sushi|donut|cake|pie|muffin|bagel|croissant|waffle|pancake)\b/.test(allText);
   const hasElectronicsWords = /\b(phone|laptop|tablet|headphone|earbuds|speaker|monitor|keyboard|mouse|charger|cable|usb|hdmi|controller|console|tv|television|camera|drone|smartwatch|power bank|printer|router|projector|microphone|webcam|iphone|ipad|macbook|airpod|samsung|pixel|dell|hp|lenovo|asus|sony|bose|jbl|playstation|xbox|nintendo|switch|roku|echo|alexa|kindle)\b/.test(allText);
   const hasFurnitureWords = /\b(desk|table|chair|sofa|couch|bed|shelf|shelving|cabinet|wardrobe|dresser|nightstand|bookcase|bookshelf|bench|stool|ottoman|recliner|futon|loveseat|sectional|headboard|bed frame|mattress|tv stand|entertainment center|armoire|credenza|sideboard|hutch|vanity|bar cart|dining set)\b/.test(allText);
+  const hasHouseholdWords = /\b(pan|skillet|pot|saucepan|wok|cutting board|spatula|ladle|tongs|whisk|peeler|grater|colander|mixing bowl|measuring cup|tupperware|storage bin|storage box|basket|organizer|hanger|hook|laundry basket|ironing board|spray bottle|sponge|dish soap|dish rack|broom|mop|vacuum|duster|detergent|bleach|cleaner|disinfectant|air freshener|candle|diffuser|vase|picture frame|clock|mirror|throw pillow|cushion|blanket|rug|mat|curtain|lamp|light bulb|soap dispenser|shower caddy|bath mat|toilet brush|plunger|plant pot|planter|watering can|toaster|blender|coffee maker|kettle|rice cooker|air fryer|slow cooker|food processor|mixer|thermos|lunch box|oven mitt|apron|coaster|placemat|knife block|spice rack|trivet)\b/.test(allText);
 
   if (fixed.item_type === 'furniture' && hasFoodWords && !hasFurnitureWords) {
     console.log('[SmartScan] Cross-validation: food item wrongly classified as furniture, correcting');
@@ -825,6 +906,22 @@ function crossValidateClassification(classification: z.infer<typeof classificati
     console.log('[SmartScan] Cross-validation: food item classified as general, upgrading');
     fixed.item_type = hasPackaging ? 'grocery' : 'food';
     fixed.category = hasPackaging ? 'Grocery' : 'Food';
+    fixed.confidence = Math.min(fixed.confidence, 0.65);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'general' && hasHouseholdWords && !hasElectronicsWords && !hasFurnitureWords && !hasShoeWords && !hasClothingWords) {
+    console.log('[SmartScan] Cross-validation: household item classified as general, upgrading');
+    fixed.item_type = 'household';
+    fixed.category = 'Household';
+    fixed.confidence = Math.min(fixed.confidence, 0.7);
+    return fixed;
+  }
+
+  if (fixed.item_type === 'furniture' && hasHouseholdWords && !hasFurnitureWords) {
+    console.log('[SmartScan] Cross-validation: household item wrongly classified as furniture, correcting');
+    fixed.item_type = 'household';
+    fixed.category = 'Household';
     fixed.confidence = Math.min(fixed.confidence, 0.65);
     return fixed;
   }
@@ -1091,6 +1188,9 @@ function repairMissingDetails(result: SmartScanResult, classification: z.infer<t
     care_tip: null, fun_fact: null, practical_tip: null, age_or_era: null, rarity: null,
     tags: (classification.visual_cues ?? []).slice(0, 5),
     complementary_items: [],
+    purpose: null,
+    value_insight: null,
+    next_scan_suggestion: 'Try scanning the product label or barcode for better identification',
   };
   repaired.confidence = Math.min(repaired.confidence, 0.4);
   return repaired;

@@ -103,6 +103,41 @@ function TagsRow({ tags }: { tags: string[] }) {
   );
 }
 
+function PurposeSection({ purpose }: { purpose: string | null | undefined }) {
+  if (!purpose) return null;
+  return (
+    <>
+      <Divider />
+      <SectionLabel text="What It's For" />
+      <Text style={s.purposeText}>{purpose}</Text>
+    </>
+  );
+}
+
+function ValueInsightSection({ insight }: { insight: string | null | undefined }) {
+  if (!insight) return null;
+  return (
+    <>
+      <Divider />
+      <SectionLabel text="Value Insight" />
+      <InfoBlock text={insight} type="tip" />
+    </>
+  );
+}
+
+function NextScanSection({ suggestion }: { suggestion: string | null | undefined }) {
+  if (!suggestion) return null;
+  return (
+    <>
+      <Divider />
+      <View style={s.nextScanCard}>
+        <Text style={s.nextScanLabel}>Scan Next</Text>
+        <Text style={s.nextScanText}>{suggestion}</Text>
+      </View>
+    </>
+  );
+}
+
 function VerificationBadge({ status }: { status: VerificationStatus }) {
   const label = getVerificationLabel(status);
   const color = getVerificationColor(status);
@@ -457,6 +492,9 @@ export function FoodResultSection({ result }: ResultProps) {
         <SourceQualitySection sources={result.trustResult.sections.sourceQuality} label={result.trustResult.sourceQualityLabel} />
       ) : null}
 
+      <PurposeSection purpose={fd.purpose} />
+      <ValueInsightSection insight={fd.value_insight} />
+      <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -516,6 +554,9 @@ export function GroceryResultSection({ result }: ResultProps) {
         <SourceQualitySection sources={result.trustResult.sections.sourceQuality} label={result.trustResult.sourceQualityLabel} />
       ) : null}
 
+      <PurposeSection purpose={gd.purpose} />
+      <ValueInsightSection insight={gd.value_insight} />
+      <NextScanSection suggestion={gd.next_scan_suggestion} />
       <TagsRow tags={gd.tags} />
     </>
   );
@@ -562,6 +603,9 @@ export function FurnitureResultSection({ result }: ResultProps) {
 
       {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
       <ResaleBlock result={result} />
+      <PurposeSection purpose={fd.purpose} />
+      <ValueInsightSection insight={fd.value_insight} />
+      <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -612,6 +656,9 @@ export function FashionResultSection({ result }: ResultProps) {
       ) : <NoPriceRow />}
 
       {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
+      <PurposeSection purpose={fd.purpose} />
+      <ValueInsightSection insight={fd.value_insight} />
+      <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -653,6 +700,9 @@ export function ElectronicsResultSection({ result }: ResultProps) {
 
       {ed.care_tip && <InfoBlock text={ed.care_tip} type="tip" />}
       <ResaleBlock result={result} />
+      <PurposeSection purpose={ed.purpose} />
+      <ValueInsightSection insight={ed.value_insight} />
+      <NextScanSection suggestion={ed.next_scan_suggestion} />
       <TagsRow tags={ed.tags} />
     </>
   );
@@ -698,6 +748,9 @@ export function HouseholdResultSection({ result }: ResultProps) {
 
       {hd.care_tip && <InfoBlock text={hd.care_tip} type="tip" />}
       <ResaleBlock result={result} />
+      <PurposeSection purpose={hd.purpose} />
+      <ValueInsightSection insight={hd.value_insight} />
+      <NextScanSection suggestion={hd.next_scan_suggestion} />
       <TagsRow tags={hd.tags} />
     </>
   );
@@ -736,6 +789,9 @@ export function GeneralResultSection({ result }: ResultProps) {
       {gd.care_tip && <InfoBlock text={gd.care_tip} type="tip" />}
 
       <ResaleBlock result={result} />
+      <PurposeSection purpose={gd.purpose} />
+      <ValueInsightSection insight={gd.value_insight} />
+      <NextScanSection suggestion={gd.next_scan_suggestion} />
       <TagsRow tags={gd.tags} />
     </>
   );
@@ -1208,5 +1264,32 @@ const s = StyleSheet.create({
     fontWeight: '500' as const,
     lineHeight: 16,
     marginLeft: 4,
+  },
+  purposeText: {
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 19,
+    fontWeight: '500' as const,
+  },
+  nextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  nextScanLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  nextScanText: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
   },
 });
