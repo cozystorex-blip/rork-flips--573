@@ -33,7 +33,10 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 import { useExpenses } from '@/contexts/ExpenseContext';
-import { useScanHistory } from '@/contexts/ScanHistoryContext';
+import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
+import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
+import { Image } from 'expo-image';
+import { Tag, ScanLine, Bookmark } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -102,7 +105,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { expenses } = useExpenses();
-  useScanHistory();
+  const { entries: scanEntries } = useScanHistory();
+  const { savedDeals } = useSavedItems();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
   const budgetTimeTab = 'week' as const;
@@ -377,6 +381,116 @@ export default function HomeScreen() {
               );
             })
           )}
+
+          {/* Saved Items Section */}
+          {(() => {
+            const recentSaved: { id: string; type: 'scan' | 'deal'; title: string; imageUri: string | null; time: string; raw: ScanHistoryEntry | SavedDeal }[] = [
+              ...scanEntries.map((e) => ({
+                id: `scan-${e.id}`,
+                type: 'scan' as const,
+                title: e.result.item_name || 'Scanned Item',
+                imageUri: e.imageUri,
+                time: e.scannedAt,
+                raw: e as ScanHistoryEntry | SavedDeal,
+              })),
+              ...savedDeals.map((d) => ({
+                id: `deal-${d.id}`,
+                type: 'deal' as const,
+                title: d.title,
+                imageUri: d.photoUrl,
+                time: d.savedAt,
+                raw: d as ScanHistoryEntry | SavedDeal,
+              })),
+            ]
+              .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+              .slice(0, 5);
+
+            if (recentSaved.length === 0) return null;
+
+            return (
+              <>
+                <View style={styles.savedSectionHeader}>
+                  <View style={styles.savedTitleRow}>
+                    <Bookmark size={16} color="#1B7A45" strokeWidth={2} />
+                    <Text style={styles.savedSectionTitle}>Saved</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      void Haptics.selectionAsync();
+                      router.push('/(tabs)/saved');
+                    }}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.savedSeeAll}>See all</Text>
+                  </Pressable>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.savedScrollContent}
+                  style={styles.savedScroll}
+                >
+                  {recentSaved.map((item) => (
+                    <Pressable
+                      key={item.id}
+                      style={({ pressed }) => [
+                        styles.savedCard,
+                        pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                      ]}
+                      onPress={() => {
+                        void Haptics.selectionAsync();
+                        if (item.type === 'scan') {
+                          const scanEntry = item.raw as ScanHistoryEntry;
+                          router.push({ pathname: '/smart-scan', params: { historyEntryId: scanEntry.id } });
+                        } else {
+                          const deal = item.raw as SavedDeal;
+                          router.push({
+                            pathname: '/post-detail',
+                            params: {
+                              dealId: deal.dealId,
+                              title: deal.title,
+                              storeName: deal.storeName,
+                              imageUrl: deal.photoUrl ?? '',
+                              category: deal.category ?? '',
+                              sourceType: deal.sourceType ?? '',
+                              price: deal.price != null ? String(deal.price) : '',
+                              originalPrice: deal.originalPrice != null ? String(deal.originalPrice) : '',
+                              savingsAmount: deal.savingsAmount != null ? String(deal.savingsAmount) : '',
+                            },
+                          });
+                        }
+                      }}
+                    >
+                      <View style={styles.savedCardImageWrap}>
+                        {item.imageUri ? (
+                          <Image
+                            source={{ uri: item.imageUri }}
+                            style={styles.savedCardImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                          />
+                        ) : (
+                          <View style={styles.savedCardPlaceholder}>
+                            {item.type === 'deal' ? (
+                              <Tag size={18} color="#C7C7CC" strokeWidth={1.5} />
+                            ) : (
+                              <Package size={18} color="#C7C7CC" strokeWidth={1.5} />
+                            )}
+                          </View>
+                        )}
+                        {item.type === 'scan' && (
+                          <View style={styles.savedCardBadge}>
+                            <ScanLine size={8} color="#1B7A45" strokeWidth={2.5} />
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.savedCardTitle} numberOfLines={2}>{item.title}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            );
+          })()}
 
           <View style={{ height: 32 }} />
         </Animated.View>
@@ -712,5 +826,82 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#8E8E93',
     fontWeight: '400' as const,
+  },
+  savedSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  savedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  savedSectionTitle: {
+    fontSize: 19,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  savedSeeAll: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#1B7A45',
+  },
+  savedScroll: {
+    marginBottom: 4,
+    marginHorizontal: -16,
+  },
+  savedScrollContent: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  savedCard: {
+    width: 110,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  savedCardImageWrap: {
+    width: 110,
+    height: 90,
+    position: 'relative',
+  },
+  savedCardImage: {
+    width: 110,
+    height: 90,
+  },
+  savedCardPlaceholder: {
+    width: 110,
+    height: 90,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  savedCardBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(27, 122, 69, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  savedCardTitle: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    lineHeight: 16,
   },
 });
