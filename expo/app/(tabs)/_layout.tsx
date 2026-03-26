@@ -1,335 +1,159 @@
-import { Tabs, useRouter } from 'expo-router';
-import { House, Tag, Heart, X, UserPen, DollarSign, Users } from 'lucide-react-native';
-import ScanFrameIcon from '@/components/ScanFrameIcon';
-import React, { useCallback, useRef, useState } from 'react';
-import { View, Pressable, StyleSheet, Platform, Animated, Modal, Text } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { Tabs } from 'expo-router';
+import React, { useRef, useEffect } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
+import { Compass, Grid3x3, User } from 'lucide-react-native';
+import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import Colors from '@/constants/colors';
 
-const MENU_ACTIONS = [
-  { key: 'deal', label: 'Post a Deal', icon: DollarSign, route: '/post-deal' as const },
-  { key: 'post', label: 'Profile Post', icon: UserPen, route: '/create-block' as const },
-] as const;
+function ScanTabIcon({ focused }: { focused: boolean }) {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.3)).current;
 
-function CenterTabButton() {
-  const router = useRouter();
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const [menuOpen, setMenuOpen] = useState(false);
-  const backdropAnim = useRef(new Animated.Value(0)).current;
-  const menuSlide = useRef(new Animated.Value(0)).current;
-
-  const handleAction = useCallback((route: string, key: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (key === 'deal') {
-      router.push('/post-deal');
+  useEffect(() => {
+    if (focused) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(pulseAnim, { toValue: 1.08, duration: 1200, useNativeDriver: true }),
+            Animated.timing(glowAnim, { toValue: 0.7, duration: 1200, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+            Animated.timing(glowAnim, { toValue: 0.3, duration: 1200, useNativeDriver: true }),
+          ]),
+        ])
+      ).start();
     } else {
-      router.push(route as '/create-block');
+      pulseAnim.setValue(1);
+      glowAnim.setValue(0.3);
     }
-  }, [router]);
-
-  const handleScanPress = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.88, duration: 80, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
-    ]).start();
-    router.push('/smart-scan');
-  }, [scaleAnim, router]);
-
-  const openNativeSheet = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMenuOpen(true);
-    Animated.parallel([
-      Animated.timing(backdropAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
-      Animated.spring(menuSlide, { toValue: 1, useNativeDriver: true, tension: 160, friction: 12 }),
-    ]).start();
-  }, [backdropAnim, menuSlide]);
-
-  const closeMenu = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(backdropAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
-      Animated.timing(menuSlide, { toValue: 0, duration: 180, useNativeDriver: true }),
-    ]).start(() => setMenuOpen(false));
-  }, [backdropAnim, menuSlide]);
-
-  const handleMenuAction = useCallback((route: string, key: string) => {
-    closeMenu();
-    setTimeout(() => handleAction(route, key), 120);
-  }, [closeMenu, handleAction]);
+  }, [focused, pulseAnim, glowAnim]);
 
   return (
-    <View style={centerStyles.wrapper}>
-      <Animated.View style={[centerStyles.outer, { transform: [{ scale: scaleAnim }] }]}>
-        <Pressable
-          onPress={handleScanPress}
-          onLongPress={openNativeSheet}
-          style={({ pressed }) => [
-            centerStyles.button,
-            pressed && centerStyles.buttonPressed,
-          ]}
-          testID="tab-center-scan-btn"
-        >
-          <ScanFrameIcon size={26} color="#FFFFFF" strokeWidth={2.4} />
-        </Pressable>
+    <View style={scanStyles.wrapper}>
+      <Animated.View style={[scanStyles.glowRing, { opacity: glowAnim, transform: [{ scale: pulseAnim }] }]} />
+      <Animated.View style={[scanStyles.container, focused && scanStyles.containerFocused, { transform: [{ scale: pulseAnim }] }]}>
+        <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+          <Defs>
+            <RadialGradient id="pawGlow" cx="12" cy="12" r="12">
+              <Stop offset="0" stopColor={Colors.accent} stopOpacity="0.3" />
+              <Stop offset="1" stopColor={Colors.accent} stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          {focused && <Circle cx="12" cy="12" r="12" fill="url(#pawGlow)" />}
+          <Circle cx="9" cy="6.5" r="2" fill={focused ? Colors.accent : Colors.textSecondary} />
+          <Circle cx="15" cy="6.5" r="2" fill={focused ? Colors.accent : Colors.textSecondary} />
+          <Circle cx="5.5" cy="10.5" r="1.8" fill={focused ? Colors.accent : Colors.textSecondary} />
+          <Circle cx="18.5" cy="10.5" r="1.8" fill={focused ? Colors.accent : Colors.textSecondary} />
+          <Path
+            d="M8 15.5C8 13 9.5 11.5 12 11.5C14.5 11.5 16 13 16 15.5C16 18 14 20 12 20C10 20 8 18 8 15.5Z"
+            fill={focused ? Colors.accent : Colors.textSecondary}
+          />
+        </Svg>
+        {focused && <View style={scanStyles.scanLine} />}
       </Animated.View>
-
-      {
-        <Modal visible={menuOpen} transparent animationType="none" statusBarTranslucent>
-          <Pressable style={centerStyles.modalFill} onPress={closeMenu}>
-            <Animated.View style={[centerStyles.backdrop, { opacity: backdropAnim }]} />
-          </Pressable>
-
-          <Animated.View
-            style={[
-              centerStyles.menuContainer,
-              {
-                opacity: menuSlide,
-                transform: [{
-                  translateY: menuSlide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }),
-                }],
-              },
-            ]}
-            pointerEvents={menuOpen ? 'auto' : 'none'}
-          >
-            <View style={centerStyles.menuCard}>
-              {MENU_ACTIONS.map((action, idx) => {
-                const Icon = action.icon;
-                return (
-                  <Pressable
-                    key={action.key}
-                    onPress={() => handleMenuAction(action.route, action.key)}
-                    style={({ pressed }) => [
-                      centerStyles.menuItem,
-                      pressed && centerStyles.menuItemPressed,
-                      idx < MENU_ACTIONS.length - 1 && centerStyles.menuItemBorder,
-                    ]}
-                    testID={`menu-action-${action.key}`}
-                  >
-                    <View style={centerStyles.menuIconCircle}>
-                      <Icon size={18} color="#1C1C1E" strokeWidth={1.8} />
-                    </View>
-                    <Text style={centerStyles.menuLabel}>{action.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Pressable
-              onPress={closeMenu}
-              style={({ pressed }) => [
-                centerStyles.cancelBtn,
-                pressed && centerStyles.cancelBtnPressed,
-              ]}
-              testID="menu-cancel-btn"
-            >
-              <X size={15} color="#8E8E93" strokeWidth={2} />
-              <Text style={centerStyles.cancelText}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        </Modal>
-      }
     </View>
   );
 }
 
-const centerStyles = StyleSheet.create({
+const scanStyles = StyleSheet.create({
   wrapper: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -8,
+    marginTop: -20,
+    width: 72,
+    height: 72,
   },
-  outer: {
-    width: 50,
-    height: 50,
-    borderRadius: 15,
-    shadowColor: '#1B7A45',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  button: {
-    width: 50,
-    height: 50,
-    borderRadius: 15,
-    backgroundColor: '#1B7A45',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonPressed: {
-    backgroundColor: '#166B3D',
-  },
-  modalFill: {
-    flex: 1,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-  },
-  menuContainer: {
+  glowRing: {
     position: 'absolute',
-    bottom: Platform.OS === 'web' ? 70 : 100,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    paddingHorizontal: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.accentGlow,
   },
-  menuCard: {
-    width: '100%',
-    maxWidth: 300,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  menuItemPressed: {
-    backgroundColor: '#F2F2F7',
-  },
-  menuItemBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
-  },
-  menuIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#F2F2F7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuLabel: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  cancelBtn: {
-    flexDirection: 'row',
+  container: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: Colors.darkCard,
+    borderWidth: 2,
+    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 8,
-    width: '100%',
-    maxWidth: 300,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 13,
-    shadowColor: '#000000',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  cancelBtnPressed: {
-    backgroundColor: '#F2F2F7',
+  containerFocused: {
+    borderColor: Colors.accent,
+    backgroundColor: Colors.darkCardAlt,
+    shadowColor: Colors.accent,
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
   },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-  },
-});
-
-const tabBarStyle = StyleSheet.create({
-  bar: {
-    backgroundColor: '#FAFAFA',
-    borderTopColor: '#E5E5EA',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    elevation: 0,
-  },
-  barWeb: {
-    backgroundColor: '#FAFAFA',
-    borderTopColor: '#E5E5EA',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    elevation: 0,
-    height: 52,
+  scanLine: {
+    position: 'absolute',
+    bottom: 10,
+    width: 24,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: Colors.accent,
+    opacity: 0.6,
   },
 });
-
-const TAB_SCREEN_OPTIONS = {
-  headerShown: false,
-  tabBarActiveTintColor: '#1B7A45',
-  tabBarInactiveTintColor: '#8E8E93',
-  tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
-  tabBarItemStyle: { flex: 1 } as const,
-  tabBarShowLabel: false,
-  tabBarIconStyle: {
-    marginBottom: -1,
-  },
-  lazy: true,
-} as const;
 
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={TAB_SCREEN_OPTIONS}
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: Colors.dark,
+          borderTopColor: Colors.border,
+          borderTopWidth: 1,
+          elevation: 0,
+        },
+        tabBarActiveTintColor: Colors.accent,
+        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600' as const,
+          letterSpacing: 0.3,
+        },
+      }}
     >
       <Tabs.Screen
-        name="(home)"
+        name="index"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="explore"
         options={{
-          title: '',
-          tabBarIcon: ({ color, focused, size }) => (
-            <House size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
-          ),
+          title: 'Explore',
+          tabBarIcon: ({ color, size }) => <Compass size={size} color={color} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
-        name="saved"
+        name="scan"
         options={{
           title: '',
-          tabBarIcon: ({ color, focused, size }) => (
-            <Heart size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
-          ),
+          tabBarIcon: ({ focused }) => <ScanTabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="create"
+        name="collection"
         options={{
-          title: '',
-          tabBarButton: () => <CenterTabButton />,
-          tabBarItemStyle: {
-            flex: 1,
-          },
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-          },
+          title: 'Collection',
+          tabBarIcon: ({ color, size }) => <Grid3x3 size={size} color={color} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="profile"
         options={{
-          title: '',
-          tabBarIcon: ({ color, focused, size }) => (
-            <Tag size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{
-          title: '',
-          tabBarIcon: ({ color, focused, size }) => (
-            <Users size={size - 2} color={color} strokeWidth={focused ? 2.0 : 1.4} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          href: null,
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} strokeWidth={1.8} />,
         }}
       />
     </Tabs>
