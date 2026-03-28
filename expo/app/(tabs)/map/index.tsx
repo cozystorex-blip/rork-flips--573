@@ -560,14 +560,13 @@ export default function DealsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   headerBar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F3EF',
     paddingBottom: 10,
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
+    borderBottomWidth: 0,
   },
   headerInner: {},
   headerRow: {
@@ -604,7 +603,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -618,7 +617,7 @@ const styles = StyleSheet.create({
   syncStatusText: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#1B7A45',
+    color: '#2D6A4F',
   },
   scrollContent: {
     paddingTop: 4,
@@ -632,8 +631,8 @@ const styles = StyleSheet.create({
   postDealIconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1B7A4512',
+    borderRadius: 12,
+    backgroundColor: '#2D6A4F12',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -668,13 +667,13 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1B7A4510',
+    backgroundColor: '#2D6A4F10',
     justifyContent: 'center',
     alignItems: 'center',
   },
   retryBtn: {
     marginTop: 12,
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     paddingHorizontal: 22,
     paddingVertical: 10,
     borderRadius: 12,
@@ -692,15 +691,15 @@ const styles = StyleSheet.create({
 
   dealCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowColor: '#8B8680',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 2,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   dealCardExpired: {
     opacity: 0.5,
@@ -709,7 +708,7 @@ const styles = StyleSheet.create({
     position: 'relative' as const,
     width: '100%',
     height: CARD_PHOTO_HEIGHT,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   photoGradientOverlay: {
     position: 'absolute' as const,
@@ -820,14 +819,14 @@ const styles = StyleSheet.create({
   priceTagGreen: {
     fontSize: 17,
     fontWeight: '700' as const,
-    color: '#1B7A45',
+    color: '#2D6A4F',
     letterSpacing: -0.3,
   },
   seeDealPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#1B7A450A',
+    backgroundColor: '#2D6A4F0A',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 6,
@@ -835,7 +834,7 @@ const styles = StyleSheet.create({
   seeDealText: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#1B7A45',
+    color: '#2D6A4F',
   },
   originalPrice: {
     fontSize: 12,
@@ -865,7 +864,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: '#E8E6E1',
   },
   footerLeft: {
     flexDirection: 'row',
@@ -1016,7 +1015,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 10,
     overflow: 'hidden' as const,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   productThumb: {
     width: 36,
@@ -1028,7 +1027,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden' as const,
     borderWidth: 1.5,
-    borderColor: '#E5E5EA',
+    borderColor: '#E8E6E1',
   },
   posterAvatar: {
     width: '100%' as const,

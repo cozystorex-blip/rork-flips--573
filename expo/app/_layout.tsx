@@ -50,7 +50,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back', headerStyle: { backgroundColor: '#111111' }, headerTintColor: '#F5F5F7', headerTitleStyle: { color: '#F5F5F7', fontWeight: '700' as const }, contentStyle: { backgroundColor: '#0A0A0A' } }}>
+    <Stack screenOptions={{ headerBackTitle: 'Back', headerStyle: { backgroundColor: '#F5F3EF' }, headerTintColor: '#1A1A1A', headerTitleStyle: { color: '#1A1A1A', fontWeight: '600' as const }, contentStyle: { backgroundColor: '#F5F3EF' }, headerShadowVisible: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="auth"

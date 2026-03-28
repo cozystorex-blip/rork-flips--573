@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,24 @@ import {
   Platform,
   UIManager,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronRight,
   Package,
-  UtensilsCrossed,
-  ShoppingCart,
-  Car,
-  Zap,
-  ShoppingBag,
-  Home,
-  Tv,
-  MoreHorizontal,
+  Receipt,
+  Grid3x3,
+  Camera,
+  Lightbulb,
+  RefreshCw,
+  ScanLine,
+  Bookmark,
 } from 'lucide-react-native';
-import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { useRouter } from 'expo-router';
-import type { ExpenseCategoryType } from '@/types/expense';
-import { ExpenseCategoryLabels } from '@/types/expense';
+import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
+import { useQuery } from '@tanstack/react-query';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -35,71 +35,15 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
-import { Image } from 'expo-image';
-import { Tag, ScanLine, Bookmark } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import { generateAISuggestions, AISuggestion } from '@/services/aiSuggestionsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SCANNED_ITEM_WIDTH = (SCREEN_WIDTH - 40 - 24) / 3;
 
-const CATEGORY_CHIPS: { key: ExpenseCategoryType; label: string; color: string; icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }> }[] = [
-  { key: 'food', label: 'Food', color: '#22C55E', icon: UtensilsCrossed },
-  { key: 'grocery', label: 'Grocery', color: '#F59E0B', icon: ShoppingCart },
-  { key: 'transport', label: 'Transport', color: '#3B82F6', icon: Car },
-  { key: 'utility_bills', label: 'Utility Bills', color: '#F97316', icon: Zap },
-  { key: 'shopping', label: 'Shopping', color: '#EC4899', icon: ShoppingBag },
-  { key: 'home', label: 'Home', color: '#14B8A6', icon: Home },
-  { key: 'subscriptions', label: 'Subscriptions', color: '#A855F7', icon: Tv },
-  { key: 'other', label: 'Other', color: '#9CA3AF', icon: MoreHorizontal },
-];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  food: '#22C55E',
-  grocery: '#F59E0B',
-  transport: '#3B82F6',
-  utility_bills: '#F97316',
-  shopping: '#EC4899',
-  home: '#14B8A6',
-  subscriptions: '#A855F7',
-  other: '#9CA3AF',
-};
-
-const budgetIconMap: Record<ExpenseCategoryType, React.ComponentType<{ size: number; color: string; strokeWidth?: number }>> = {
-  food: UtensilsCrossed,
-  grocery: ShoppingCart,
-  transport: Car,
-  utility_bills: Zap,
-  shopping: ShoppingBag,
-  home: Home,
-  subscriptions: Tv,
-  other: MoreHorizontal,
-};
-
-function getWeekStart(): Date {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diff);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
-function getMonthStart(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-}
-
-function timeAgoLabel(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -108,92 +52,96 @@ export default function HomeScreen() {
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(16)).current;
-  const budgetTimeTab = 'week' as const;
-
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategoryType | null>(null);
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 450,
+        duration: 500,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 450,
+        duration: 500,
         useNativeDriver: true,
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const budgetFilteredExpenses = useMemo(() => {
-    const weekStart = getWeekStart();
-    const monthStart = getMonthStart();
-    let filtered = expenses.filter((e) => e.amount > 0);
-    if (budgetTimeTab === 'week') {
-      filtered = filtered.filter((e) => new Date(e.createdAt) >= weekStart);
-    } else if (budgetTimeTab === 'month') {
-      filtered = filtered.filter((e) => new Date(e.createdAt) >= monthStart);
-    }
-    return filtered;
-  }, [expenses, budgetTimeTab]);
+  const recentReceipts = useMemo(() => {
+    return expenses
+      .filter((e) => e.amount > 0)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 3);
+  }, [expenses]);
 
-  const budgetTotal = useMemo(() => budgetFilteredExpenses.reduce((s, e) => s + e.amount, 0), [budgetFilteredExpenses]);
-  const budgetAvg = useMemo(() => {
-    if (budgetFilteredExpenses.length === 0) return 0;
-    return budgetTotal / Math.max(budgetFilteredExpenses.length, 1);
-  }, [budgetFilteredExpenses, budgetTotal]);
+  const totalReceiptAmount = useMemo(() => {
+    return recentReceipts.reduce((s, e) => s + e.amount, 0);
+  }, [recentReceipts]);
 
-  const budgetDailyData = useMemo(() => {
-    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    const weekStart = getWeekStart();
-    const result: { label: string; total: number }[] = [];
-    for (let i = 0; i < 7; i++) {
-      const dayStart = new Date(weekStart);
-      dayStart.setDate(weekStart.getDate() + i);
-      const dayEnd = new Date(dayStart);
-      dayEnd.setDate(dayStart.getDate() + 1);
-      const total = budgetFilteredExpenses
-        .filter((e) => {
-          const d = new Date(e.createdAt);
-          return d >= dayStart && d < dayEnd;
-        })
-        .reduce((sum, e) => sum + e.amount, 0);
-      result.push({ label: days[i], total });
-    }
-    return result;
-  }, [budgetFilteredExpenses]);
+  const recentScans = useMemo(() => {
+    return scanEntries
+      .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())
+      .slice(0, 6);
+  }, [scanEntries]);
 
-  const thisWeekItems = useMemo(() => {
-    let items = budgetFilteredExpenses
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const suggestionQuery = useQuery({
+    queryKey: ['ai_suggestions', scanEntries.length, expenses.length],
+    queryFn: () => generateAISuggestions(scanEntries, expenses),
+    staleTime: 1000 * 60 * 5,
+    enabled: scanEntries.length > 0 || expenses.length > 0,
+  });
 
-    if (selectedCategory) {
-      items = items.filter((e) => e.category === selectedCategory);
-    }
-    return items;
-  }, [budgetFilteredExpenses, selectedCategory]);
+  const currentSuggestion = useMemo<AISuggestion | null>(() => {
+    const suggestions = suggestionQuery.data;
+    if (!suggestions || suggestions.length === 0) return null;
+    return suggestions[0];
+  }, [suggestionQuery.data]);
 
+  const handleScanPress = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/smart-scan');
+  }, [router]);
 
-
-  const handleCategoryPress = useCallback((key: ExpenseCategoryType) => {
+  const handleReceiptPress = useCallback((expenseId: string) => {
     void Haptics.selectionAsync();
-    setSelectedCategory((prev) => (prev === key ? null : key));
-  }, []);
+    router.push({ pathname: '/receipt-detail', params: { expenseId } });
+  }, [router]);
 
-  const periodLabel = budgetTimeTab === 'week' ? 'THIS WEEK' : budgetTimeTab === 'month' ? 'THIS MONTH' : 'ALL TIME';
-  const sectionTitle = budgetTimeTab === 'week' ? 'This Week' : budgetTimeTab === 'month' ? 'This Month' : 'All Items';
+  const handleScanItemPress = useCallback((entry: ScanHistoryEntry) => {
+    void Haptics.selectionAsync();
+    router.push({ pathname: '/smart-scan', params: { historyEntryId: entry.id } });
+  }, [router]);
 
-  const CHART_WIDTH = SCREEN_WIDTH - 32 - 40;
+  const handleSeeAllScans = useCallback(() => {
+    void Haptics.selectionAsync();
+    router.push('/(tabs)/saved');
+  }, [router]);
+
+  const handleRefreshSuggestions = useCallback(() => {
+    void Haptics.selectionAsync();
+    void suggestionQuery.refetch();
+  }, [suggestionQuery]);
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerArea, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.headerArea, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
-          <Text style={styles.brandTitle}>Flips</Text>
-          <View style={styles.headerRight} />
+          <View>
+            <Text style={styles.brandTitle}>Flips</Text>
+            <Text style={styles.brandSubtitle}>Your scan & save companion</Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              void Haptics.selectionAsync();
+              router.push('/(tabs)/saved');
+            }}
+            style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7 }]}
+            hitSlop={8}
+          >
+            <Grid3x3 size={20} color="#8B8680" strokeWidth={1.6} />
+          </Pressable>
         </View>
       </View>
 
@@ -203,186 +151,174 @@ export default function HomeScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          {/* Weekly Summary Card */}
-          <View style={styles.summaryCard} testID="budget-overview-card">
-            <View style={styles.summaryTopRow}>
-              <View style={styles.summaryLeft}>
-                <Text style={styles.summaryPeriodLabel}>{periodLabel}</Text>
-                <Text style={styles.summaryTotal}>${budgetTotal.toFixed(2)}</Text>
-              </View>
-              <View style={styles.summaryRight}>
-                <View style={styles.summaryMetaItem}>
-                  <Text style={styles.summaryMetaValue}>{budgetFilteredExpenses.length}</Text>
-                  <Text style={styles.summaryMetaLabel}>items</Text>
+          {/* Recent Receipts Card */}
+          <View style={styles.card} testID="receipts-card">
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <View style={styles.cardIconWrap}>
+                  <Receipt size={16} color="#2D6A4F" strokeWidth={1.8} />
                 </View>
-                <View style={styles.summaryMetaDivider} />
-                <View style={styles.summaryMetaItem}>
-                  <Text style={styles.summaryMetaValue}>${budgetAvg.toFixed(2)}</Text>
-                  <Text style={styles.summaryMetaLabel}>avg</Text>
-                </View>
+                <Text style={styles.cardTitle}>Recent Receipts</Text>
               </View>
             </View>
 
-            <View style={styles.summaryDivider} />
+            {recentReceipts.length > 0 ? (
+              <>
+                <View style={styles.receiptTotalRow}>
+                  <Text style={styles.receiptTotalAmount}>${totalReceiptAmount.toFixed(2)}</Text>
+                  <Text style={styles.receiptTotalLabel}> from {recentReceipts.length} receipt{recentReceipts.length !== 1 ? 's' : ''}</Text>
+                </View>
 
-            {/* Chart Area */}
-            <View style={styles.chartArea}>
-              {(() => {
-                const data = budgetDailyData;
-                const maxVal = Math.max(...data.map((d) => d.total), 1);
-                const allZero = data.every((d) => d.total === 0);
-                const barCount = data.length;
-                const barGap = 10;
-                const totalGaps = barGap * (barCount - 1);
-                const barWidth = Math.max(8, (CHART_WIDTH - totalGaps) / barCount);
-                const chartHeight = 100;
-                const svgWidth = CHART_WIDTH + 16;
+                <View style={styles.receiptDivider} />
 
-                if (budgetTimeTab !== 'week') {
-                  return (
-                    <View style={styles.chartEmptyWrap}>
-                      <Text style={styles.chartEmptyText}>
-                        {budgetFilteredExpenses.length === 0 ? 'No data yet' : `${budgetFilteredExpenses.length} items tracked`}
-                      </Text>
+                {recentReceipts.map((exp, index) => (
+                  <Pressable
+                    key={exp.id}
+                    onPress={() => handleReceiptPress(exp.id)}
+                    style={({ pressed }) => [
+                      styles.receiptRow,
+                      pressed && { backgroundColor: '#F8F7F4' },
+                      index < recentReceipts.length - 1 && styles.receiptRowBorder,
+                    ]}
+                  >
+                    <View style={styles.receiptIconWrap}>
+                      <Receipt size={14} color="#2D6A4F" strokeWidth={1.6} />
                     </View>
-                  );
-                }
-
-                return (
-                  <Svg width={svgWidth} height={chartHeight + 28} style={{ alignSelf: 'center' }}>
-                    {data.map((day, i) => {
-                      const barHeight = maxVal > 0 ? (day.total / maxVal) * chartHeight : 0;
-                      const x = 8 + i * (barWidth + barGap);
-                      const y = chartHeight - barHeight;
-                      const isToday = i === new Date().getDay() - 1 || (new Date().getDay() === 0 && i === 6);
-                      return (
-                        <React.Fragment key={day.label + i}>
-                          <Rect
-                            x={x}
-                            y={allZero ? chartHeight - 4 : Math.max(y, 2)}
-                            width={barWidth}
-                            height={allZero ? 4 : Math.max(barHeight, 4)}
-                            rx={barWidth / 2}
-                            fill={isToday ? '#1B7A45' : allZero ? '#E8E8ED' : '#A8DDB8'}
-                            opacity={allZero ? 0.6 : isToday ? 1 : 0.7}
-                          />
-                          <SvgText
-                            x={x + barWidth / 2}
-                            y={chartHeight + 18}
-                            fontSize={11}
-                            fill={isToday ? '#1B7A45' : '#AEAEB2'}
-                            textAnchor="middle"
-                            fontWeight={isToday ? '600' : '400'}
-                          >
-                            {day.label}
-                          </SvgText>
-                        </React.Fragment>
-                      );
-                    })}
-                    {allZero && (
-                      <SvgText
-                        x={svgWidth / 2}
-                        y={chartHeight / 2 - 4}
-                        fontSize={13}
-                        fill="#C7C7CC"
-                        textAnchor="middle"
-                        fontWeight="500"
-                      >
-                        No data yet
-                      </SvgText>
-                    )}
-                  </Svg>
-                );
-              })()}
-            </View>
-          </View>
-
-
-
-
-          {/* Category Chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipsRow}
-            style={styles.chipsScroll}
-          >
-            {CATEGORY_CHIPS.map((chip) => {
-              const isActive = selectedCategory === chip.key;
-              return (
-                <Pressable
-                  key={chip.key}
-                  style={[styles.chip, isActive && { backgroundColor: chip.color + '18', borderColor: chip.color + '40' }]}
-                  onPress={() => handleCategoryPress(chip.key)}
-                >
-                  <View style={[styles.chipDot, { backgroundColor: chip.color }]} />
-                  <Text style={[styles.chipText, isActive && { color: chip.color, fontWeight: '600' as const }]}>
-                    {chip.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          {/* This Week Section */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-            {thisWeekItems.length > 0 && (
-              <Text style={styles.sectionCount}>
-                {thisWeekItems.length} {thisWeekItems.length === 1 ? 'item' : 'items'}
-              </Text>
+                    <View style={styles.receiptInfo}>
+                      <Text style={styles.receiptMerchant} numberOfLines={1}>
+                        {exp.merchant || exp.title}
+                      </Text>
+                      <Text style={styles.receiptDate}>{formatDate(exp.createdAt)}</Text>
+                    </View>
+                    <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
+                    <ChevronRight size={14} color="#C8C4BC" strokeWidth={1.8} />
+                  </Pressable>
+                ))}
+              </>
+            ) : (
+              <View style={styles.emptyCardContent}>
+                <Text style={styles.emptyCardText}>No receipts yet</Text>
+                <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking</Text>
+              </View>
             )}
           </View>
 
-          {thisWeekItems.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIconWrap}>
-                <Package size={32} color="#C7C7CC" strokeWidth={1.3} />
+          {/* Scanned Items Card */}
+          <View style={styles.card} testID="scanned-items-card">
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <View style={styles.cardIconWrap}>
+                  <ScanLine size={16} color="#2D6A4F" strokeWidth={1.8} />
+                </View>
+                <Text style={styles.cardTitle}>Scanned Items</Text>
               </View>
-              <Text style={styles.emptyTitle}>No items yet</Text>
-              <Text style={styles.emptySubtext}>
-                Scan an item or log a find to start building your list
-              </Text>
-            </View>
-          ) : (
-            thisWeekItems.slice(0, 10).map((exp) => {
-              const cColor = CATEGORY_COLORS[exp.category] ?? '#9CA3AF';
-              const Icon = budgetIconMap[exp.category] ?? MoreHorizontal;
-              const cLabel = ExpenseCategoryLabels[exp.category as ExpenseCategoryType] ?? 'Other';
-              return (
-                <Pressable
-                  key={exp.id}
-                  style={({ pressed }) => [
-                    styles.txCard,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    router.push({ pathname: '/receipt-detail', params: { expenseId: exp.id } });
-                  }}
-                >
-                  <View style={[styles.txIcon, { backgroundColor: cColor + '14' }]}>
-                    <Icon size={18} color={cColor} strokeWidth={1.8} />
-                  </View>
-                  <View style={styles.txInfo}>
-                    <View style={styles.txTopRow}>
-                      <Text style={styles.txMerchant} numberOfLines={1}>{exp.merchant || exp.title}</Text>
-                      <Text style={styles.txAmount}>-${exp.amount.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.txMetaRow}>
-                      <View style={[styles.txCatPill, { backgroundColor: cColor + '12' }]}>
-                        <Text style={[styles.txCatText, { color: cColor }]}>{cLabel}</Text>
-                      </View>
-                      <Text style={styles.txTime}>{timeAgoLabel(exp.createdAt)}</Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={14} color="#C7C7CC" strokeWidth={2} />
+              {recentScans.length > 0 && (
+                <Pressable onPress={handleSeeAllScans} hitSlop={8}>
+                  <Text style={styles.seeAllText}>See all</Text>
                 </Pressable>
-              );
-            })
-          )}
+              )}
+            </View>
 
-          {/* Saved Items Section */}
+            {recentScans.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.scannedScrollContent}
+              >
+                {recentScans.map((entry) => (
+                  <Pressable
+                    key={entry.id}
+                    onPress={() => handleScanItemPress(entry)}
+                    style={({ pressed }) => [
+                      styles.scannedItem,
+                      pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                    ]}
+                  >
+                    <View style={styles.scannedImageWrap}>
+                      {entry.imageUri ? (
+                        <Image
+                          source={{ uri: entry.imageUri }}
+                          style={styles.scannedImage}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                        />
+                      ) : (
+                        <View style={styles.scannedImagePlaceholder}>
+                          <Package size={20} color="#C8C4BC" strokeWidth={1.5} />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.scannedCategory} numberOfLines={1}>
+                      {entry.result.category || entry.result.item_type || 'Item'}
+                    </Text>
+                    <Text style={styles.scannedName} numberOfLines={1}>
+                      {entry.result.item_name || 'Scanned Item'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.emptyCardContent}>
+                <Text style={styles.emptyCardText}>No scanned items</Text>
+                <Text style={styles.emptyCardSubtext}>Tap scan to identify items</Text>
+              </View>
+            )}
+          </View>
+
+          {/* You May Also Need Card */}
+          <View style={styles.card} testID="suggestions-card">
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <Text style={styles.suggestionEmoji}>🛒</Text>
+                <Text style={styles.cardTitle}>You May Also Need</Text>
+              </View>
+              {(scanEntries.length > 0 || expenses.length > 0) && (
+                <Pressable onPress={handleRefreshSuggestions} hitSlop={8}>
+                  <RefreshCw
+                    size={16}
+                    color="#8B8680"
+                    strokeWidth={1.8}
+                  />
+                </Pressable>
+              )}
+            </View>
+
+            {suggestionQuery.isLoading ? (
+              <View style={styles.suggestionLoading}>
+                <ActivityIndicator size="small" color="#2D6A4F" />
+                <Text style={styles.suggestionLoadingText}>Finding suggestions...</Text>
+              </View>
+            ) : currentSuggestion ? (
+              <View style={styles.suggestionContent}>
+                <View style={styles.suggestionBox}>
+                  {currentSuggestion.image ? (
+                    <Image
+                      source={{ uri: currentSuggestion.image }}
+                      style={styles.suggestionImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={styles.suggestionImagePlaceholder}>
+                      <Lightbulb size={18} color="#2D6A4F" strokeWidth={1.5} />
+                    </View>
+                  )}
+                  <View style={styles.suggestionTextWrap}>
+                    <Text style={styles.suggestionTitle}>{currentSuggestion.title}</Text>
+                    {currentSuggestion.reason ? (
+                      <Text style={styles.suggestionReason} numberOfLines={2}>{currentSuggestion.reason}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.emptyCardContent}>
+                <Text style={styles.emptyCardText}>Scan items to get suggestions</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Saved Section */}
           {(() => {
             const recentSaved: { id: string; type: 'scan' | 'deal'; title: string; imageUri: string | null; time: string; raw: ScanHistoryEntry | SavedDeal }[] = [
               ...scanEntries.map((e) => ({
@@ -408,11 +344,13 @@ export default function HomeScreen() {
             if (recentSaved.length === 0) return null;
 
             return (
-              <>
-                <View style={styles.savedSectionHeader}>
-                  <View style={styles.savedTitleRow}>
-                    <Bookmark size={16} color="#1B7A45" strokeWidth={2} />
-                    <Text style={styles.savedSectionTitle}>Saved</Text>
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.cardTitleRow}>
+                    <View style={styles.cardIconWrap}>
+                      <Bookmark size={16} color="#2D6A4F" strokeWidth={1.8} />
+                    </View>
+                    <Text style={styles.cardTitle}>Saved</Text>
                   </View>
                   <Pressable
                     onPress={() => {
@@ -421,14 +359,13 @@ export default function HomeScreen() {
                     }}
                     hitSlop={8}
                   >
-                    <Text style={styles.savedSeeAll}>See all</Text>
+                    <Text style={styles.seeAllText}>See all</Text>
                   </Pressable>
                 </View>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.savedScrollContent}
-                  style={styles.savedScroll}
                 >
                   {recentSaved.map((item) => (
                     <Pressable
@@ -471,16 +408,7 @@ export default function HomeScreen() {
                           />
                         ) : (
                           <View style={styles.savedCardPlaceholder}>
-                            {item.type === 'deal' ? (
-                              <Tag size={18} color="#C7C7CC" strokeWidth={1.5} />
-                            ) : (
-                              <Package size={18} color="#C7C7CC" strokeWidth={1.5} />
-                            )}
-                          </View>
-                        )}
-                        {item.type === 'scan' && (
-                          <View style={styles.savedCardBadge}>
-                            <ScanLine size={8} color="#1B7A45" strokeWidth={2.5} />
+                            <Package size={18} color="#C8C4BC" strokeWidth={1.5} />
                           </View>
                         )}
                       </View>
@@ -488,9 +416,30 @@ export default function HomeScreen() {
                     </Pressable>
                   ))}
                 </ScrollView>
-              </>
+              </View>
             );
           })()}
+
+          {/* Scan CTA */}
+          <Pressable
+            onPress={handleScanPress}
+            style={({ pressed }) => [
+              styles.scanCta,
+              pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+            ]}
+            testID="home-scan-cta"
+          >
+            <View style={styles.scanCtaLeft}>
+              <View style={styles.scanCtaIconWrap}>
+                <Camera size={22} color="#FFFFFF" strokeWidth={1.8} />
+              </View>
+              <View style={styles.scanCtaTextWrap}>
+                <Text style={styles.scanCtaTitle}>Scan Something</Text>
+                <Text style={styles.scanCtaSubtitle}>Items, receipts, food — just point, and go</Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+          </Pressable>
 
           <View style={{ height: 32 }} />
         </Animated.View>
@@ -502,406 +451,338 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F5F7',
+    backgroundColor: '#F5F3EF',
   },
   headerArea: {
-    backgroundColor: '#F4F5F7',
+    backgroundColor: '#F5F3EF',
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 6,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   brandTitle: {
-    fontSize: 28,
-    fontWeight: '800' as const,
-    color: '#1B7A45',
+    fontSize: 32,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
     letterSpacing: -0.8,
   },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  brandSubtitle: {
+    fontSize: 15,
+    fontWeight: '400' as const,
+    color: '#8B8680',
+    marginTop: 2,
+    letterSpacing: -0.1,
   },
-  headerTimeTabs: {
-    flexDirection: 'row',
-    backgroundColor: '#EAEAEE',
-    borderRadius: 9,
-    padding: 2,
-  },
-  headerTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 7,
-  },
-  headerTabActive: {
+  gridBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  headerTabText: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-  },
-  headerTabTextActive: {
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-  },
-  filterBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#EAEAEE',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 4,
+    shadowColor: '#8B8680',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 6,
-  },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  summaryTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  summaryLeft: {
-    flex: 1,
-  },
-  summaryPeriodLabel: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: '#AEAEB2',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  summaryTotal: {
-    fontSize: 38,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -1.5,
-  },
-  summaryRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-  },
-  summaryMetaItem: {
-    alignItems: 'flex-end',
-  },
-  summaryMetaValue: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  summaryMetaLabel: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: '#AEAEB2',
-    marginTop: 1,
-  },
-  summaryMetaDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#E8E8ED',
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: '#F0F0F4',
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  chartArea: {
-    minHeight: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chartEmptyWrap: {
-    paddingVertical: 30,
-    alignItems: 'center',
-  },
-  chartEmptyText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#C7C7CC',
-  },
-  scanPreviewCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  scanPreviewIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: '#E8F5EE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  scanPreviewTextWrap: {
-    flex: 1,
-  },
-  scanPreviewTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  scanPreviewSubtitle: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    marginTop: 2,
+    paddingTop: 14,
   },
 
-  chipsScroll: {
-    marginBottom: 16,
-  },
-  chipsRow: {
-    gap: 8,
-    paddingRight: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 7,
-    borderWidth: 1,
-    borderColor: '#EAEAEE',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  chipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#636366',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  sectionCount: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#AEAEB2',
-  },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingVertical: 48,
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    padding: 20,
+    marginBottom: 14,
+    shadowColor: '#8B8680',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 2,
   },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#F4F5F7',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-  },
-  emptySubtext: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    lineHeight: 18,
-  },
-  txCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 8,
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  txIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  txInfo: {
-    flex: 1,
-  },
-  txTopRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 16,
   },
-  txMerchant: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    flex: 1,
-    marginRight: 8,
-  },
-  txAmount: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  txMetaRow: {
+  cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  txCatPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  txCatText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-  },
-  txTime: {
-    fontSize: 11,
-    color: '#8E8E93',
-    fontWeight: '400' as const,
-  },
-  savedSectionHeader: {
-    flexDirection: 'row',
+  cardIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: '#E8F0EB',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    marginBottom: 12,
   },
-  savedTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  savedSectionTitle: {
-    fontSize: 19,
+  cardTitle: {
+    fontSize: 18,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#1A1A1A',
     letterSpacing: -0.3,
   },
-  savedSeeAll: {
+  seeAllText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#1B7A45',
+    color: '#2D6A4F',
   },
-  savedScroll: {
+  suggestionEmoji: {
+    fontSize: 20,
+  },
+
+  receiptTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 16,
+  },
+  receiptTotalAmount: {
+    fontSize: 32,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    letterSpacing: -1.2,
+  },
+  receiptTotalLabel: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#8B8680',
+    marginLeft: 4,
+  },
+  receiptDivider: {
+    height: 1,
+    backgroundColor: '#F0EDE8',
     marginBottom: 4,
-    marginHorizontal: -16,
   },
-  savedScrollContent: {
-    paddingHorizontal: 16,
+  receiptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    gap: 12,
+  },
+  receiptRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EDE8',
+  },
+  receiptIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#E8F0EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receiptInfo: {
+    flex: 1,
+  },
+  receiptMerchant: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+    letterSpacing: -0.2,
+  },
+  receiptDate: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#A09B93',
+    marginTop: 2,
+  },
+  receiptAmount: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+    letterSpacing: -0.3,
+    marginRight: 4,
+  },
+
+  scannedScrollContent: {
+    gap: 12,
+    paddingRight: 4,
+  },
+  scannedItem: {
+    width: SCANNED_ITEM_WIDTH,
+  },
+  scannedImageWrap: {
+    width: SCANNED_ITEM_WIDTH,
+    height: SCANNED_ITEM_WIDTH,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F5F3EF',
+    marginBottom: 8,
+  },
+  scannedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  scannedImagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannedCategory: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#1A1A1A',
+    letterSpacing: -0.1,
+  },
+  scannedName: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#A09B93',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+
+  suggestionLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
+    paddingVertical: 12,
+  },
+  suggestionLoadingText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#A09B93',
+  },
+  suggestionContent: {},
+  suggestionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F0EB',
+    borderRadius: 14,
+    padding: 14,
+    gap: 14,
+  },
+  suggestionImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#D4E8DB',
+  },
+  suggestionImagePlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#D4E8DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  suggestionTextWrap: {
+    flex: 1,
+  },
+  suggestionTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#1A1A1A',
+    letterSpacing: -0.2,
+  },
+  suggestionReason: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#4A4A4A',
+    marginTop: 3,
+    lineHeight: 18,
+  },
+
+  emptyCardContent: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  emptyCardText: {
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: '#A09B93',
+  },
+  emptyCardSubtext: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#C8C4BC',
+    marginTop: 4,
+  },
+
+  savedScrollContent: {
+    gap: 10,
+    paddingRight: 4,
   },
   savedCard: {
     width: 110,
-    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    backgroundColor: '#F8F7F4',
   },
   savedCardImageWrap: {
     width: 110,
-    height: 90,
-    position: 'relative',
+    height: 88,
   },
   savedCardImage: {
     width: 110,
-    height: 90,
+    height: 88,
   },
   savedCardPlaceholder: {
     width: 110,
-    height: 90,
-    backgroundColor: '#F2F2F7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  savedCardBadge: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(27, 122, 69, 0.12)',
+    height: 88,
+    backgroundColor: '#EDEAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   savedCardTitle: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#1A1A1A',
     paddingHorizontal: 8,
     paddingVertical: 8,
     lineHeight: 16,
+  },
+
+  scanCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#2D6A4F',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 4,
+    shadowColor: '#2D6A4F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  scanCtaLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  scanCtaIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanCtaTextWrap: {
+    flex: 1,
+  },
+  scanCtaTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  scanCtaSubtitle: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 3,
   },
 });

@@ -445,7 +445,7 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#1A1A1A',
     letterSpacing: -0.5,
   },
   headerCount: {
@@ -476,13 +476,13 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 28,
     alignItems: 'center',
-    shadowColor: '#000000',
+    shadowColor: '#8B8680',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 3,
   },
   emptyIllustration: {
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: '#E8E6E1',
   },
   emptyBtnOutlineText: {
     fontSize: 14,
@@ -552,14 +552,14 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000000',
+    shadowColor: '#8B8680',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 3,
-    padding: 12,
+    padding: 14,
     gap: 14,
     alignItems: 'flex-start',
   },
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   cardImagePlaceholder: {
     width: 72,
     height: 72,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(27, 122, 69, 0.12)',
+    backgroundColor: 'rgba(45, 106, 79, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#1A1A1A',
     letterSpacing: -0.2,
     lineHeight: 21,
   },
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 17,
     fontWeight: '700' as const,
-    color: '#1B7A45',
+    color: '#2D6A4F',
     letterSpacing: -0.3,
     marginTop: 4,
   },
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   upgradeCardArrow: {
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,

@@ -142,22 +142,22 @@ const centerStyles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 15,
-    shadowColor: '#1B7A45',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowColor: '#2D6A4F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   button: {
     width: 50,
     height: 50,
     borderRadius: 15,
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonPressed: {
-    backgroundColor: '#166B3D',
+    backgroundColor: '#245840',
   },
   modalFill: {
     flex: 1,
@@ -243,14 +243,14 @@ const centerStyles = StyleSheet.create({
 
 const tabBarStyle = StyleSheet.create({
   bar: {
-    backgroundColor: '#FAFAFA',
-    borderTopColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E8E6E1',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
   },
   barWeb: {
-    backgroundColor: '#FAFAFA',
-    borderTopColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E8E6E1',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
     height: 52,
@@ -259,8 +259,8 @@ const tabBarStyle = StyleSheet.create({
 
 const TAB_SCREEN_OPTIONS = {
   headerShown: false,
-  tabBarActiveTintColor: '#1B7A45',
-  tabBarInactiveTintColor: '#8E8E93',
+  tabBarActiveTintColor: '#2D6A4F',
+  tabBarInactiveTintColor: '#A09B93',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
   tabBarShowLabel: false,

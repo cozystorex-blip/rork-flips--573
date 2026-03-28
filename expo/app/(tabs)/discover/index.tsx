@@ -388,7 +388,7 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   scrollContent: {
     paddingHorizontal: H_PADDING,
@@ -429,14 +429,14 @@ const styles = StyleSheet.create({
   },
   followingSection: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     paddingVertical: 14,
     paddingHorizontal: 14,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: '#8B8680',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 3,
   },
   followingHeader: {
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   followingCount: {
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   followingPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   followingName: {
     fontSize: 11,
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   },
   retryBtn: {
     marginTop: 14,
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     paddingHorizontal: 28,
     paddingVertical: 11,
     borderRadius: 12,
@@ -550,12 +550,12 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#8B8680',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 3,
   },
   cardPressed: {
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: CARD_WIDTH * 0.85,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   avatarPlaceholder: {
     justifyContent: 'center',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   followBtnActive: {
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#2D6A4F',
     borderColor: 'rgba(255,255,255,0.3)',
   },
   cardBody: {
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 38,
     borderRadius: 6,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F3EF',
   },
   emptyContainer: {
     width: '100%',
@@ -666,10 +666,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
-    shadowColor: '#000',
+    shadowColor: '#8B8680',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
     elevation: 3,
   },
   emptyTitle: {
