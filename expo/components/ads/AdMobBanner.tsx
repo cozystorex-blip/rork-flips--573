@@ -47,11 +47,11 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#1A1A1A',
     width: '100%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#2A2A2A',
   },
   inner: {
     paddingVertical: 16,
@@ -62,20 +62,20 @@ const styles = StyleSheet.create({
   adText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#555555',
+    color: '#888888',
     letterSpacing: 0.3,
   },
   adSubtext: {
     fontSize: 11,
     fontWeight: '400' as const,
-    color: '#999999',
+    color: '#666666',
     marginTop: 2,
   },
   adLabel: {
     position: 'absolute' as const,
     top: 4,
     left: 8,
-    backgroundColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   adLabelText: {
     fontSize: 9,
     fontWeight: '600' as const,
-    color: '#999999',
+    color: '#666666',
     letterSpacing: 0.3,
     textTransform: 'uppercase' as const,
   },

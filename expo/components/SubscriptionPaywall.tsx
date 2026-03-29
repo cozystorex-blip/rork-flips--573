@@ -54,26 +54,17 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('annual');
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
-  const glowAnim = useRef(new Animated.Value(0.6)).current;
-
   useEffect(() => {
     if (visible) {
       Animated.parallel([
         Animated.timing(backdropAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }),
       ]).start();
-
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0.6, duration: 1400, useNativeDriver: true }),
-        ])
-      ).start();
     } else {
       backdropAnim.setValue(0);
       slideAnim.setValue(SCREEN_H);
     }
-  }, [visible, backdropAnim, slideAnim, glowAnim]);
+  }, [visible, backdropAnim, slideAnim]);
 
   const handleClose = useCallback(() => {
     if (isPurchasing || isRestoring) return;
@@ -117,11 +108,11 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.heroSection}>
-              <Animated.View style={[styles.iconContainer, { opacity: glowAnim }]}>
+              <View style={styles.iconContainer}>
                 <View style={styles.iconInner}>
                   <Zap size={34} color="#22C55E" strokeWidth={2.2} fill="#22C55E" />
                 </View>
-              </Animated.View>
+              </View>
               <View style={styles.heroTextWrap}>
                 <Text style={styles.heroLabel}>FLIPS</Text>
                 <Text style={styles.heroTitle}>Go Premium</Text>

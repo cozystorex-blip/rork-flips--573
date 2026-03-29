@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Pressable,
-  Animated,
   Platform,
   UIManager,
 } from 'react-native';
@@ -23,7 +22,6 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 
-
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -31,6 +29,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
+import AdMobBanner from '@/components/ads/AdMobBanner';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -59,32 +58,6 @@ export default function HomeScreen() {
   const { expenses } = useExpenses();
   const { entries: scanEntries, deleteEntry } = useScanHistory();
   const { savedDeals, unsaveDeal } = useSavedItems();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(24)).current;
-  const headerFade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(headerFade, {
-        toValue: 1,
-        duration: 350,
-        useNativeDriver: true,
-      }),
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 60,
-          friction: 12,
-        }),
-      ]),
-    ]).start();
-  }, [fadeAnim, slideAnim, headerFade]);
 
   const recentReceipts = useMemo(() => {
     return expenses
@@ -158,7 +131,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.headerArea, { paddingTop: insets.top + 16, opacity: headerFade }]}>
+      <View style={[styles.headerArea, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.brandTitle}>Flips</Text>
@@ -169,143 +142,142 @@ export default function HomeScreen() {
               void Haptics.selectionAsync();
               router.push('/(tabs)/saved');
             }}
-            style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
+            style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7 }]}
             hitSlop={8}
           >
             <Grid3x3 size={18} color="#22C55E" strokeWidth={1.8} />
           </Pressable>
         </View>
-      </Animated.View>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <View style={styles.card} testID="receipts-card">
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.cardIconWrap}>
+                <Receipt size={15} color="#22C55E" strokeWidth={2} />
+              </View>
+              <Text style={styles.cardTitle}>Recent Receipts</Text>
+            </View>
+          </View>
 
-          <View style={styles.card} testID="receipts-card">
+          {recentReceipts.length > 0 ? (
+            <>
+              <View style={styles.receiptTotalRow}>
+                <Text style={styles.receiptTotalAmount}>${totalReceiptAmount.toFixed(2)}</Text>
+                <Text style={styles.receiptTotalLabel}> from {recentReceipts.length} receipt{recentReceipts.length !== 1 ? 's' : ''}</Text>
+              </View>
+
+              <View style={styles.receiptDivider} />
+
+              {recentReceipts.map((exp, index) => (
+                <Pressable
+                  key={exp.id}
+                  onPress={() => handleReceiptPress(exp.id)}
+                  style={({ pressed }) => [
+                    styles.receiptRow,
+                    pressed && { backgroundColor: '#222222' },
+                    index < recentReceipts.length - 1 && styles.receiptRowBorder,
+                  ]}
+                >
+                  <View style={styles.receiptIconWrap}>
+                    <Receipt size={13} color="#22C55E" strokeWidth={1.8} />
+                  </View>
+                  <View style={styles.receiptInfo}>
+                    <Text style={styles.receiptMerchant} numberOfLines={1}>
+                      {exp.merchant || exp.title}
+                    </Text>
+                    <Text style={styles.receiptDate}>{formatDate(exp.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
+                  <ChevronRight size={14} color="#444444" strokeWidth={2} />
+                </Pressable>
+              ))}
+            </>
+          ) : (
+            <View style={styles.emptyCardContent}>
+              <View style={styles.emptyIconCircle}>
+                <Receipt size={22} color="#22C55E" strokeWidth={1.5} />
+              </View>
+              <Text style={styles.emptyCardText}>No receipts yet</Text>
+              <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking your spending</Text>
+            </View>
+          )}
+        </View>
+
+        <AdMobBanner />
+
+        {savedItems.length > 0 && (
+          <View style={styles.card} testID="saved-items-card">
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
                 <View style={styles.cardIconWrap}>
-                  <Receipt size={15} color="#22C55E" strokeWidth={2} />
+                  <Heart size={15} color="#22C55E" strokeWidth={2} />
                 </View>
-                <Text style={styles.cardTitle}>Recent Receipts</Text>
+                <Text style={styles.cardTitle}>Saved</Text>
               </View>
+              <Pressable
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  router.push('/(tabs)/saved');
+                }}
+                hitSlop={8}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <Text style={styles.seeAllText}>See all</Text>
+              </Pressable>
             </View>
 
-            {recentReceipts.length > 0 ? (
-              <>
-                <View style={styles.receiptTotalRow}>
-                  <Text style={styles.receiptTotalAmount}>${totalReceiptAmount.toFixed(2)}</Text>
-                  <Text style={styles.receiptTotalLabel}> from {recentReceipts.length} receipt{recentReceipts.length !== 1 ? 's' : ''}</Text>
-                </View>
-
-                <View style={styles.receiptDivider} />
-
-                {recentReceipts.map((exp, index) => (
-                  <Pressable
-                    key={exp.id}
-                    onPress={() => handleReceiptPress(exp.id)}
-                    style={({ pressed }) => [
-                      styles.receiptRow,
-                      pressed && { backgroundColor: '#222222' },
-                      index < recentReceipts.length - 1 && styles.receiptRowBorder,
-                    ]}
-                  >
-                    <View style={styles.receiptIconWrap}>
-                      <Receipt size={13} color="#22C55E" strokeWidth={1.8} />
+            {savedItems.map((item, index) => (
+              <Pressable
+                key={item.id}
+                onPress={() => handleSavedItemPress(item)}
+                style={({ pressed }) => [
+                  styles.savedRow,
+                  pressed && { backgroundColor: '#222222' },
+                  index < savedItems.length - 1 && styles.savedRowBorder,
+                ]}
+              >
+                <View style={styles.savedImageWrap}>
+                  {item.imageUri ? (
+                    <Image
+                      source={{ uri: item.imageUri }}
+                      style={styles.savedImage}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={styles.savedImagePlaceholder}>
+                      {item.type === 'deal' ? (
+                        <Tag size={14} color="#555555" strokeWidth={1.5} />
+                      ) : (
+                        <Package size={14} color="#555555" strokeWidth={1.5} />
+                      )}
                     </View>
-                    <View style={styles.receiptInfo}>
-                      <Text style={styles.receiptMerchant} numberOfLines={1}>
-                        {exp.merchant || exp.title}
-                      </Text>
-                      <Text style={styles.receiptDate}>{formatDate(exp.createdAt)}</Text>
-                    </View>
-                    <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                    <ChevronRight size={14} color="#444444" strokeWidth={2} />
-                  </Pressable>
-                ))}
-              </>
-            ) : (
-              <View style={styles.emptyCardContent}>
-                <View style={styles.emptyIconCircle}>
-                  <Receipt size={22} color="#22C55E" strokeWidth={1.5} />
+                  )}
                 </View>
-                <Text style={styles.emptyCardText}>No receipts yet</Text>
-                <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking your spending</Text>
-              </View>
-            )}
+                <View style={styles.savedInfo}>
+                  <Text style={styles.savedTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.savedSubtitle} numberOfLines={1}>
+                    {item.subtitle} · {formatTimeAgo(item.savedAt)}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => handleDeleteSavedItem(item)}
+                  style={({ pressed }) => [styles.savedDeleteBtn, pressed && { opacity: 0.4 }]}
+                  hitSlop={10}
+                >
+                  <Trash2 size={14} color="#444444" strokeWidth={1.5} />
+                </Pressable>
+              </Pressable>
+            ))}
           </View>
+        )}
 
-          {savedItems.length > 0 && (
-            <View style={styles.card} testID="saved-items-card">
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleRow}>
-                  <View style={styles.cardIconWrap}>
-                    <Heart size={15} color="#22C55E" strokeWidth={2} />
-                  </View>
-                  <Text style={styles.cardTitle}>Saved</Text>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    router.push('/(tabs)/saved');
-                  }}
-                  hitSlop={8}
-                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={styles.seeAllText}>See all</Text>
-                </Pressable>
-              </View>
-
-              {savedItems.map((item, index) => (
-                <Pressable
-                  key={item.id}
-                  onPress={() => handleSavedItemPress(item)}
-                  style={({ pressed }) => [
-                    styles.savedRow,
-                    pressed && { backgroundColor: '#222222' },
-                    index < savedItems.length - 1 && styles.savedRowBorder,
-                  ]}
-                >
-                  <View style={styles.savedImageWrap}>
-                    {item.imageUri ? (
-                      <Image
-                        source={{ uri: item.imageUri }}
-                        style={styles.savedImage}
-                        contentFit="cover"
-                        cachePolicy="memory-disk"
-                      />
-                    ) : (
-                      <View style={styles.savedImagePlaceholder}>
-                        {item.type === 'deal' ? (
-                          <Tag size={14} color="#555555" strokeWidth={1.5} />
-                        ) : (
-                          <Package size={14} color="#555555" strokeWidth={1.5} />
-                        )}
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.savedInfo}>
-                    <Text style={styles.savedTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.savedSubtitle} numberOfLines={1}>
-                      {item.subtitle} · {formatTimeAgo(item.savedAt)}
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => handleDeleteSavedItem(item)}
-                    style={({ pressed }) => [styles.savedDeleteBtn, pressed && { opacity: 0.4 }]}
-                    hitSlop={10}
-                  >
-                    <Trash2 size={14} color="#444444" strokeWidth={1.5} />
-                  </Pressable>
-                </Pressable>
-              ))}
-            </View>
-          )}
-
-          <View style={{ height: 32 }} />
-        </Animated.View>
+        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );
@@ -327,23 +299,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   brandTitle: {
-    fontSize: 34,
-    fontWeight: '900' as const,
+    fontSize: 28,
+    fontWeight: '800' as const,
     color: '#F5F5F5',
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
+    fontSize: 13,
+    fontWeight: '500' as const,
     color: '#22C55E',
-    marginTop: 3,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase' as const,
+    marginTop: 2,
   },
   gridBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
@@ -355,12 +325,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 14,
   },
-
   card: {
     backgroundColor: '#1A1A1A',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#2A2A2A',
   },
@@ -368,7 +337,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   cardTitleRow: {
     flexDirection: 'row',
@@ -376,51 +345,47 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: '800' as const,
+    fontSize: 16,
+    fontWeight: '700' as const,
     color: '#F5F5F5',
-    letterSpacing: -0.3,
   },
   seeAllText: {
     fontSize: 14,
-    fontWeight: '700' as const,
+    fontWeight: '600' as const,
     color: '#22C55E',
-    letterSpacing: -0.1,
   },
-
   savedRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 12,
-    borderRadius: 10,
   },
   savedRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#2A2A2A',
   },
   savedImageWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     overflow: 'hidden' as const,
     backgroundColor: '#111111',
   },
   savedImage: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
   },
   savedImagePlaceholder: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     backgroundColor: '#111111',
@@ -429,10 +394,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   savedTitle: {
-    fontSize: 15,
-    fontWeight: '700' as const,
+    fontSize: 14,
+    fontWeight: '600' as const,
     color: '#F5F5F5',
-    letterSpacing: -0.2,
   },
   savedSubtitle: {
     fontSize: 12,
@@ -443,21 +407,20 @@ const styles = StyleSheet.create({
   savedDeleteBtn: {
     padding: 6,
   },
-
   receiptTotalRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   receiptTotalAmount: {
-    fontSize: 36,
-    fontWeight: '900' as const,
+    fontSize: 28,
+    fontWeight: '800' as const,
     color: '#22C55E',
-    letterSpacing: -1.6,
+    letterSpacing: -1,
   },
   receiptTotalLabel: {
-    fontSize: 14,
-    fontWeight: '500' as const,
+    fontSize: 13,
+    fontWeight: '400' as const,
     color: '#666666',
     marginLeft: 4,
   },
@@ -469,18 +432,17 @@ const styles = StyleSheet.create({
   receiptRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 13,
+    paddingVertical: 12,
     gap: 12,
-    borderRadius: 10,
   },
   receiptRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: '#2A2A2A',
   },
   receiptIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
@@ -489,10 +451,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   receiptMerchant: {
-    fontSize: 15,
-    fontWeight: '700' as const,
+    fontSize: 14,
+    fontWeight: '600' as const,
     color: '#F5F5F5',
-    letterSpacing: -0.2,
   },
   receiptDate: {
     fontSize: 12,
@@ -501,35 +462,32 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   receiptAmount: {
-    fontSize: 16,
-    fontWeight: '800' as const,
+    fontSize: 15,
+    fontWeight: '700' as const,
     color: '#F5F5F5',
-    letterSpacing: -0.3,
     marginRight: 2,
   },
-
   emptyCardContent: {
-    paddingVertical: 28,
+    paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: 'center',
     backgroundColor: '#111111',
-    borderRadius: 16,
+    borderRadius: 12,
     marginTop: 2,
   },
   emptyIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   emptyCardText: {
-    fontSize: 17,
-    fontWeight: '800' as const,
+    fontSize: 16,
+    fontWeight: '700' as const,
     color: '#F5F5F5',
-    letterSpacing: -0.2,
   },
   emptyCardSubtext: {
     fontSize: 13,

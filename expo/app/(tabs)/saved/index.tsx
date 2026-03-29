@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Pressable,
-  Animated,
   RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -166,32 +165,6 @@ export default function SavedScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [upgradeVisible, setUpgradeVisible] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  const headerFade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(headerFade, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 60,
-          friction: 12,
-        }),
-      ]),
-    ]).start();
-  }, [fadeAnim, slideAnim, headerFade]);
 
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
     const scanItems: UnifiedItem[] = scanEntries.map((e) => ({
@@ -376,10 +349,10 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <Animated.View style={[styles.screenHeaderWrap, { paddingTop: insets.top + 16, opacity: headerFade }]}>
+      <View style={[styles.screenHeaderWrap, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.screenTitle}>Saved</Text>
         <Text style={styles.screenSubtitle}>Your scans & saved deals</Text>
-      </Animated.View>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -388,7 +361,7 @@ export default function SavedScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22C55E" />
         }
       >
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <View>
           {isLoading ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.loadingText}>Loading...</Text>
@@ -446,7 +419,7 @@ export default function SavedScreen() {
           )}
 
           <View style={{ height: 32 }} />
-        </Animated.View>
+        </View>
       </ScrollView>
 
       <SavedUpgradeModal

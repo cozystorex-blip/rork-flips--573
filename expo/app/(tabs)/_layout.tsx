@@ -142,11 +142,6 @@ const centerStyles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    shadowColor: '#22C55E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
   },
   button: {
     width: 46,
