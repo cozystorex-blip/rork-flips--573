@@ -9,7 +9,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
-import { CalendarDays, Trash2, ChevronLeft, MoreHorizontal, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, UtensilsCrossed } from 'lucide-react-native';
+import { CalendarDays, Trash2, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, UtensilsCrossed, MoreHorizontal } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import { useExpenses } from '@/contexts/ExpenseContext';
@@ -19,24 +19,24 @@ import * as Haptics from 'expo-haptics';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_H_PAD = 16;
-const CHART_INNER_WIDTH = SCREEN_WIDTH - 32 - CHART_H_PAD * 2;
+const CHART_INNER_WIDTH = SCREEN_WIDTH - 40 - CHART_H_PAD * 2;
 
 const TIME_TABS = [
   { key: 'week' as const, label: 'Week' },
   { key: 'month' as const, label: 'Month' },
-  { key: '6months' as const, label: '6 Months' },
+  { key: '6months' as const, label: '6 Mo' },
 ];
 
 const CATEGORY_CHIPS: { key: ExpenseCategoryType | 'all'; label: string; color: string }[] = [
-  { key: 'all', label: 'All', color: '#00C853' },
-  { key: 'food', label: 'Food', color: '#22C55E' },
-  { key: 'grocery', label: 'Grocery', color: '#F59E0B' },
-  { key: 'transport', label: 'Transport', color: '#3B82F6' },
-  { key: 'utility_bills', label: 'Bills', color: '#F97316' },
-  { key: 'shopping', label: 'Shopping', color: '#EC4899' },
-  { key: 'home', label: 'Home', color: '#14B8A6' },
-  { key: 'subscriptions', label: 'Subs', color: '#A855F7' },
-  { key: 'other', label: 'Other', color: '#9CA3AF' },
+  { key: 'all', label: 'All', color: '#34C759' },
+  { key: 'food', label: 'Food', color: '#34C759' },
+  { key: 'grocery', label: 'Grocery', color: '#FF9500' },
+  { key: 'transport', label: 'Transport', color: '#007AFF' },
+  { key: 'utility_bills', label: 'Bills', color: '#FF3B30' },
+  { key: 'shopping', label: 'Shopping', color: '#FF2D55' },
+  { key: 'home', label: 'Home', color: '#5AC8FA' },
+  { key: 'subscriptions', label: 'Subs', color: '#AF52DE' },
+  { key: 'other', label: 'Other', color: '#8E8E93' },
 ];
 
 function timeAgoLabel(iso: string): string {
@@ -177,7 +177,7 @@ export default function AnalyticsScreen() {
     const totalGaps = barGap * (barCount - 1);
     const availableWidth = CHART_INNER_WIDTH - 32;
     const barWidth = Math.max(4, (availableWidth - totalGaps) / barCount);
-    const chartHeight = 150;
+    const chartHeight = 140;
     const avgVal = data.reduce((s, d) => s + d.total, 0) / data.length;
     const allZero = data.every((d) => d.total === 0);
     const svgWidth = availableWidth + 40;
@@ -197,16 +197,16 @@ export default function AnalyticsScreen() {
               y1={chartHeight * (1 - avgVal / maxVal)}
               x2={svgWidth - 8}
               y2={chartHeight * (1 - avgVal / maxVal)}
-              stroke="#D1D5DB"
+              stroke="#38383A"
               strokeWidth={1}
               strokeDasharray="3,3"
             />
           )}
           {!allZero && (
             <>
-              <Line x1={32} y1={chartHeight} x2={svgWidth - 8} y2={chartHeight} stroke="#E5E7EB" strokeWidth={0.5} />
-              <SvgText x={4} y={chartHeight + 4} fontSize={10} fill="#9CA3AF">0</SvgText>
-              <SvgText x={4} y={14} fontSize={10} fill="#9CA3AF">${Math.round(maxVal)}</SvgText>
+              <Line x1={32} y1={chartHeight} x2={svgWidth - 8} y2={chartHeight} stroke="#2C2C2E" strokeWidth={0.5} />
+              <SvgText x={4} y={chartHeight + 4} fontSize={10} fill="#636366">0</SvgText>
+              <SvgText x={4} y={14} fontSize={10} fill="#636366">${Math.round(maxVal)}</SvgText>
             </>
           )}
           {data.map((day, i) => {
@@ -214,7 +214,7 @@ export default function AnalyticsScreen() {
             const x = 32 + i * (barWidth + barGap);
             const y = chartHeight - barHeight;
             const isLast = i === data.length - 1;
-            const opacity = isLast ? 1 : 0.65 + (i / data.length) * 0.25;
+            const opacity = isLast ? 1 : 0.5 + (i / data.length) * 0.4;
             return (
               <React.Fragment key={day.label + i}>
                 <Rect
@@ -223,7 +223,7 @@ export default function AnalyticsScreen() {
                   width={barWidth}
                   height={Math.max(barHeight, 4)}
                   rx={5}
-                  fill={isLast ? '#1B5E3B' : '#3D9B63'}
+                  fill={isLast ? '#34C759' : '#2D8A4E'}
                   opacity={opacity}
                 />
                 <SvgText
@@ -244,7 +244,7 @@ export default function AnalyticsScreen() {
               x={svgWidth / 2}
               y={chartHeight / 2}
               fontSize={13}
-              fill="#C7C7CC"
+              fill="#636366"
               textAnchor="middle"
             >
               No spending data yet
@@ -259,8 +259,14 @@ export default function AnalyticsScreen() {
     const catColor = ExpenseCategoryColors[expense.category];
     const Icon = iconMap[expense.category];
     return (
-      <View key={expense.id} style={styles.txCard}>
-        <View style={[styles.txIcon, { backgroundColor: catColor + '14' }]}>
+      <Pressable
+        key={expense.id}
+        style={({ pressed }) => [
+          styles.txCard,
+          pressed && styles.txCardPressed,
+        ]}
+      >
+        <View style={[styles.txIcon, { backgroundColor: catColor + '18' }]}>
           <Icon size={18} color={catColor} strokeWidth={1.8} />
         </View>
         <View style={styles.txInfo}>
@@ -269,7 +275,7 @@ export default function AnalyticsScreen() {
             <Text style={styles.txAmount}>-${expense.amount.toFixed(2)}</Text>
           </View>
           <View style={styles.txMetaRow}>
-            <View style={[styles.txCatPill, { backgroundColor: catColor + '12' }]}>
+            <View style={[styles.txCatPill, { backgroundColor: catColor + '18' }]}>
               <Text style={[styles.txCatText, { color: catColor }]}>
                 {ExpenseCategoryLabels[expense.category]}
               </Text>
@@ -302,90 +308,67 @@ export default function AnalyticsScreen() {
             style={styles.txDelete}
             hitSlop={8}
           >
-            <Trash2 size={14} color="#D1D5DB" strokeWidth={1.5} />
+            <Trash2 size={14} color="#48484A" strokeWidth={1.5} />
           </Pressable>
         )}
-      </View>
+      </Pressable>
     );
   }, [deleteExpense]);
-
-  const now = new Date();
-  const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
   return (
     <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
       >
         <Animated.View style={{ opacity: fadeAnim }}>
           <Text style={styles.title}>Analytics</Text>
 
-          <View style={styles.timeBar}>
-            <Pressable onPress={() => handleTimeTab(timeTab === 'month' ? 'week' : timeTab === '6months' ? 'month' : 'week')} style={styles.timeArrow} hitSlop={8}>
-              <ChevronLeft size={18} color="#48484A" strokeWidth={2} />
-            </Pressable>
-            <View style={styles.timeTabsRow}>
-              {TIME_TABS.map((tab) => (
-                <Pressable
-                  key={tab.key}
-                  style={[styles.timeTab, timeTab === tab.key && styles.timeTabActive]}
-                  onPress={() => handleTimeTab(tab.key)}
-                >
-                  {timeTab === tab.key && tab.key === 'week' ? (
-                    <View style={styles.timeTabInner}>
-                      <Text style={styles.timeTabTextActive}>{tab.label}</Text>
-                    </View>
-                  ) : timeTab === tab.key && tab.key === 'month' ? (
-                    <View style={styles.timeTabInner}>
-                      <Text style={styles.timeTabTextActive}>Today</Text>
-                      <Text style={styles.timeTabSub}>{timeString}</Text>
-                    </View>
-                  ) : (
-                    <Text style={[styles.timeTabText, timeTab === tab.key && styles.timeTabTextActive]}>
-                      {tab.label === '6 Months' ? 'Months' : tab.label}
-                    </Text>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-            <Pressable onPress={() => handleTimeTab(timeTab === 'week' ? 'month' : timeTab === 'month' ? '6months' : '6months')} style={styles.timeArrow} hitSlop={8}>
-              <MoreHorizontal size={18} color="#48484A" strokeWidth={2} />
-            </Pressable>
+          <View style={styles.timeTabsRow}>
+            {TIME_TABS.map((tab) => (
+              <Pressable
+                key={tab.key}
+                style={[styles.timeTab, timeTab === tab.key && styles.timeTabActive]}
+                onPress={() => handleTimeTab(tab.key)}
+              >
+                <Text style={[styles.timeTabText, timeTab === tab.key && styles.timeTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <View style={[styles.statDot, { backgroundColor: '#DC2626' }]}>
+              <View style={[styles.statDot, { backgroundColor: '#FF3B30' }]}>
                 <ShoppingBag size={13} color="#FFFFFF" strokeWidth={2} />
               </View>
               <Text style={styles.statVal}>${totalSpent.toFixed(0)}</Text>
               <Text style={styles.statLbl}>Spent</Text>
               {timeTab === 'week' && prevSpent > 0 && (
-                <Text style={[styles.statDiff, { color: spentDiff <= 0 ? '#16A34A' : '#DC2626' }]}>
-                  {spentDiff > 0 ? '+' : '-'}${Math.abs(spentDiff).toFixed(0)} vs{'\n'}last week
+                <Text style={[styles.statDiff, { color: spentDiff <= 0 ? '#34C759' : '#FF3B30' }]}>
+                  {spentDiff > 0 ? '+' : '-'}${Math.abs(spentDiff).toFixed(0)} vs last wk
                 </Text>
               )}
             </View>
             <View style={styles.statCard}>
-              <View style={[styles.statDot, { backgroundColor: '#16A34A' }]}>
+              <View style={[styles.statDot, { backgroundColor: '#34C759' }]}>
                 <ShoppingBag size={13} color="#FFFFFF" strokeWidth={2} />
               </View>
               <Text style={styles.statVal}>${totalSaved}</Text>
               <Text style={styles.statLbl}>Saved</Text>
               {timeTab === 'week' && totalSaved > 0 && (
-                <Text style={[styles.statDiff, { color: '#16A34A' }]}>
-                  +${savedDiff} vs{'\n'}last week
+                <Text style={[styles.statDiff, { color: '#34C759' }]}>
+                  +${savedDiff} vs last wk
                 </Text>
               )}
             </View>
             <View style={styles.statCard}>
-              <View style={[styles.statDot, { backgroundColor: '#F3F4F6' }]}>
-                <CalendarDays size={13} color="#6B7280" strokeWidth={1.8} />
+              <View style={[styles.statDot, { backgroundColor: '#2C2C2E' }]}>
+                <CalendarDays size={13} color="#8E8E93" strokeWidth={1.8} />
               </View>
               <Text style={styles.statVal}>${Math.round(weeklyAvg)}</Text>
-              <Text style={styles.statLbl}>avg</Text>
-              <Text style={styles.statDiffLight}>Weekly{'\n'}Spend</Text>
+              <Text style={styles.statLbl}>Wk avg</Text>
             </View>
           </View>
 
@@ -403,8 +386,7 @@ export default function AnalyticsScreen() {
                     key={chip.key}
                     style={[
                       styles.chip,
-                      isActive && styles.chipActive,
-                      isActive && { backgroundColor: chip.color + '14' },
+                      isActive && { backgroundColor: chip.color + '20' },
                     ]}
                     onPress={() => handleCategorySelect(chip.key)}
                   >
@@ -441,7 +423,9 @@ export default function AnalyticsScreen() {
                 </Text>
               </View>
             ) : (
-              thisWeekExpenses.slice(0, 8).map(renderRecentCard)
+              <View style={styles.txList}>
+                {thisWeekExpenses.slice(0, 8).map(renderRecentCard)}
+              </View>
             )}
           </View>
 
@@ -455,146 +439,88 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#000000',
   },
   scroll: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 34,
-    fontWeight: '900' as const,
-    color: '#0D1B2A',
-    letterSpacing: -1,
-    marginBottom: 14,
-  },
-  timeBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-    gap: 6,
-  },
-  timeArrow: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0EAF2',
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
+    marginBottom: 16,
   },
   timeTabsRow: {
-    flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#D0DDE8',
-    borderRadius: 9,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 10,
     padding: 2,
+    marginBottom: 16,
   },
   timeTab: {
     flex: 1,
-    paddingVertical: 7,
-    borderRadius: 7,
+    paddingVertical: 8,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   timeTabActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  timeTabInner: {
-    alignItems: 'center',
+    backgroundColor: '#2C2C2E',
   },
   timeTabText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500' as const,
-    color: '#7A8FA3',
+    color: '#636366',
   },
   timeTabTextActive: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    color: '#0D1B2A',
-  },
-  timeTabSub: {
-    fontSize: 10,
-    fontWeight: '400' as const,
-    color: '#7A8FA3',
-    marginTop: 1,
+    color: '#FFFFFF',
+    fontWeight: '600' as const,
   },
   statsRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0EAF2',
   },
   statDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   statVal: {
-    fontSize: 26,
-    fontWeight: '900' as const,
-    color: '#0D1B2A',
-    letterSpacing: -0.8,
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   statLbl: {
     fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#7A8FA3',
+    fontWeight: '400' as const,
+    color: '#8E8E93',
     marginTop: 2,
   },
   statDiff: {
     fontSize: 11,
     fontWeight: '500' as const,
-    marginTop: 6,
-    lineHeight: 14,
-  },
-  statDiffLight: {
-    fontSize: 11,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    marginTop: 6,
-    lineHeight: 14,
+    marginTop: 4,
   },
   chartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     paddingTop: 16,
     paddingBottom: 12,
     paddingHorizontal: CHART_H_PAD,
     marginBottom: 14,
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0EAF2',
   },
   chartInner: {
     position: 'relative',
@@ -614,7 +540,7 @@ const styles = StyleSheet.create({
   chartAvgLabel: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#636366',
   },
   chipRow: {
     flexDirection: 'row',
@@ -622,22 +548,17 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#D0DDE8',
+    borderTopColor: '#38383A',
     paddingRight: 4,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#2C2C2E',
     paddingHorizontal: 12,
     height: 32,
     borderRadius: 16,
-    borderWidth: 0,
-    borderColor: 'transparent',
-  },
-  chipActive: {
-    borderColor: 'transparent',
   },
   chipDot: {
     width: 6,
@@ -646,9 +567,8 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#7A8FA3',
-    letterSpacing: -0.1,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
   },
   weekSection: {
     marginBottom: 8,
@@ -660,13 +580,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   weekTitle: {
-    fontSize: 20,
-    fontWeight: '800' as const,
-    color: '#0D1B2A',
-    letterSpacing: -0.3,
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   weekBadge: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#34C759',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -676,28 +595,28 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FFFFFF',
   },
+  txList: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   txCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
     padding: 14,
-    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#38383A',
+  },
+  txCardPressed: {
+    backgroundColor: '#2C2C2E',
   },
   txIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
   txInfo: {
     flex: 1,
@@ -710,15 +629,15 @@ const styles = StyleSheet.create({
   },
   txMerchant: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#0D1B2A',
+    fontWeight: '500' as const,
+    color: '#FFFFFF',
     flex: 1,
     marginRight: 8,
   },
   txAmount: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#0D1B2A',
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   txMetaRow: {
@@ -737,12 +656,12 @@ const styles = StyleSheet.create({
   },
   txTime: {
     fontSize: 11,
-    color: '#7A8FA3',
+    color: '#636366',
     fontWeight: '400' as const,
   },
   txPreview: {
     fontSize: 12,
-    color: '#8E8E93',
+    color: '#636366',
     marginTop: 4,
   },
   txDelete: {
@@ -750,21 +669,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     paddingVertical: 32,
     alignItems: 'center',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0EAF2',
   },
   emptyText: {
     fontSize: 14,
-    color: '#7A8FA3',
-    fontWeight: '500' as const,
+    color: '#636366',
+    fontWeight: '400' as const,
   },
 });

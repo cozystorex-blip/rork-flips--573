@@ -129,7 +129,7 @@ export default function AuthScreen() {
 
             <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.logoContainer}>
-                <Lock size={28} color="#2D6A4F" />
+                <Lock size={28} color="#34C759" />
               </View>
               <Text style={styles.title}>Reset Password</Text>
               <Text style={styles.subtitle}>
@@ -139,7 +139,7 @@ export default function AuthScreen() {
 
             {resetSent ? (
               <Animated.View style={[styles.successCard, { opacity: fadeAnim }]}>
-                <CheckCircle size={32} color="#2D6A4F" />
+                <CheckCircle size={32} color="#34C759" />
                 <Text style={styles.successTitle}>Check Your Inbox</Text>
                 <Text style={styles.successText}>
                   If an account exists for this email, a reset link has been sent.
@@ -314,7 +314,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000000',
   },
   flex: {
     flex: 1,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 38,
     fontWeight: '800' as const,
-    color: '#00C853',
+    color: '#34C759',
     letterSpacing: -1.5,
     marginBottom: 16,
   },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   submitBtn: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#34C759',
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#00C853',
+    color: '#34C759',
   },
   backRow: {
     flexDirection: 'row',
