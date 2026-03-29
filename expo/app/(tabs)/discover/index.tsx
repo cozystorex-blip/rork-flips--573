@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { User, UserPlus } from 'lucide-react-native';
+import { User, UserPlus, Users, Search, MessageCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
@@ -25,7 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import AdProfileCard from '@/components/ads/AdProfileCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const H_PADDING = 16;
+const H_PADDING = 18;
 const CARD_GAP = 12;
 const NUM_COLUMNS = 2;
 const CARD_WIDTH = (SCREEN_WIDTH - H_PADDING * 2 - CARD_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
@@ -200,6 +200,8 @@ export default function DiscoverScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const emptyScale = useRef(new Animated.Value(0.94)).current;
 
   const [followedIds, setFollowedIds] = useState<string[]>([]);
 
@@ -270,12 +272,27 @@ export default function DiscoverScreen() {
   }, []);
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    Animated.sequence([
+      Animated.timing(headerFade, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(emptyScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 60,
+          friction: 10,
+        }),
+      ]),
+    ]).start();
+  }, [fadeAnim, headerFade, emptyScale]);
 
   const navigateToProfile = useCallback((id: string) => {
     void Haptics.selectionAsync();
@@ -315,12 +332,12 @@ export default function DiscoverScreen() {
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
       >
-        <View style={styles.screenHeader}>
+        <Animated.View style={[styles.screenHeader, { opacity: headerFade }]}>
           <Text style={styles.screenTitle}>Community</Text>
-          <Text style={styles.screenSubtitle}>Connect with other users</Text>
-        </View>
+          <Text style={styles.screenSubtitle}>Connect with other shoppers</Text>
+        </Animated.View>
 
         {followedProfiles.length > 0 && (
           <View style={styles.followingSection}>
@@ -350,11 +367,9 @@ export default function DiscoverScreen() {
           </View>
         )}
 
-
-
         {discoverQuery.isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#8E8E93" />
+            <ActivityIndicator size="small" color="#2D6A4F" />
             <Text style={styles.loadingText}>Loading profiles...</Text>
           </View>
         ) : discoverQuery.isError ? (
@@ -371,15 +386,40 @@ export default function DiscoverScreen() {
             </Pressable>
           </View>
         ) : displayProfiles.length === 0 ? (
-          <View style={styles.emptyContainer}>
+          <Animated.View style={[styles.emptyWrapper, { opacity: fadeAnim, transform: [{ scale: emptyScale }] }]}>
             <View style={styles.emptyCard}>
-              <View style={styles.emptyIconWrap}>
-                <User size={28} color="#2D6A4F" strokeWidth={1.5} />
+              <View style={styles.emptyIconRow}>
+                <View style={[styles.emptyIconCircle, styles.emptyIconCircleSmall]}>
+                  <Search size={16} color="#8A8F82" strokeWidth={1.8} />
+                </View>
+                <View style={styles.emptyIconCircleLarge}>
+                  <Users size={28} color="#2D6A4F" strokeWidth={1.5} />
+                </View>
+                <View style={[styles.emptyIconCircle, styles.emptyIconCircleSmall]}>
+                  <MessageCircle size={16} color="#8A8F82" strokeWidth={1.8} />
+                </View>
               </View>
               <Text style={styles.emptyTitle}>No profiles yet</Text>
-              <Text style={styles.emptySubtext}>Be the first to set up your profile and start connecting with other shoppers</Text>
+              <Text style={styles.emptySubtext}>
+                Be the first to set up your profile and start connecting with other shoppers
+              </Text>
+              <View style={styles.emptyDivider} />
+              <View style={styles.emptyHintsRow}>
+                <View style={styles.emptyHint}>
+                  <View style={styles.emptyHintDot} />
+                  <Text style={styles.emptyHintText}>Share your finds</Text>
+                </View>
+                <View style={styles.emptyHint}>
+                  <View style={styles.emptyHintDot} />
+                  <Text style={styles.emptyHintText}>Follow shoppers</Text>
+                </View>
+                <View style={styles.emptyHint}>
+                  <View style={styles.emptyHintDot} />
+                  <Text style={styles.emptyHintText}>Discover deals</Text>
+                </View>
+              </View>
             </View>
-          </View>
+          </Animated.View>
         ) : (
           <Animated.View style={[styles.grid, { opacity: fadeAnim }]}>
             {gridElements}
@@ -395,25 +435,26 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F5F0',
+    backgroundColor: '#EDEFE8',
   },
   scrollContent: {
     paddingHorizontal: H_PADDING,
   },
   screenHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   screenTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800' as const,
-    color: '#1A1A1A',
-    letterSpacing: -0.5,
+    color: '#1A1F16',
+    letterSpacing: -0.8,
   },
   screenSubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500' as const,
-    color: '#9B9690',
+    color: '#8A8F82',
     marginTop: 2,
+    letterSpacing: -0.1,
   },
   headerSection: {
     marginBottom: 16,
@@ -439,26 +480,26 @@ const styles = StyleSheet.create({
   },
   followingSection: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    borderRadius: 22,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     marginBottom: 16,
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#3C4A33',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.07,
-    shadowRadius: 14,
+    shadowRadius: 20,
     elevation: 3,
   },
   followingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   followingLabel: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
+    fontWeight: '700' as const,
+    color: '#1A1F16',
     letterSpacing: -0.2,
   },
   followingCount: {
@@ -501,12 +542,12 @@ const styles = StyleSheet.create({
   followingPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F2F4EE',
   },
   followingName: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#3C3C43',
+    color: '#3C4A33',
     textAlign: 'center' as const,
   },
   sectionDivider: {
@@ -525,26 +566,26 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     width: '100%',
-    paddingVertical: 48,
+    paddingVertical: 60,
     alignItems: 'center',
   },
   loadingText: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: '#8A8F82',
     fontWeight: '500' as const,
     marginTop: 10,
   },
   errorText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#8A8F82',
     fontWeight: '600' as const,
   },
   retryBtn: {
     marginTop: 14,
     backgroundColor: '#2D6A4F',
     paddingHorizontal: 28,
-    paddingVertical: 11,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
   retryBtnText: {
     fontSize: 14,
@@ -560,12 +601,12 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#3C4A33',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.07,
-    shadowRadius: 14,
+    shadowRadius: 20,
     elevation: 3,
   },
   cardPressed: {
@@ -578,7 +619,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: CARD_WIDTH * 0.85,
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F2F4EE',
   },
   avatarPlaceholder: {
     justifyContent: 'center',
@@ -610,15 +651,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   cardBody: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
     gap: 3,
   },
   profileName: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#1A1F16',
     letterSpacing: -0.2,
   },
   styleTag: {
@@ -626,9 +667,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     marginTop: 2,
   },
   styleTagText: {
@@ -643,12 +684,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 17,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#1A1F16',
     letterSpacing: -0.3,
   },
   statLabel: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: '#8A8F82',
     fontWeight: '400' as const,
   },
   thumbRow: {
@@ -659,50 +700,94 @@ const styles = StyleSheet.create({
   thumbImg: {
     flex: 1,
     height: 38,
-    borderRadius: 6,
-    backgroundColor: '#F5F3EF',
+    borderRadius: 8,
+    backgroundColor: '#F2F4EE',
   },
-  emptyContainer: {
-    width: '100%',
-    paddingVertical: 32,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    gap: 0,
+  emptyWrapper: {
+    paddingTop: 20,
+    paddingHorizontal: 4,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 32,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 2,
+    shadowColor: '#3C4A33',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
   },
-  emptyIconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: '#E8F5EE',
+  emptyIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  emptyIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F2F4EE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconCircleSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+  },
+  emptyIconCircleLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#E4EDE6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    marginTop: 14,
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#1A1F16',
+    letterSpacing: -0.4,
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#8E8E93',
+    color: '#8A8F82',
     textAlign: 'center' as const,
-    paddingHorizontal: 16,
-    lineHeight: 20,
-    marginTop: 6,
+    paddingHorizontal: 12,
+    lineHeight: 21,
+  },
+  emptyDivider: {
+    width: 48,
+    height: 2,
+    backgroundColor: '#E4EDE6',
+    borderRadius: 1,
+    marginTop: 24,
+    marginBottom: 20,
+  },
+  emptyHintsRow: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  emptyHint: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptyHintDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2D6A4F',
+    opacity: 0.4,
+  },
+  emptyHintText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#6B7266',
+    letterSpacing: -0.1,
   },
 });

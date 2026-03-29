@@ -8,7 +8,7 @@ import {
   Animated,
   RefreshControl,
 } from 'react-native';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   Tag,
@@ -18,9 +18,10 @@ import {
   Crown,
   Wrench,
   ShoppingBag,
+  Heart,
+  Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { AppIllustrations } from '@/constants/illustrations';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
@@ -155,6 +156,7 @@ function hasResale(entry: ScanHistoryEntry): boolean {
 
 export default function SavedScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { entries: scanEntries, deleteEntry, isLoading: scanLoading } = useScanHistory();
   const {
     savedDeals, unsaveDeal, isLoading: dealsLoading,
@@ -165,22 +167,31 @@ export default function SavedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [upgradeVisible, setUpgradeVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(16)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const headerFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    Animated.sequence([
+      Animated.timing(headerFade, {
         toValue: 1,
-        duration: 500,
+        duration: 300,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 60,
+          friction: 12,
+        }),
+      ]),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+  }, [fadeAnim, slideAnim, headerFade]);
 
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
     const scanItems: UnifiedItem[] = scanEntries.map((e) => ({
@@ -290,15 +301,15 @@ export default function SavedScreen() {
           ) : (
             <View style={styles.cardImagePlaceholder}>
               {item.type === 'deal' ? (
-                <Tag size={20} color="#C7C7CC" strokeWidth={1.5} />
+                <Tag size={20} color="#B5B0A8" strokeWidth={1.5} />
               ) : (
-                <Package size={20} color="#C7C7CC" strokeWidth={1.5} />
+                <Package size={20} color="#B5B0A8" strokeWidth={1.5} />
               )}
             </View>
           )}
           {item.type === 'scan' && (
             <View style={styles.scanDot}>
-              <ScanLine size={10} color="#1B7A45" strokeWidth={2} />
+              <ScanLine size={10} color="#2D6A4F" strokeWidth={2} />
             </View>
           )}
         </View>
@@ -308,11 +319,11 @@ export default function SavedScreen() {
             <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
             <Pressable
               onPress={() => handleDelete(item)}
-              style={styles.deleteBtn}
+              style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.4 }]}
               hitSlop={12}
               testID={`saved-delete-${item.id}`}
             >
-              <Trash2 size={15} color="#D1D5DB" strokeWidth={1.5} />
+              <Trash2 size={14} color="#C8C4BC" strokeWidth={1.5} />
             </Pressable>
           </View>
 
@@ -327,7 +338,7 @@ export default function SavedScreen() {
 
           {item.relatedNeeds.length > 0 && (
             <View style={styles.relatedRow}>
-              <Wrench size={10} color="#B0B0B6" strokeWidth={1.5} />
+              <Wrench size={10} color="#A0A59A" strokeWidth={1.5} />
               <Text style={styles.relatedText} numberOfLines={1}>
                 May need: {item.relatedNeeds.join(', ')}
               </Text>
@@ -365,11 +376,16 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
+      <Animated.View style={[styles.screenHeaderWrap, { paddingTop: insets.top + 16, opacity: headerFade }]}>
+        <Text style={styles.screenTitle}>Saved</Text>
+        <Text style={styles.screenSubtitle}>Your scans & saved deals</Text>
+      </Animated.View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B5E3B" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2D6A4F" />
         }
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -379,24 +395,23 @@ export default function SavedScreen() {
             </View>
           ) : filteredItems.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Image
-                source={{ uri: AppIllustrations.savedTags }}
-                style={styles.emptyIllustration}
-                contentFit="contain"
-                cachePolicy="memory-disk"
-              />
-              <Text style={styles.emptyTitle}>Nothing here yet</Text>
-              <Text style={styles.emptySubtitle}>Scan items or save deals to start your list</Text>
+              <View style={styles.emptyIconArea}>
+                <View style={styles.emptyIconCircle}>
+                  <Heart size={28} color="#2D6A4F" strokeWidth={1.5} />
+                </View>
+              </View>
+              <Text style={styles.emptyTitle}>Nothing saved yet</Text>
+              <Text style={styles.emptySubtitle}>Scan items or save deals to build your collection</Text>
               <View style={styles.emptyActions}>
                 <Pressable
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/smart-scan');
                   }}
-                  style={styles.emptyBtn}
+                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
                   testID="saved-empty-scan"
                 >
-                  <ScanLine size={15} color="#FFFFFF" strokeWidth={2} />
+                  <Camera size={15} color="#FFFFFF" strokeWidth={2} />
                   <Text style={styles.emptyBtnText}>Scan an Item</Text>
                 </Pressable>
                 <Pressable
@@ -404,10 +419,10 @@ export default function SavedScreen() {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/(tabs)/discover');
                   }}
-                  style={styles.emptyBtnOutline}
+                  style={({ pressed }) => [styles.emptyBtnOutline, pressed && { opacity: 0.7 }]}
                   testID="saved-empty-finds"
                 >
-                  <ShoppingBag size={15} color="#6B7280" strokeWidth={2} />
+                  <ShoppingBag size={15} color="#4A5044" strokeWidth={2} />
                   <Text style={styles.emptyBtnOutlineText}>Browse Deals</Text>
                 </Pressable>
               </View>
@@ -416,7 +431,9 @@ export default function SavedScreen() {
             <View style={styles.contentArea}>
               <View style={styles.headerRow}>
                 <Text style={styles.headerTitle}>Your Items</Text>
-                <Text style={styles.headerCount}>{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</Text>
+                <View style={styles.headerCountBadge}>
+                  <Text style={styles.headerCountText}>{filteredItems.length}</Text>
+                </View>
               </View>
 
               <View style={styles.cardList}>
@@ -445,67 +462,100 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F4F5F0',
+    backgroundColor: '#EDEFE8',
+  },
+  screenHeaderWrap: {
+    paddingHorizontal: 22,
+    paddingBottom: 6,
+    backgroundColor: '#EDEFE8',
+  },
+  screenTitle: {
+    fontSize: 32,
+    fontWeight: '800' as const,
+    color: '#1A1F16',
+    letterSpacing: -0.8,
+  },
+  screenSubtitle: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#8A8F82',
+    marginTop: 2,
+    letterSpacing: -0.1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
     paddingHorizontal: 2,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800' as const,
-    color: '#1A1A1A',
-    letterSpacing: -0.5,
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#1A1F16',
+    letterSpacing: -0.4,
   },
-  headerCount: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
+  headerCountBadge: {
+    backgroundColor: '#E4EDE6',
+    minWidth: 28,
+    height: 28,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  headerCountText: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#2D6A4F',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 52,
+    paddingVertical: 60,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 32,
+    borderRadius: 24,
+    padding: 36,
     alignItems: 'center',
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 2,
+    shadowColor: '#3C4A33',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
+    marginTop: 8,
   },
-  emptyIllustration: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
-    marginBottom: 16,
-    backgroundColor: '#E8F5EE',
+  emptyIconArea: {
+    marginBottom: 20,
+  },
+  emptyIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: '#E4EDE6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    marginBottom: 6,
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#1A1F16',
+    marginBottom: 8,
+    letterSpacing: -0.4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#8A8F82',
     textAlign: 'center' as const,
-    lineHeight: 20,
-    marginBottom: 22,
+    lineHeight: 21,
+    marginBottom: 24,
     paddingHorizontal: 8,
+    maxWidth: 260,
   },
   emptyActions: {
     flexDirection: 'row',
@@ -514,16 +564,16 @@ const styles = StyleSheet.create({
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
     backgroundColor: '#2D6A4F',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
     borderRadius: 14,
-    shadowColor: '#2D6A4F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowColor: '#1B4332',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   emptyBtnText: {
     fontSize: 15,
@@ -533,35 +583,35 @@ const styles = StyleSheet.create({
   emptyBtnOutline: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 13,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5E3DE',
+    borderWidth: 1.5,
+    borderColor: '#DDE0D6',
   },
   emptyBtnOutlineText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#3C3C43',
+    color: '#3C4A33',
   },
   loadingText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#8A8F82',
   },
   contentArea: {
     gap: 0,
   },
   cardList: {
-    gap: 12,
+    gap: 10,
   },
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#8B8680',
+    shadowColor: '#3C4A33',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -571,24 +621,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   cardPressed: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F8FAF5',
     transform: [{ scale: 0.98 }],
   },
   cardImageWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
+    width: 76,
+    height: 76,
+    borderRadius: 14,
     overflow: 'hidden',
     position: 'relative',
   },
   cardImage: {
-    width: 72,
-    height: 72,
+    width: 76,
+    height: 76,
   },
   cardImagePlaceholder: {
-    width: 72,
-    height: 72,
-    backgroundColor: '#F5F3EF',
+    width: 76,
+    height: 76,
+    backgroundColor: '#F2F4EE',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -606,7 +656,7 @@ const styles = StyleSheet.create({
   cardBody: {
     flex: 1,
     justifyContent: 'center',
-    minHeight: 72,
+    minHeight: 76,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -617,13 +667,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#1A1A1A',
+    color: '#1A1F16',
     letterSpacing: -0.2,
     lineHeight: 21,
   },
   deleteBtn: {
-    padding: 4,
-    marginTop: -2,
+    padding: 6,
+    marginTop: -4,
+    marginRight: -4,
   },
   cardPrice: {
     fontSize: 17,
@@ -636,19 +687,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 5,
   },
   cardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#AEAEB2',
+    color: '#A0A59A',
     flex: 1,
     marginRight: 8,
   },
   cardTime: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#C7C7CC',
+    color: '#C0BDB5',
   },
   relatedRow: {
     flexDirection: 'row',
@@ -659,19 +710,19 @@ const styles = StyleSheet.create({
   relatedText: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#AEAEB2',
+    color: '#A0A59A',
     flex: 1,
   },
   upgradeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFDF5',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#F5E6A3',
     gap: 12,
-    marginTop: 12,
+    marginTop: 14,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -679,9 +730,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   upgradeCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     backgroundColor: '#FFF8E1',
     justifyContent: 'center',
     alignItems: 'center',
@@ -691,21 +742,21 @@ const styles = StyleSheet.create({
   },
   upgradeCardTitle: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
+    fontWeight: '700' as const,
+    color: '#1A1F16',
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   upgradeCardSub: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#8E8E93',
+    color: '#8A8F82',
   },
   upgradeCardArrow: {
     backgroundColor: '#2D6A4F',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
   },
   upgradeCardArrowText: {
     fontSize: 13,

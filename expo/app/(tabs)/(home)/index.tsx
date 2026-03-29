@@ -22,6 +22,8 @@ import {
   RefreshCw,
   ScanLine,
   Bookmark,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -38,7 +40,7 @@ import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import { generateAISuggestions, AISuggestion } from '@/services/aiSuggestionsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SCANNED_ITEM_WIDTH = (SCREEN_WIDTH - 40 - 24) / 3;
+const SCANNED_ITEM_WIDTH = (SCREEN_WIDTH - 48 - 24) / 3;
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -52,22 +54,31 @@ export default function HomeScreen() {
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(24)).current;
+  const headerFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    Animated.sequence([
+      Animated.timing(headerFade, {
         toValue: 1,
-        duration: 500,
+        duration: 350,
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 60,
+          friction: 12,
+        }),
+      ]),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+  }, [fadeAnim, slideAnim, headerFade]);
 
   const recentReceipts = useMemo(() => {
     return expenses
@@ -126,7 +137,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerArea, { paddingTop: insets.top + 12 }]}>
+      <Animated.View style={[styles.headerArea, { paddingTop: insets.top + 16, opacity: headerFade }]}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.brandTitle}>Flips</Text>
@@ -137,13 +148,13 @@ export default function HomeScreen() {
               void Haptics.selectionAsync();
               router.push('/(tabs)/saved');
             }}
-            style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
             hitSlop={8}
           >
-            <Grid3x3 size={20} color="#8B8680" strokeWidth={1.6} />
+            <Grid3x3 size={18} color="#6B7266" strokeWidth={1.8} />
           </Pressable>
         </View>
-      </View>
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -151,12 +162,11 @@ export default function HomeScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          {/* Recent Receipts Card */}
           <View style={styles.card} testID="receipts-card">
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
                 <View style={styles.cardIconWrap}>
-                  <Receipt size={16} color="#2D6A4F" strokeWidth={1.8} />
+                  <Receipt size={15} color="#2D6A4F" strokeWidth={2} />
                 </View>
                 <Text style={styles.cardTitle}>Recent Receipts</Text>
               </View>
@@ -177,12 +187,12 @@ export default function HomeScreen() {
                     onPress={() => handleReceiptPress(exp.id)}
                     style={({ pressed }) => [
                       styles.receiptRow,
-                      pressed && { backgroundColor: '#F8F7F4' },
+                      pressed && { backgroundColor: '#F6F7F4' },
                       index < recentReceipts.length - 1 && styles.receiptRowBorder,
                     ]}
                   >
                     <View style={styles.receiptIconWrap}>
-                      <Receipt size={14} color="#2D6A4F" strokeWidth={1.6} />
+                      <Receipt size={13} color="#2D6A4F" strokeWidth={1.8} />
                     </View>
                     <View style={styles.receiptInfo}>
                       <Text style={styles.receiptMerchant} numberOfLines={1}>
@@ -191,29 +201,31 @@ export default function HomeScreen() {
                       <Text style={styles.receiptDate}>{formatDate(exp.createdAt)}</Text>
                     </View>
                     <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                    <ChevronRight size={14} color="#C8C4BC" strokeWidth={1.8} />
+                    <ChevronRight size={14} color="#CBD5C0" strokeWidth={2} />
                   </Pressable>
                 ))}
               </>
             ) : (
               <View style={styles.emptyCardContent}>
+                <View style={styles.emptyIconCircle}>
+                  <Receipt size={20} color="#2D6A4F" strokeWidth={1.5} />
+                </View>
                 <Text style={styles.emptyCardText}>No receipts yet</Text>
-                <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking</Text>
+                <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking your spending</Text>
               </View>
             )}
           </View>
 
-          {/* Scanned Items Card */}
           <View style={styles.card} testID="scanned-items-card">
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
                 <View style={styles.cardIconWrap}>
-                  <ScanLine size={16} color="#2D6A4F" strokeWidth={1.8} />
+                  <ScanLine size={15} color="#2D6A4F" strokeWidth={2} />
                 </View>
                 <Text style={styles.cardTitle}>Scanned Items</Text>
               </View>
               {recentScans.length > 0 && (
-                <Pressable onPress={handleSeeAllScans} hitSlop={8}>
+                <Pressable onPress={handleSeeAllScans} hitSlop={8} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
                   <Text style={styles.seeAllText}>See all</Text>
                 </Pressable>
               )}
@@ -231,7 +243,7 @@ export default function HomeScreen() {
                     onPress={() => handleScanItemPress(entry)}
                     style={({ pressed }) => [
                       styles.scannedItem,
-                      pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                      pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
                     ]}
                   >
                     <View style={styles.scannedImageWrap}>
@@ -259,26 +271,26 @@ export default function HomeScreen() {
               </ScrollView>
             ) : (
               <View style={styles.emptyCardContent}>
+                <View style={styles.emptyIconCircle}>
+                  <ScanLine size={20} color="#2D6A4F" strokeWidth={1.5} />
+                </View>
                 <Text style={styles.emptyCardText}>No scanned items</Text>
-                <Text style={styles.emptyCardSubtext}>Tap scan to identify items</Text>
+                <Text style={styles.emptyCardSubtext}>Point your camera at any item to identify it</Text>
               </View>
             )}
           </View>
 
-          {/* You May Also Need Card */}
           <View style={styles.card} testID="suggestions-card">
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
-                <Text style={styles.suggestionEmoji}>🛒</Text>
+                <View style={[styles.cardIconWrap, { backgroundColor: '#FFF8E7' }]}>
+                  <Sparkles size={15} color="#D4A017" strokeWidth={2} />
+                </View>
                 <Text style={styles.cardTitle}>You May Also Need</Text>
               </View>
               {(scanEntries.length > 0 || expenses.length > 0) && (
-                <Pressable onPress={handleRefreshSuggestions} hitSlop={8}>
-                  <RefreshCw
-                    size={16}
-                    color="#8B8680"
-                    strokeWidth={1.8}
-                  />
+                <Pressable onPress={handleRefreshSuggestions} hitSlop={8} style={({ pressed }) => [pressed && { opacity: 0.5 }]}>
+                  <RefreshCw size={15} color="#A09B93" strokeWidth={2} />
                 </Pressable>
               )}
             </View>
@@ -313,12 +325,15 @@ export default function HomeScreen() {
               </View>
             ) : (
               <View style={styles.emptyCardContent}>
-                <Text style={styles.emptyCardText}>Scan items to get suggestions</Text>
+                <View style={[styles.emptyIconCircle, { backgroundColor: '#FFF8E7' }]}>
+                  <Sparkles size={20} color="#D4A017" strokeWidth={1.5} />
+                </View>
+                <Text style={styles.emptyCardText}>Smart suggestions</Text>
+                <Text style={styles.emptyCardSubtext}>Scan items to get personalized recommendations</Text>
               </View>
             )}
           </View>
 
-          {/* Saved Section */}
           {(() => {
             const recentSaved: { id: string; type: 'scan' | 'deal'; title: string; imageUri: string | null; time: string; raw: ScanHistoryEntry | SavedDeal }[] = [
               ...scanEntries.map((e) => ({
@@ -347,8 +362,8 @@ export default function HomeScreen() {
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={styles.cardTitleRow}>
-                    <View style={styles.cardIconWrap}>
-                      <Bookmark size={16} color="#2D6A4F" strokeWidth={1.8} />
+                    <View style={[styles.cardIconWrap, { backgroundColor: '#EDE9FE' }]}>
+                      <Bookmark size={15} color="#7C3AED" strokeWidth={2} />
                     </View>
                     <Text style={styles.cardTitle}>Saved</Text>
                   </View>
@@ -372,7 +387,7 @@ export default function HomeScreen() {
                       key={item.id}
                       style={({ pressed }) => [
                         styles.savedCard,
-                        pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                        pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
                       ]}
                       onPress={() => {
                         void Haptics.selectionAsync();
@@ -420,7 +435,6 @@ export default function HomeScreen() {
             );
           })()}
 
-          {/* Scan CTA */}
           <Pressable
             onPress={handleScanPress}
             style={({ pressed }) => [
@@ -435,10 +449,10 @@ export default function HomeScreen() {
               </View>
               <View style={styles.scanCtaTextWrap}>
                 <Text style={styles.scanCtaTitle}>Scan Something</Text>
-                <Text style={styles.scanCtaSubtitle}>Items, receipts, food — just point, and go</Text>
+                <Text style={styles.scanCtaSubtitle}>Items, receipts, food — just point and go</Text>
               </View>
             </View>
-            <ChevronRight size={20} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+            <ArrowRight size={18} color="rgba(255,255,255,0.6)" strokeWidth={2.2} />
           </Pressable>
 
           <View style={{ height: 32 }} />
@@ -451,12 +465,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F5F0',
+    backgroundColor: '#EDEFE8',
   },
   headerArea: {
-    backgroundColor: '#F4F5F0',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    backgroundColor: '#EDEFE8',
+    paddingHorizontal: 22,
+    paddingBottom: 6,
   },
   headerRow: {
     flexDirection: 'row',
@@ -464,47 +478,47 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   brandTitle: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800' as const,
-    color: '#1A1A1A',
-    letterSpacing: -0.6,
+    color: '#1A1F16',
+    letterSpacing: -0.8,
   },
   brandSubtitle: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#9B9690',
-    marginTop: 3,
+    color: '#8A8F82',
+    marginTop: 2,
     letterSpacing: -0.1,
   },
   gridBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 20,
-    marginBottom: 16,
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 2,
+    marginBottom: 14,
+    shadowColor: '#3C4A33',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 20,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -515,29 +529,27 @@ const styles = StyleSheet.create({
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   cardIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    backgroundColor: '#E8F0EB',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E4EDE6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
+    color: '#1A1F16',
     letterSpacing: -0.3,
   },
   seeAllText: {
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#2D6A4F',
-  },
-  suggestionEmoji: {
-    fontSize: 20,
+    letterSpacing: -0.1,
   },
 
   receiptTotalRow: {
@@ -546,37 +558,38 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   receiptTotalAmount: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
-    letterSpacing: -1.2,
+    color: '#1A1F16',
+    letterSpacing: -1.4,
   },
   receiptTotalLabel: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#8B8680',
+    color: '#8A8F82',
     marginLeft: 4,
   },
   receiptDivider: {
     height: 1,
-    backgroundColor: '#F0EDE8',
+    backgroundColor: '#EFF1EB',
     marginBottom: 4,
   },
   receiptRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 13,
     gap: 12,
+    borderRadius: 10,
   },
   receiptRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F0EDE8',
+    borderBottomColor: '#EFF1EB',
   },
   receiptIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#E8F0EB',
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: '#E4EDE6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -586,21 +599,21 @@ const styles = StyleSheet.create({
   receiptMerchant: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#1A1A1A',
+    color: '#1A1F16',
     letterSpacing: -0.2,
   },
   receiptDate: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400' as const,
-    color: '#A09B93',
+    color: '#A0A59A',
     marginTop: 2,
   },
   receiptAmount: {
     fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#1A1A1A',
+    fontWeight: '700' as const,
+    color: '#1A1F16',
     letterSpacing: -0.3,
-    marginRight: 4,
+    marginRight: 2,
   },
 
   scannedScrollContent: {
@@ -615,7 +628,7 @@ const styles = StyleSheet.create({
     height: SCANNED_ITEM_WIDTH,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F2F4EE',
     marginBottom: 8,
   },
   scannedImage: {
@@ -630,13 +643,13 @@ const styles = StyleSheet.create({
   scannedCategory: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#1A1A1A',
+    color: '#1A1F16',
     letterSpacing: -0.1,
   },
   scannedName: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#A09B93',
+    color: '#A0A59A',
     marginTop: 2,
     lineHeight: 16,
   },
@@ -645,33 +658,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
   },
   suggestionLoadingText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#A09B93',
+    color: '#A0A59A',
   },
   suggestionContent: {},
   suggestionBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F0EB',
-    borderRadius: 14,
+    backgroundColor: '#E4EDE6',
+    borderRadius: 16,
     padding: 14,
     gap: 14,
   },
   suggestionImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#D4E8DB',
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#D0DFD3',
   },
   suggestionImagePlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#D4E8DB',
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#D0DFD3',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -681,35 +695,48 @@ const styles = StyleSheet.create({
   suggestionTitle: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
+    color: '#1A1F16',
     letterSpacing: -0.2,
   },
   suggestionReason: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#4A4A4A',
+    color: '#4A5044',
     marginTop: 3,
     lineHeight: 18,
   },
 
   emptyCardContent: {
-    paddingVertical: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    backgroundColor: '#F9FAF7',
-    borderRadius: 14,
-    marginTop: 4,
+    backgroundColor: '#F6F8F3',
+    borderRadius: 16,
+    marginTop: 2,
+  },
+  emptyIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#E4EDE6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   emptyCardText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#8B8680',
-    letterSpacing: -0.1,
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#3C4A33',
+    letterSpacing: -0.2,
   },
   emptyCardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#B5B0A8',
-    marginTop: 5,
+    color: '#8A8F82',
+    marginTop: 4,
+    textAlign: 'center' as const,
+    lineHeight: 18,
+    maxWidth: 240,
   },
 
   savedScrollContent: {
@@ -717,30 +744,30 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   savedCard: {
-    width: 110,
+    width: 114,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#F8F7F4',
+    backgroundColor: '#F6F8F3',
   },
   savedCardImageWrap: {
-    width: 110,
-    height: 88,
+    width: 114,
+    height: 90,
   },
   savedCardImage: {
-    width: 110,
-    height: 88,
+    width: 114,
+    height: 90,
   },
   savedCardPlaceholder: {
-    width: 110,
-    height: 88,
-    backgroundColor: '#EDEAE5',
+    width: 114,
+    height: 90,
+    backgroundColor: '#E8EBE3',
     justifyContent: 'center',
     alignItems: 'center',
   },
   savedCardTitle: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#1A1A1A',
+    color: '#1A1F16',
     paddingHorizontal: 8,
     paddingVertical: 8,
     lineHeight: 16,
@@ -751,14 +778,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#2D6A4F',
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 20,
     marginBottom: 4,
     shadowColor: '#1B4332',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 8,
   },
   scanCtaLeft: {
     flexDirection: 'row',
@@ -767,10 +794,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scanCtaIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.16)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -786,8 +813,8 @@ const styles = StyleSheet.create({
   scanCtaSubtitle: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.65)',
-    marginTop: 4,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 3,
     lineHeight: 17,
   },
 });

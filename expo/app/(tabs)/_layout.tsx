@@ -136,22 +136,22 @@ const centerStyles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -6,
+    marginTop: -10,
   },
   outer: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    shadowColor: '#2D6A4F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 4,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    shadowColor: '#1B4332',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 5,
   },
   button: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     backgroundColor: '#2D6A4F',
     justifyContent: 'center',
     alignItems: 'center',
@@ -243,18 +243,18 @@ const centerStyles = StyleSheet.create({
 
 const tabBarStyle = StyleSheet.create({
   bar: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#EEECE8',
+    backgroundColor: '#FAFAF8',
+    borderTopColor: '#E8E6E1',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
   },
   barWeb: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#EEECE8',
+    backgroundColor: '#FAFAF8',
+    borderTopColor: '#E8E6E1',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
     height: 52,
@@ -264,7 +264,7 @@ const tabBarStyle = StyleSheet.create({
 const TAB_SCREEN_OPTIONS = {
   headerShown: false,
   tabBarActiveTintColor: '#2D6A4F',
-  tabBarInactiveTintColor: '#A09B93',
+  tabBarInactiveTintColor: '#B5B0A8',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
   tabBarShowLabel: false,
@@ -284,7 +284,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <House size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
+            <House size={size - 3} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -293,7 +293,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <Heart size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
+            <Heart size={size - 3} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -317,7 +317,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <Tag size={size - 2} color={color} strokeWidth={focused ? 2.2 : 1.4} fill={focused ? color : 'none'} />
+            <Tag size={size - 3} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -326,7 +326,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <Users size={size - 2} color={color} strokeWidth={focused ? 2.0 : 1.4} />
+            <Users size={size - 3} color={color} strokeWidth={focused ? 2.0 : 1.5} />
           ),
         }}
       />
