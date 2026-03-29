@@ -20,7 +20,6 @@ import {
   Sparkles,
   Shield,
   RotateCcw,
-  Check,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { usePremium, type PlanType } from '@/contexts/PremiumContext';
@@ -33,9 +32,9 @@ const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stde
 const PRIVACY_URL = 'https://rork.app/privacy';
 
 const BENEFITS = [
-  { icon: Shield, label: 'Ad-free experience', desc: 'Browse without interruptions' },
-  { icon: Bookmark, label: 'Unlimited saves', desc: 'Never lose a deal or scan' },
-  { icon: ScanLine, label: 'Unlimited scan history', desc: 'Full access to all your scans' },
+  { icon: Shield, label: 'Ad-free experience', desc: 'No interruptions' },
+  { icon: Bookmark, label: 'Unlimited saves', desc: 'Never lose a deal' },
+  { icon: ScanLine, label: 'Scan history', desc: 'Full access to scans' },
 ];
 
 interface SubscriptionPaywallProps {
@@ -152,19 +151,16 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               </View>
             </View>
 
-            <View style={styles.benefitsSection}>
+            <View style={styles.benefitsGrid}>
               {BENEFITS.map((b, idx) => {
                 const Icon = b.icon;
                 return (
-                  <View key={idx} style={styles.benefitRow}>
-                    <View style={styles.benefitIconWrap}>
-                      <Icon size={16} color="#2D6A4F" strokeWidth={2} />
+                  <View key={idx} style={styles.benefitCell}>
+                    <View style={styles.benefitCellIcon}>
+                      <Icon size={18} color="#2D6A4F" strokeWidth={2} />
                     </View>
-                    <View style={styles.benefitTextCol}>
-                      <Text style={styles.benefitLabel}>{b.label}</Text>
-                      <Text style={styles.benefitDesc}>{b.desc}</Text>
-                    </View>
-                    <Check size={16} color="#2D6A4F" strokeWidth={2.5} />
+                    <Text style={styles.benefitCellLabel}>{b.label}</Text>
+                    <Text style={styles.benefitCellDesc}>{b.desc}</Text>
                   </View>
                 );
               })}
@@ -425,39 +421,47 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: '#8A8F82',
   },
-  benefitsSection: {
-    gap: 4,
+  benefitsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
     marginBottom: 24,
   },
-  benefitRow: {
-    flexDirection: 'row',
+  benefitCell: {
+    width: '47%' as unknown as number,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    gap: 14,
+    shadowColor: '#3C4A33',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  benefitIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+  benefitCellIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: '#E4EDE6',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  benefitTextCol: {
-    flex: 1,
-  },
-  benefitLabel: {
-    fontSize: 15,
-    fontWeight: '600' as const,
+  benefitCellLabel: {
+    fontSize: 13,
+    fontWeight: '700' as const,
     color: '#1A1F16',
+    textAlign: 'center' as const,
     letterSpacing: -0.2,
+    marginBottom: 3,
   },
-  benefitDesc: {
-    fontSize: 12,
+  benefitCellDesc: {
+    fontSize: 11,
     fontWeight: '400' as const,
     color: '#8A8F82',
-    marginTop: 1,
+    textAlign: 'center' as const,
+    lineHeight: 15,
   },
   plansSection: {
     gap: 10,
