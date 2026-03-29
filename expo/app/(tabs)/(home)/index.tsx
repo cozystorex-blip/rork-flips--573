@@ -172,7 +172,7 @@ export default function HomeScreen() {
             style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
             hitSlop={8}
           >
-            <Grid3x3 size={18} color="#6B7266" strokeWidth={1.8} />
+            <Grid3x3 size={18} color="#4A6FA5" strokeWidth={1.8} />
           </Pressable>
         </View>
       </Animated.View>
@@ -187,7 +187,7 @@ export default function HomeScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
                 <View style={styles.cardIconWrap}>
-                  <Receipt size={15} color="#2D6A4F" strokeWidth={2} />
+                  <Receipt size={15} color="#0066CC" strokeWidth={2} />
                 </View>
                 <Text style={styles.cardTitle}>Recent Receipts</Text>
               </View>
@@ -208,12 +208,12 @@ export default function HomeScreen() {
                     onPress={() => handleReceiptPress(exp.id)}
                     style={({ pressed }) => [
                       styles.receiptRow,
-                      pressed && { backgroundColor: '#F6F7F4' },
+                      pressed && { backgroundColor: '#F0F5FA' },
                       index < recentReceipts.length - 1 && styles.receiptRowBorder,
                     ]}
                   >
                     <View style={styles.receiptIconWrap}>
-                      <Receipt size={13} color="#2D6A4F" strokeWidth={1.8} />
+                      <Receipt size={13} color="#0066CC" strokeWidth={1.8} />
                     </View>
                     <View style={styles.receiptInfo}>
                       <Text style={styles.receiptMerchant} numberOfLines={1}>
@@ -222,14 +222,14 @@ export default function HomeScreen() {
                       <Text style={styles.receiptDate}>{formatDate(exp.createdAt)}</Text>
                     </View>
                     <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                    <ChevronRight size={14} color="#CBD5C0" strokeWidth={2} />
+                    <ChevronRight size={14} color="#B8C9D9" strokeWidth={2} />
                   </Pressable>
                 ))}
               </>
             ) : (
               <View style={styles.emptyCardContent}>
                 <View style={styles.emptyIconCircle}>
-                  <Receipt size={20} color="#2D6A4F" strokeWidth={1.5} />
+                  <Receipt size={22} color="#0066CC" strokeWidth={1.5} />
                 </View>
                 <Text style={styles.emptyCardText}>No receipts yet</Text>
                 <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking your spending</Text>
@@ -242,7 +242,7 @@ export default function HomeScreen() {
               <View style={styles.cardHeader}>
                 <View style={styles.cardTitleRow}>
                   <View style={styles.cardIconWrap}>
-                    <Heart size={15} color="#2D6A4F" strokeWidth={2} />
+                    <Heart size={15} color="#0066CC" strokeWidth={2} />
                   </View>
                   <Text style={styles.cardTitle}>Saved</Text>
                 </View>
@@ -264,7 +264,7 @@ export default function HomeScreen() {
                   onPress={() => handleSavedItemPress(item)}
                   style={({ pressed }) => [
                     styles.savedRow,
-                    pressed && { backgroundColor: '#F6F7F4' },
+                    pressed && { backgroundColor: '#F0F5FA' },
                     index < savedItems.length - 1 && styles.savedRowBorder,
                   ]}
                 >
@@ -279,9 +279,9 @@ export default function HomeScreen() {
                     ) : (
                       <View style={styles.savedImagePlaceholder}>
                         {item.type === 'deal' ? (
-                          <Tag size={14} color="#B5B0A8" strokeWidth={1.5} />
+                          <Tag size={14} color="#9BADBF" strokeWidth={1.5} />
                         ) : (
-                          <Package size={14} color="#B5B0A8" strokeWidth={1.5} />
+                          <Package size={14} color="#9BADBF" strokeWidth={1.5} />
                         )}
                       </View>
                     )}
@@ -297,7 +297,7 @@ export default function HomeScreen() {
                     style={({ pressed }) => [styles.savedDeleteBtn, pressed && { opacity: 0.4 }]}
                     hitSlop={10}
                   >
-                    <Trash2 size={14} color="#C8C4BC" strokeWidth={1.5} />
+                    <Trash2 size={14} color="#B8C9D9" strokeWidth={1.5} />
                   </Pressable>
                 </Pressable>
               ))}
@@ -314,10 +314,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EDEFE8',
+    backgroundColor: '#E8F1F8',
   },
   headerArea: {
-    backgroundColor: '#EDEFE8',
+    backgroundColor: '#E8F1F8',
     paddingHorizontal: 22,
     paddingBottom: 6,
   },
@@ -327,31 +327,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   brandTitle: {
-    fontSize: 32,
-    fontWeight: '800' as const,
-    color: '#1A1F16',
-    letterSpacing: -0.8,
+    fontSize: 34,
+    fontWeight: '900' as const,
+    color: '#0D1B2A',
+    letterSpacing: -1,
   },
   brandSubtitle: {
     fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#8A8F82',
-    marginTop: 2,
-    letterSpacing: -0.1,
+    fontWeight: '600' as const,
+    color: '#5A7A94',
+    marginTop: 3,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase' as const,
   },
   gridBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#1A1A1A',
+    shadowColor: '#4A6FA5',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#D0DDE8',
   },
   scrollContent: {
     paddingHorizontal: 18,
@@ -360,14 +363,16 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 20,
     padding: 20,
     marginBottom: 14,
-    shadowColor: '#3C4A33',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 20,
+    shadowColor: '#4A6FA5',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0EAF2',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -381,23 +386,23 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardIconWrap: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 10,
-    backgroundColor: '#E4EDE6',
+    backgroundColor: '#E0EFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardTitle: {
     fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.3,
   },
   seeAllText: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#2D6A4F',
+    fontWeight: '700' as const,
+    color: '#0066CC',
     letterSpacing: -0.1,
   },
 
@@ -410,14 +415,14 @@ const styles = StyleSheet.create({
   },
   savedRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#EFF1EB',
+    borderBottomColor: '#E0EAF2',
   },
   savedImageWrap: {
     width: 44,
     height: 44,
     borderRadius: 12,
     overflow: 'hidden' as const,
-    backgroundColor: '#F2F4EE',
+    backgroundColor: '#F0F5FA',
   },
   savedImage: {
     width: 44,
@@ -428,21 +433,21 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    backgroundColor: '#F2F4EE',
+    backgroundColor: '#F0F5FA',
   },
   savedInfo: {
     flex: 1,
   },
   savedTitle: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1A1F16',
+    fontWeight: '700' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.2,
   },
   savedSubtitle: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#A0A59A',
+    color: '#7A8FA3',
     marginTop: 2,
   },
   savedDeleteBtn: {
@@ -455,20 +460,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   receiptTotalAmount: {
-    fontSize: 34,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
-    letterSpacing: -1.4,
+    fontSize: 36,
+    fontWeight: '900' as const,
+    color: '#0D1B2A',
+    letterSpacing: -1.6,
   },
   receiptTotalLabel: {
     fontSize: 14,
-    fontWeight: '400' as const,
-    color: '#8A8F82',
+    fontWeight: '500' as const,
+    color: '#5A7A94',
     marginLeft: 4,
   },
   receiptDivider: {
     height: 1,
-    backgroundColor: '#EFF1EB',
+    backgroundColor: '#E0EAF2',
     marginBottom: 4,
   },
   receiptRow: {
@@ -480,13 +485,13 @@ const styles = StyleSheet.create({
   },
   receiptRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#EFF1EB',
+    borderBottomColor: '#E0EAF2',
   },
   receiptIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 11,
-    backgroundColor: '#E4EDE6',
+    backgroundColor: '#E0EFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -495,20 +500,20 @@ const styles = StyleSheet.create({
   },
   receiptMerchant: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1A1F16',
+    fontWeight: '700' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.2,
   },
   receiptDate: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#A0A59A',
+    color: '#7A8FA3',
     marginTop: 2,
   },
   receiptAmount: {
     fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.3,
     marginRight: 2,
   },
@@ -517,29 +522,29 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 16,
     alignItems: 'center',
-    backgroundColor: '#F6F8F3',
+    backgroundColor: '#F0F5FA',
     borderRadius: 16,
     marginTop: 2,
   },
   emptyIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#E4EDE6',
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#E0EFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   emptyCardText: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#3C4A33',
+    fontSize: 17,
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.2,
   },
   emptyCardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#8A8F82',
+    color: '#5A7A94',
     marginTop: 4,
     textAlign: 'center' as const,
     lineHeight: 18,

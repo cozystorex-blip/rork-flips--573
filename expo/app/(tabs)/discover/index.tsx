@@ -369,7 +369,7 @@ export default function DiscoverScreen() {
 
         {discoverQuery.isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#2D6A4F" />
+            <ActivityIndicator size="small" color="#0066CC" />
             <Text style={styles.loadingText}>Loading profiles...</Text>
           </View>
         ) : discoverQuery.isError ? (
@@ -393,7 +393,7 @@ export default function DiscoverScreen() {
                   <Search size={16} color="#8A8F82" strokeWidth={1.8} />
                 </View>
                 <View style={styles.emptyIconCircleLarge}>
-                  <Users size={28} color="#2D6A4F" strokeWidth={1.5} />
+                  <Users size={30} color="#0066CC" strokeWidth={1.5} />
                 </View>
                 <View style={[styles.emptyIconCircle, styles.emptyIconCircleSmall]}>
                   <MessageCircle size={16} color="#8A8F82" strokeWidth={1.8} />
@@ -435,7 +435,7 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EDEFE8',
+    backgroundColor: '#E8F1F8',
   },
   scrollContent: {
     paddingHorizontal: H_PADDING,
@@ -444,17 +444,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   screenTitle: {
-    fontSize: 32,
-    fontWeight: '800' as const,
-    color: '#1A1F16',
-    letterSpacing: -0.8,
+    fontSize: 34,
+    fontWeight: '900' as const,
+    color: '#0D1B2A',
+    letterSpacing: -1,
   },
   screenSubtitle: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#8A8F82',
-    marginTop: 2,
-    letterSpacing: -0.1,
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#5A7A94',
+    marginTop: 3,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase' as const,
   },
   headerSection: {
     marginBottom: 16,
@@ -480,15 +481,17 @@ const styles = StyleSheet.create({
   },
   followingSection: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginBottom: 16,
-    shadowColor: '#3C4A33',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 20,
+    shadowColor: '#4A6FA5',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.09,
+    shadowRadius: 16,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0EAF2',
   },
   followingHeader: {
     flexDirection: 'row',
@@ -498,12 +501,12 @@ const styles = StyleSheet.create({
   },
   followingLabel: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.2,
   },
   followingCount: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0066CC',
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -542,12 +545,12 @@ const styles = StyleSheet.create({
   followingPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F4EE',
+    backgroundColor: '#F0F5FA',
   },
   followingName: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#3C4A33',
+    color: '#0D1B2A',
     textAlign: 'center' as const,
   },
   sectionDivider: {
@@ -571,26 +574,32 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#8A8F82',
+    color: '#5A7A94',
     fontWeight: '500' as const,
     marginTop: 10,
   },
   errorText: {
     fontSize: 14,
-    color: '#8A8F82',
+    color: '#5A7A94',
     fontWeight: '600' as const,
   },
   retryBtn: {
     marginTop: 14,
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0066CC',
     paddingHorizontal: 28,
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderRadius: 14,
+    shadowColor: '#003D7A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   retryBtnText: {
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   grid: {
     flexDirection: 'row',
@@ -601,13 +610,15 @@ const styles = StyleSheet.create({
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#3C4A33',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 20,
+    shadowColor: '#4A6FA5',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.09,
+    shadowRadius: 16,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0EAF2',
   },
   cardPressed: {
     opacity: 0.92,
@@ -619,7 +630,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: CARD_WIDTH * 0.85,
-    backgroundColor: '#F2F4EE',
+    backgroundColor: '#F0F5FA',
   },
   avatarPlaceholder: {
     justifyContent: 'center',
@@ -647,7 +658,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   followBtnActive: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0066CC',
     borderColor: 'rgba(255,255,255,0.3)',
   },
   cardBody: {
@@ -658,8 +669,8 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.2,
   },
   styleTag: {
@@ -683,13 +694,13 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.3,
   },
   statLabel: {
     fontSize: 13,
-    color: '#8A8F82',
+    color: '#7A8FA3',
     fontWeight: '400' as const,
   },
   thumbRow: {
@@ -701,7 +712,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 38,
     borderRadius: 8,
-    backgroundColor: '#F2F4EE',
+    backgroundColor: '#F0F5FA',
   },
   emptyWrapper: {
     paddingTop: 20,
@@ -709,15 +720,17 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 32,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#3C4A33',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
+    shadowColor: '#4A6FA5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: '#E0EAF2',
   },
   emptyIconRow: {
     flexDirection: 'row',
@@ -729,7 +742,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#F2F4EE',
+    backgroundColor: '#F0F5FA',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -739,24 +752,24 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   emptyIconCircleLarge: {
-    width: 64,
-    height: 64,
+    width: 68,
+    height: 68,
     borderRadius: 20,
-    backgroundColor: '#E4EDE6',
+    backgroundColor: '#E0EFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '800' as const,
-    color: '#1A1F16',
+    fontSize: 21,
+    fontWeight: '900' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.4,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#8A8F82',
+    color: '#5A7A94',
     textAlign: 'center' as const,
     paddingHorizontal: 12,
     lineHeight: 21,
@@ -764,7 +777,7 @@ const styles = StyleSheet.create({
   emptyDivider: {
     width: 48,
     height: 2,
-    backgroundColor: '#E4EDE6',
+    backgroundColor: '#D0DDE8',
     borderRadius: 1,
     marginTop: 24,
     marginBottom: 20,
@@ -781,13 +794,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2D6A4F',
-    opacity: 0.4,
+    backgroundColor: '#0066CC',
+    opacity: 0.5,
   },
   emptyHintText: {
     fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#6B7266',
+    fontWeight: '600' as const,
+    color: '#3A4F65',
     letterSpacing: -0.1,
   },
 });

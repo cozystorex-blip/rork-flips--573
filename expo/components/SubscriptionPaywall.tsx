@@ -130,7 +130,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               <View style={styles.usageRow}>
                 <View style={styles.usageItem}>
                   <View style={styles.usageLabelRow}>
-                    <Bookmark size={12} color="#2D6A4F" strokeWidth={2} />
+                    <Bookmark size={12} color="#0066CC" strokeWidth={2} />
                     <Text style={styles.usageLabel}>Saves</Text>
                   </View>
                   <View style={styles.progressBarBg}>
@@ -140,7 +140,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
                 </View>
                 <View style={styles.usageItem}>
                   <View style={styles.usageLabelRow}>
-                    <ScanLine size={12} color="#2D6A4F" strokeWidth={2} />
+                    <ScanLine size={12} color="#0066CC" strokeWidth={2} />
                     <Text style={styles.usageLabel}>Scans</Text>
                   </View>
                   <View style={styles.progressBarBg}>
@@ -157,7 +157,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
                 return (
                   <View key={idx} style={styles.benefitCell}>
                     <View style={styles.benefitCellIcon}>
-                      <Icon size={18} color="#2D6A4F" strokeWidth={2} />
+                      <Icon size={18} color="#0066CC" strokeWidth={2} />
                     </View>
                     <Text style={styles.benefitCellLabel}>{b.label}</Text>
                     <Text style={styles.benefitCellDesc}>{b.desc}</Text>
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     flex: 1,
-    backgroundColor: '#FAFBF7',
+    backgroundColor: '#F0F5FA',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     marginTop: Platform.OS === 'ios' ? 54 : 36,
@@ -318,10 +318,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#F0F1EC',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0EAF2',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -336,33 +336,33 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   crownCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: '#FFF8E1',
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    backgroundColor: '#FFF3D0',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#F5E6A3',
+    borderWidth: 2.5,
+    borderColor: '#F0D860',
     marginBottom: 18,
     shadowColor: '#D4A017',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    elevation: 5,
   },
   heroTitle: {
-    fontSize: 26,
-    fontWeight: '800' as const,
-    color: '#1A1F16',
-    letterSpacing: -0.6,
+    fontSize: 28,
+    fontWeight: '900' as const,
+    color: '#0D1B2A',
+    letterSpacing: -0.8,
     textAlign: 'center',
     marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 15,
     fontWeight: '400' as const,
-    color: '#6B7266',
+    color: '#3A4F65',
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 300,
@@ -372,16 +372,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     marginBottom: 20,
-    shadowColor: '#3C4A33',
+    shadowColor: '#4A6FA5',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E0EAF2',
   },
   usageSectionTitle: {
     fontSize: 13,
-    fontWeight: '700' as const,
-    color: '#8A8F82',
+    fontWeight: '800' as const,
+    color: '#5A7A94',
     textTransform: 'uppercase' as const,
     letterSpacing: 0.5,
     marginBottom: 14,
@@ -399,18 +401,18 @@ const styles = StyleSheet.create({
   },
   usageLabel: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1A1F16',
+    fontWeight: '700' as const,
+    color: '#0D1B2A',
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: '#E8EBE3',
+    backgroundColor: '#D0DDE8',
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: 8,
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0066CC',
     borderRadius: 4,
   },
   progressBarWarning: {
@@ -419,7 +421,7 @@ const styles = StyleSheet.create({
   usageCount: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: '#8A8F82',
+    color: '#5A7A94',
   },
   benefitsGrid: {
     flexDirection: 'row',
@@ -433,25 +435,27 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#3C4A33',
+    shadowColor: '#4A6FA5',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.07,
     shadowRadius: 8,
     elevation: 1,
+    borderWidth: 1,
+    borderColor: '#E0EAF2',
   },
   benefitCellIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#E4EDE6',
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#E0EFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   benefitCellLabel: {
     fontSize: 13,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     textAlign: 'center' as const,
     letterSpacing: -0.2,
     marginBottom: 3,
@@ -459,7 +463,7 @@ const styles = StyleSheet.create({
   benefitCellDesc: {
     fontSize: 11,
     fontWeight: '400' as const,
-    color: '#8A8F82',
+    color: '#5A7A94',
     textAlign: 'center' as const,
     lineHeight: 15,
   },
@@ -474,19 +478,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     borderWidth: 2,
-    borderColor: '#E8EBE3',
+    borderColor: '#D0DDE8',
     gap: 14,
   },
   planOptionSelected: {
-    borderColor: '#2D6A4F',
-    backgroundColor: '#F5FAF6',
+    borderColor: '#0066CC',
+    backgroundColor: '#F0F7FF',
   },
   planRadio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#CBD5C0',
+    borderColor: '#B8C9D9',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -494,7 +498,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0066CC',
   },
   planInfo: {
     flex: 1,
@@ -507,17 +511,17 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#4A5044',
+    color: '#3A4F65',
     letterSpacing: -0.2,
   },
   planNameSelected: {
-    color: '#1A1F16',
+    color: '#0D1B2A',
   },
   bestValueBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#0066CC',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -530,15 +534,15 @@ const styles = StyleSheet.create({
   },
   planPrice: {
     fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
+    fontWeight: '800' as const,
+    color: '#0D1B2A',
     letterSpacing: -0.3,
     marginTop: 4,
   },
   planSub: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: '#8A8F82',
+    color: '#5A7A94',
     marginTop: 2,
   },
   upgradeBtn: {
@@ -546,20 +550,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#2D6A4F',
-    paddingVertical: 17,
+    backgroundColor: '#0066CC',
+    paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 16,
     width: '100%',
-    minHeight: 56,
-    shadowColor: '#1B4332',
+    minHeight: 58,
+    shadowColor: '#003D7A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
+    elevation: 8,
   },
   upgradeBtnPressed: {
-    backgroundColor: '#245840',
+    backgroundColor: '#0052A3',
     transform: [{ scale: 0.97 }],
   },
   upgradeBtnDisabled: {
@@ -567,9 +571,9 @@ const styles = StyleSheet.create({
   },
   upgradeBtnText: {
     fontSize: 17,
-    fontWeight: '700' as const,
+    fontWeight: '800' as const,
     color: '#FFFFFF',
-    letterSpacing: -0.2,
+    letterSpacing: 0.1,
   },
   restoreBtn: {
     marginTop: 14,
@@ -622,7 +626,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#8A8F82',
+    color: '#7A8FA3',
     textDecorationLine: 'underline' as const,
   },
 });
