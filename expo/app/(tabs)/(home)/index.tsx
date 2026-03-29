@@ -8,7 +8,6 @@ import {
   Animated,
   Platform,
   UIManager,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -16,9 +15,9 @@ import {
   Package,
   Receipt,
   Grid3x3,
-  Camera,
-  ScanLine,
-  ArrowRight,
+  Tag,
+  Trash2,
+  Heart,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -31,20 +30,35 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SCANNED_ITEM_WIDTH = (SCREEN_WIDTH - 48 - 24) / 3;
+import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function formatTimeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  if (isNaN(then)) return '';
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { expenses } = useExpenses();
-  const { entries: scanEntries } = useScanHistory();
+  const { entries: scanEntries, deleteEntry } = useScanHistory();
+  const { savedDeals, unsaveDeal } = useSavedItems();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -83,31 +97,64 @@ export default function HomeScreen() {
     return recentReceipts.reduce((s, e) => s + e.amount, 0);
   }, [recentReceipts]);
 
-  const recentScans = useMemo(() => {
-    return scanEntries
-      .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())
-      .slice(0, 6);
-  }, [scanEntries]);
-
-  const handleScanPress = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/smart-scan');
-  }, [router]);
+  const savedItems = useMemo(() => {
+    const scanItems = scanEntries.map((e) => ({
+      id: `scan-${e.id}`,
+      type: 'scan' as const,
+      title: e.result.item_name || 'Scanned Item',
+      subtitle: e.result.category || e.result.item_type || 'Item',
+      imageUri: e.imageUri,
+      savedAt: e.scannedAt,
+      rawScan: e,
+      rawDeal: null as SavedDeal | null,
+    }));
+    const dealItems = savedDeals.map((d) => ({
+      id: `deal-${d.id}`,
+      type: 'deal' as const,
+      title: d.title,
+      subtitle: d.storeName,
+      imageUri: d.photoUrl,
+      savedAt: d.savedAt,
+      rawScan: null as ScanHistoryEntry | null,
+      rawDeal: d,
+    }));
+    return [...scanItems, ...dealItems].sort(
+      (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+    );
+  }, [scanEntries, savedDeals]);
 
   const handleReceiptPress = useCallback((expenseId: string) => {
     void Haptics.selectionAsync();
     router.push({ pathname: '/receipt-detail', params: { expenseId } });
   }, [router]);
 
-  const handleScanItemPress = useCallback((entry: ScanHistoryEntry) => {
+  const handleSavedItemPress = useCallback((item: typeof savedItems[number]) => {
     void Haptics.selectionAsync();
-    router.push({ pathname: '/smart-scan', params: { historyEntryId: entry.id } });
+    if (item.type === 'scan' && item.rawScan) {
+      router.push({ pathname: '/smart-scan', params: { historyEntryId: item.rawScan.id } });
+    } else if (item.type === 'deal' && item.rawDeal) {
+      router.push({
+        pathname: '/post-detail',
+        params: {
+          dealId: item.rawDeal.dealId,
+          title: item.rawDeal.title,
+          storeName: item.rawDeal.storeName,
+          imageUrl: item.rawDeal.photoUrl ?? '',
+          category: item.rawDeal.category ?? '',
+          sourceType: item.rawDeal.sourceType ?? '',
+        },
+      });
+    }
   }, [router]);
 
-  const handleSeeAllScans = useCallback(() => {
-    void Haptics.selectionAsync();
-    router.push('/(tabs)/saved');
-  }, [router]);
+  const handleDeleteSavedItem = useCallback((item: typeof savedItems[number]) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (item.type === 'scan' && item.rawScan) {
+      deleteEntry(item.rawScan.id);
+    } else if (item.type === 'deal' && item.rawDeal) {
+      unsaveDeal(item.rawDeal.dealId);
+    }
+  }, [deleteEntry, unsaveDeal]);
 
   return (
     <View style={styles.container}>
@@ -190,89 +237,72 @@ export default function HomeScreen() {
             )}
           </View>
 
-          <View style={styles.card} testID="scanned-items-card">
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTitleRow}>
-                <View style={styles.cardIconWrap}>
-                  <ScanLine size={15} color="#2D6A4F" strokeWidth={2} />
+          {savedItems.length > 0 && (
+            <View style={styles.card} testID="saved-items-card">
+              <View style={styles.cardHeader}>
+                <View style={styles.cardTitleRow}>
+                  <View style={styles.cardIconWrap}>
+                    <Heart size={15} color="#2D6A4F" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.cardTitle}>Saved</Text>
                 </View>
-                <Text style={styles.cardTitle}>Scanned Items</Text>
-              </View>
-              {recentScans.length > 0 && (
-                <Pressable onPress={handleSeeAllScans} hitSlop={8} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+                <Pressable
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    router.push('/(tabs)/saved');
+                  }}
+                  hitSlop={8}
+                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+                >
                   <Text style={styles.seeAllText}>See all</Text>
                 </Pressable>
-              )}
-            </View>
+              </View>
 
-            {recentScans.length > 0 ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scannedScrollContent}
-              >
-                {recentScans.map((entry) => (
+              {savedItems.map((item, index) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => handleSavedItemPress(item)}
+                  style={({ pressed }) => [
+                    styles.savedRow,
+                    pressed && { backgroundColor: '#F6F7F4' },
+                    index < savedItems.length - 1 && styles.savedRowBorder,
+                  ]}
+                >
+                  <View style={styles.savedImageWrap}>
+                    {item.imageUri ? (
+                      <Image
+                        source={{ uri: item.imageUri }}
+                        style={styles.savedImage}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                      />
+                    ) : (
+                      <View style={styles.savedImagePlaceholder}>
+                        {item.type === 'deal' ? (
+                          <Tag size={14} color="#B5B0A8" strokeWidth={1.5} />
+                        ) : (
+                          <Package size={14} color="#B5B0A8" strokeWidth={1.5} />
+                        )}
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.savedInfo}>
+                    <Text style={styles.savedTitle} numberOfLines={1}>{item.title}</Text>
+                    <Text style={styles.savedSubtitle} numberOfLines={1}>
+                      {item.subtitle} · {formatTimeAgo(item.savedAt)}
+                    </Text>
+                  </View>
                   <Pressable
-                    key={entry.id}
-                    onPress={() => handleScanItemPress(entry)}
-                    style={({ pressed }) => [
-                      styles.scannedItem,
-                      pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
-                    ]}
+                    onPress={() => handleDeleteSavedItem(item)}
+                    style={({ pressed }) => [styles.savedDeleteBtn, pressed && { opacity: 0.4 }]}
+                    hitSlop={10}
                   >
-                    <View style={styles.scannedImageWrap}>
-                      {entry.imageUri ? (
-                        <Image
-                          source={{ uri: entry.imageUri }}
-                          style={styles.scannedImage}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                        />
-                      ) : (
-                        <View style={styles.scannedImagePlaceholder}>
-                          <Package size={20} color="#C8C4BC" strokeWidth={1.5} />
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.scannedCategory} numberOfLines={1}>
-                      {entry.result.category || entry.result.item_type || 'Item'}
-                    </Text>
-                    <Text style={styles.scannedName} numberOfLines={1}>
-                      {entry.result.item_name || 'Scanned Item'}
-                    </Text>
+                    <Trash2 size={14} color="#C8C4BC" strokeWidth={1.5} />
                   </Pressable>
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={styles.emptyCardContent}>
-                <View style={styles.emptyIconCircle}>
-                  <ScanLine size={20} color="#2D6A4F" strokeWidth={1.5} />
-                </View>
-                <Text style={styles.emptyCardText}>No scanned items</Text>
-                <Text style={styles.emptyCardSubtext}>Point your camera at any item to identify it</Text>
-              </View>
-            )}
-          </View>
-
-          <Pressable
-            onPress={handleScanPress}
-            style={({ pressed }) => [
-              styles.scanCta,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-            ]}
-            testID="home-scan-cta"
-          >
-            <View style={styles.scanCtaLeft}>
-              <View style={styles.scanCtaIconWrap}>
-                <Camera size={22} color="#FFFFFF" strokeWidth={1.8} />
-              </View>
-              <View style={styles.scanCtaTextWrap}>
-                <Text style={styles.scanCtaTitle}>Scan Something</Text>
-                <Text style={styles.scanCtaSubtitle}>Items, receipts, food — just point and go</Text>
-              </View>
+                </Pressable>
+              ))}
             </View>
-            <ArrowRight size={18} color="rgba(255,255,255,0.6)" strokeWidth={2.2} />
-          </Pressable>
+          )}
 
           <View style={{ height: 32 }} />
         </Animated.View>
@@ -371,6 +401,54 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
 
+  savedRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    paddingVertical: 12,
+    gap: 12,
+    borderRadius: 10,
+  },
+  savedRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFF1EB',
+  },
+  savedImageWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: 'hidden' as const,
+    backgroundColor: '#F2F4EE',
+  },
+  savedImage: {
+    width: 44,
+    height: 44,
+  },
+  savedImagePlaceholder: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#F2F4EE',
+  },
+  savedInfo: {
+    flex: 1,
+  },
+  savedTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1A1F16',
+    letterSpacing: -0.2,
+  },
+  savedSubtitle: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#A0A59A',
+    marginTop: 2,
+  },
+  savedDeleteBtn: {
+    padding: 6,
+  },
+
   receiptTotalRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -435,44 +513,6 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
 
-  scannedScrollContent: {
-    gap: 12,
-    paddingRight: 4,
-  },
-  scannedItem: {
-    width: SCANNED_ITEM_WIDTH,
-  },
-  scannedImageWrap: {
-    width: SCANNED_ITEM_WIDTH,
-    height: SCANNED_ITEM_WIDTH,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#F2F4EE',
-    marginBottom: 8,
-  },
-  scannedImage: {
-    width: '100%',
-    height: '100%',
-  },
-  scannedImagePlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scannedCategory: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#1A1F16',
-    letterSpacing: -0.1,
-  },
-  scannedName: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: '#A0A59A',
-    marginTop: 2,
-    lineHeight: 16,
-  },
-
   emptyCardContent: {
     paddingVertical: 28,
     paddingHorizontal: 16,
@@ -506,48 +546,5 @@ const styles = StyleSheet.create({
     maxWidth: 240,
   },
 
-  scanCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#2D6A4F',
-    borderRadius: 22,
-    padding: 20,
-    marginBottom: 4,
-    shadowColor: '#1B4332',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  scanCtaLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  scanCtaIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanCtaTextWrap: {
-    flex: 1,
-  },
-  scanCtaTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
-  scanCtaSubtitle: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 3,
-    lineHeight: 17,
-  },
+
 });
