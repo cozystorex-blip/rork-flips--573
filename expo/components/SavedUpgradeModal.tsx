@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
-import { Bookmark, ScanLine, TrendingUp, X, Crown, Archive, RotateCcw } from 'lucide-react-native';
+import { Bookmark, ScanLine, Shield, X, Crown, RotateCcw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { usePremium, type PlanType } from '@/contexts/PremiumContext';
 
@@ -24,10 +24,9 @@ interface SavedUpgradeModalProps {
 }
 
 const BENEFITS: { icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>; label: string }[] = [
-  { icon: Bookmark, label: 'Unlimited saved items' },
+  { icon: Shield, label: 'Ad-free experience' },
+  { icon: Bookmark, label: 'Unlimited saves' },
   { icon: ScanLine, label: 'Unlimited scan history' },
-  { icon: TrendingUp, label: 'Full resale value tracking' },
-  { icon: Archive, label: 'Extended saved collection' },
 ];
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';

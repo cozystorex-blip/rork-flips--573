@@ -17,11 +17,8 @@ import {
   X,
   Bookmark,
   ScanLine,
-  TrendingUp,
-  Archive,
   Sparkles,
   Shield,
-  Zap,
   RotateCcw,
   Check,
 } from 'lucide-react-native';
@@ -36,12 +33,9 @@ const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stde
 const PRIVACY_URL = 'https://rork.app/privacy';
 
 const BENEFITS = [
-  { icon: Bookmark, label: 'Unlimited saved items', desc: 'Never lose a deal or scan' },
-  { icon: ScanLine, label: 'Unlimited scan history', desc: 'Full access to all your scans' },
-  { icon: TrendingUp, label: 'Resale value tracking', desc: 'Know what your items are worth' },
   { icon: Shield, label: 'Ad-free experience', desc: 'Browse without interruptions' },
-  { icon: Zap, label: 'Priority scanning', desc: 'Faster, smarter item recognition' },
-  { icon: Archive, label: 'Extended collections', desc: 'Organize saves into groups' },
+  { icon: Bookmark, label: 'Unlimited saves', desc: 'Never lose a deal or scan' },
+  { icon: ScanLine, label: 'Unlimited scan history', desc: 'Full access to all your scans' },
 ];
 
 interface SubscriptionPaywallProps {
