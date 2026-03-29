@@ -5,7 +5,7 @@ export default function DealsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#F4F5F0' },
+        contentStyle: { backgroundColor: '#0A0A0A' },
       }}
     />
   );

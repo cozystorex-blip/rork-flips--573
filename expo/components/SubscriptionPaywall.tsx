@@ -13,13 +13,14 @@ import {
   Platform,
 } from 'react-native';
 import {
-  Crown,
+  Zap,
   X,
   Bookmark,
   ScanLine,
-  Sparkles,
   Shield,
   RotateCcw,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { usePremium, type PlanType } from '@/contexts/PremiumContext';
@@ -53,7 +54,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('annual');
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
     if (visible) {
@@ -64,15 +65,15 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
 
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 0.6, duration: 1400, useNativeDriver: true }),
         ])
       ).start();
     } else {
       backdropAnim.setValue(0);
       slideAnim.setValue(SCREEN_H);
     }
-  }, [visible, backdropAnim, slideAnim, pulseAnim]);
+  }, [visible, backdropAnim, slideAnim, glowAnim]);
 
   const handleClose = useCallback(() => {
     if (isPurchasing || isRestoring) return;
@@ -107,7 +108,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
 
         <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
           <Pressable onPress={handleClose} style={styles.closeBtn} hitSlop={16} testID="paywall-close">
-            <X size={20} color="#8E8E93" strokeWidth={2.2} />
+            <X size={18} color="#666666" strokeWidth={2.2} />
           </Pressable>
 
           <ScrollView
@@ -116,51 +117,57 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.heroSection}>
-              <Animated.View style={[styles.crownCircle, { transform: [{ scale: pulseAnim }] }]}>
-                <Crown size={32} color="#D4A017" strokeWidth={2} />
+              <Animated.View style={[styles.iconContainer, { opacity: glowAnim }]}>
+                <View style={styles.iconInner}>
+                  <Zap size={34} color="#22C55E" strokeWidth={2.2} fill="#22C55E" />
+                </View>
               </Animated.View>
-              <Text style={styles.heroTitle}>Unlock Flips Premium</Text>
+              <View style={styles.heroTextWrap}>
+                <Text style={styles.heroLabel}>FLIPS</Text>
+                <Text style={styles.heroTitle}>Go Premium</Text>
+              </View>
               <Text style={styles.heroSubtitle}>
-                Save unlimited items, scan without limits, and enjoy an ad-free experience.
+                Unlock the full Flips experience with unlimited saves, scans, and zero ads.
               </Text>
             </View>
 
             <View style={styles.usageSection}>
-              <Text style={styles.usageSectionTitle}>Your current usage</Text>
               <View style={styles.usageRow}>
                 <View style={styles.usageItem}>
                   <View style={styles.usageLabelRow}>
-                    <Bookmark size={12} color="#0066CC" strokeWidth={2} />
+                    <Bookmark size={12} color="#22C55E" strokeWidth={2} />
                     <Text style={styles.usageLabel}>Saves</Text>
+                    <Text style={styles.usageCount}>{savesUsed}/{freeLimit}</Text>
                   </View>
                   <View style={styles.progressBarBg}>
                     <View style={[styles.progressBarFill, { width: `${Math.min(savesPercent, 100)}%` }, savesPercent >= 85 && styles.progressBarWarning]} />
                   </View>
-                  <Text style={styles.usageCount}>{savesUsed} / {freeLimit}</Text>
                 </View>
                 <View style={styles.usageItem}>
                   <View style={styles.usageLabelRow}>
-                    <ScanLine size={12} color="#0066CC" strokeWidth={2} />
+                    <ScanLine size={12} color="#22C55E" strokeWidth={2} />
                     <Text style={styles.usageLabel}>Scans</Text>
+                    <Text style={styles.usageCount}>{scansUsed}/{scanFreeLimit}</Text>
                   </View>
                   <View style={styles.progressBarBg}>
                     <View style={[styles.progressBarFill, { width: `${Math.min(scansPercent, 100)}%` }, scansPercent >= 85 && styles.progressBarWarning]} />
                   </View>
-                  <Text style={styles.usageCount}>{scansUsed} / {scanFreeLimit}</Text>
                 </View>
               </View>
             </View>
 
-            <View style={styles.benefitsGrid}>
+            <View style={styles.benefitsSection}>
               {BENEFITS.map((b, idx) => {
                 const Icon = b.icon;
                 return (
-                  <View key={idx} style={styles.benefitCell}>
-                    <View style={styles.benefitCellIcon}>
-                      <Icon size={18} color="#0066CC" strokeWidth={2} />
+                  <View key={idx} style={styles.benefitRow}>
+                    <View style={styles.benefitIcon}>
+                      <Icon size={18} color="#22C55E" strokeWidth={2} />
                     </View>
-                    <Text style={styles.benefitCellLabel}>{b.label}</Text>
-                    <Text style={styles.benefitCellDesc}>{b.desc}</Text>
+                    <View style={styles.benefitText}>
+                      <Text style={styles.benefitLabel}>{b.label}</Text>
+                      <Text style={styles.benefitDesc}>{b.desc}</Text>
+                    </View>
                   </View>
                 );
               })}
@@ -178,19 +185,19 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
                 ]}
                 testID="paywall-plan-annual"
               >
+                {selectedPlan === 'annual' && (
+                  <View style={styles.bestValueBadge}>
+                    <Sparkles size={9} color="#0A0A0A" strokeWidth={2.5} />
+                    <Text style={styles.bestValueText}>BEST VALUE</Text>
+                  </View>
+                )}
                 <View style={styles.planRadio}>
                   {selectedPlan === 'annual' && <View style={styles.planRadioInner} />}
                 </View>
                 <View style={styles.planInfo}>
-                  <View style={styles.planNameRow}>
-                    <Text style={[styles.planName, selectedPlan === 'annual' && styles.planNameSelected]}>
-                      Yearly
-                    </Text>
-                    <View style={styles.bestValueBadge}>
-                      <Sparkles size={9} color="#FFFFFF" strokeWidth={2.5} />
-                      <Text style={styles.bestValueText}>BEST VALUE</Text>
-                    </View>
-                  </View>
+                  <Text style={[styles.planName, selectedPlan === 'annual' && styles.planNameSelected]}>
+                    Yearly
+                  </Text>
                   <Text style={styles.planPrice}>{annualPriceRaw}/year</Text>
                   <Text style={styles.planSub}>~$2.50/mo · Save 58%</Text>
                 </View>
@@ -220,29 +227,27 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               </Pressable>
             </View>
 
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Pressable
-                onPress={handleUpgrade}
-                disabled={isBusy}
-                style={({ pressed }) => [
-                  styles.upgradeBtn,
-                  pressed && !isBusy && styles.upgradeBtnPressed,
-                  isBusy && styles.upgradeBtnDisabled,
-                ]}
-                testID="paywall-subscribe-btn"
-              >
-                {isPurchasing ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Crown size={18} color="#FFFFFF" strokeWidth={2.2} />
-                    <Text style={styles.upgradeBtnText}>
-                      Continue with {selectedPlan === 'annual' ? 'Yearly' : 'Monthly'}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            </Animated.View>
+            <Pressable
+              onPress={handleUpgrade}
+              disabled={isBusy}
+              style={({ pressed }) => [
+                styles.upgradeBtn,
+                pressed && !isBusy && styles.upgradeBtnPressed,
+                isBusy && styles.upgradeBtnDisabled,
+              ]}
+              testID="paywall-subscribe-btn"
+            >
+              {isPurchasing ? (
+                <ActivityIndicator size="small" color="#0A0A0A" />
+              ) : (
+                <>
+                  <Text style={styles.upgradeBtnText}>
+                    Continue with {selectedPlan === 'annual' ? 'Yearly' : 'Monthly'}
+                  </Text>
+                  <ArrowRight size={18} color="#0A0A0A" strokeWidth={2.5} />
+                </>
+              )}
+            </Pressable>
 
             <Pressable
               onPress={handleRestore}
@@ -251,10 +256,10 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               testID="paywall-restore-btn"
             >
               {isRestoring ? (
-                <ActivityIndicator size="small" color="#AEAEB2" />
+                <ActivityIndicator size="small" color="#555555" />
               ) : (
                 <View style={styles.restoreRow}>
-                  <RotateCcw size={13} color="#8E8E93" strokeWidth={2} />
+                  <RotateCcw size={13} color="#555555" strokeWidth={2} />
                   <Text style={styles.restoreText}>Restore Purchases</Text>
                 </View>
               )}
@@ -299,19 +304,14 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
   },
   sheet: {
     flex: 1,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#0A0A0A',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     marginTop: Platform.OS === 'ios' ? 54 : 36,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 20,
     overflow: 'hidden',
   },
   closeBtn: {
@@ -321,10 +321,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E0EAF2',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -332,61 +334,61 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
     paddingTop: 8,
   },
-  crownCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 24,
-    backgroundColor: '#FFF3D0',
+  iconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 28,
+    backgroundColor: '#22C55E12',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2.5,
-    borderColor: '#F0D860',
-    marginBottom: 18,
-    shadowColor: '#D4A017',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 5,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#22C55E33',
+  },
+  iconInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#22C55E18',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroTextWrap: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  heroLabel: {
+    fontSize: 12,
+    fontWeight: '800' as const,
+    color: '#22C55E',
+    letterSpacing: 3,
+    marginBottom: 4,
   },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.8,
     textAlign: 'center',
-    marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 15,
     fontWeight: '400' as const,
-    color: '#3A4F65',
+    color: '#888888',
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 300,
   },
   usageSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#141414',
     borderRadius: 18,
     padding: 18,
     marginBottom: 20,
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
-  },
-  usageSectionTitle: {
-    fontSize: 13,
-    fontWeight: '800' as const,
-    color: '#5A7A94',
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
-    marginBottom: 14,
+    borderColor: '#222222',
   },
   usageRow: {
     gap: 14,
@@ -402,70 +404,68 @@ const styles = StyleSheet.create({
   usageLabel: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: '#D0DDE8',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: 8,
-    backgroundColor: '#0066CC',
-    borderRadius: 4,
-  },
-  progressBarWarning: {
-    backgroundColor: '#E67E22',
+    color: '#F5F5F5',
+    flex: 1,
   },
   usageCount: {
     fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#5A7A94',
+    fontWeight: '600' as const,
+    color: '#666666',
   },
-  benefitsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#222222',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: 6,
+    backgroundColor: '#22C55E',
+    borderRadius: 3,
+  },
+  progressBarWarning: {
+    backgroundColor: '#F59E0B',
+  },
+  benefitsSection: {
+    gap: 0,
     marginBottom: 24,
-  },
-  benefitCell: {
-    width: '47%' as unknown as number,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 1,
+    backgroundColor: '#141414',
+    borderRadius: 18,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#222222',
   },
-  benefitCellIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#E0EFFF',
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    gap: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E1E1E',
+  },
+  benefitIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#22C55E12',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
   },
-  benefitCellLabel: {
-    fontSize: 13,
-    fontWeight: '800' as const,
-    color: '#0D1B2A',
-    textAlign: 'center' as const,
+  benefitText: {
+    flex: 1,
+  },
+  benefitLabel: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#F5F5F5',
     letterSpacing: -0.2,
-    marginBottom: 3,
   },
-  benefitCellDesc: {
-    fontSize: 11,
+  benefitDesc: {
+    fontSize: 12,
     fontWeight: '400' as const,
-    color: '#5A7A94',
-    textAlign: 'center' as const,
-    lineHeight: 15,
+    color: '#666666',
+    marginTop: 2,
   },
   plansSection: {
     gap: 10,
@@ -474,23 +474,43 @@ const styles = StyleSheet.create({
   planOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#141414',
     borderRadius: 16,
     padding: 18,
     borderWidth: 2,
-    borderColor: '#D0DDE8',
+    borderColor: '#222222',
     gap: 14,
+    position: 'relative' as const,
+    overflow: 'hidden',
   },
   planOptionSelected: {
-    borderColor: '#0066CC',
-    backgroundColor: '#F0F7FF',
+    borderColor: '#22C55E',
+    backgroundColor: '#22C55E08',
+  },
+  bestValueBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderBottomLeftRadius: 10,
+  },
+  bestValueText: {
+    fontSize: 9,
+    fontWeight: '800' as const,
+    color: '#0A0A0A',
+    letterSpacing: 0.5,
   },
   planRadio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#B8C9D9',
+    borderColor: '#333333',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -498,51 +518,31 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
   },
   planInfo: {
     flex: 1,
   },
-  planNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   planName: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#3A4F65',
+    color: '#888888',
     letterSpacing: -0.2,
   },
   planNameSelected: {
-    color: '#0D1B2A',
-  },
-  bestValueBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#0066CC',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  bestValueText: {
-    fontSize: 9,
-    fontWeight: '800' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    color: '#F5F5F5',
   },
   planPrice: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.3,
     marginTop: 4,
   },
   planSub: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: '#5A7A94',
+    color: '#666666',
     marginTop: 2,
   },
   upgradeBtn: {
@@ -550,20 +550,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 16,
     width: '100%',
     minHeight: 58,
-    shadowColor: '#003D7A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    elevation: 8,
   },
   upgradeBtnPressed: {
-    backgroundColor: '#0052A3',
+    backgroundColor: '#16A34A',
     transform: [{ scale: 0.97 }],
   },
   upgradeBtnDisabled: {
@@ -572,7 +567,7 @@ const styles = StyleSheet.create({
   upgradeBtnText: {
     fontSize: 17,
     fontWeight: '800' as const,
-    color: '#FFFFFF',
+    color: '#0A0A0A',
     letterSpacing: 0.1,
   },
   restoreBtn: {
@@ -588,7 +583,7 @@ const styles = StyleSheet.create({
   restoreText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#555555',
   },
   legalSection: {
     marginTop: 16,
@@ -602,17 +597,17 @@ const styles = StyleSheet.create({
   legalLink: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#8E8E93',
+    color: '#555555',
     textDecorationLine: 'underline' as const,
   },
   legalDot: {
     fontSize: 12,
-    color: '#C7C7CC',
+    color: '#333333',
   },
   legalDisclaimer: {
     fontSize: 10,
     fontWeight: '400' as const,
-    color: '#AEAEB2',
+    color: '#444444',
     textAlign: 'center' as const,
     lineHeight: 14,
     marginTop: 10,
@@ -626,7 +621,7 @@ const styles = StyleSheet.create({
   skipText: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#7A8FA3',
+    color: '#555555',
     textDecorationLine: 'underline' as const,
   },
 });

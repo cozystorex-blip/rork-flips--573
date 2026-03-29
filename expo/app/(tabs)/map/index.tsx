@@ -120,21 +120,21 @@ function getDealDisplayTime(deal: VerifiedDealRow): string {
 function getTrustBadgeConfig(trust: DealTrustInfo): { label: string; color: string; bgColor: string; borderColor: string } {
   switch (trust.level) {
     case 'high':
-      return { label: 'Store Verified', color: '#166534', bgColor: '#F0FDF4', borderColor: '#DCFCE7' };
+      return { label: 'Store Verified', color: '#22C55E', bgColor: '#22C55E15', borderColor: '#22C55E33' };
     case 'medium':
-      return { label: 'Likely Accurate', color: '#92400E', bgColor: '#FFFBEB', borderColor: '#FDE68A' };
+      return { label: 'Likely Accurate', color: '#F59E0B', bgColor: '#F59E0B15', borderColor: '#F59E0B33' };
     case 'low':
-      return { label: 'Estimate', color: '#9A3412', bgColor: '#FFF7ED', borderColor: '#FED7AA' };
+      return { label: 'Estimate', color: '#F97316', bgColor: '#F9731615', borderColor: '#F9731633' };
     default:
-      return { label: 'Unverified', color: '#6B7280', bgColor: '#F9FAFB', borderColor: '#E5E7EB' };
+      return { label: 'Unverified', color: '#666666', bgColor: '#66666615', borderColor: '#66666633' };
   }
 }
 
 function getFreshnessIndicator(trust: DealTrustInfo): { label: string; color: string } | null {
-  if (trust.freshnessHours < 6) return { label: 'Fresh', color: '#059669' };
-  if (trust.freshnessHours < 24) return { label: 'Today', color: '#059669' };
-  if (trust.freshnessHours < 48) return { label: 'Recent', color: '#D97706' };
-  if (trust.isStale) return { label: 'Aging', color: '#DC2626' };
+  if (trust.freshnessHours < 6) return { label: 'Fresh', color: '#22C55E' };
+  if (trust.freshnessHours < 24) return { label: 'Today', color: '#22C55E' };
+  if (trust.freshnessHours < 48) return { label: 'Recent', color: '#F59E0B' };
+  if (trust.isStale) return { label: 'Aging', color: '#EF4444' };
   return null;
 }
 
@@ -239,7 +239,7 @@ const DealCard = React.memo(function DealCard({ deal, timeAgo, trust, onPress }:
               )}
               {deal.moderation_status === 'pending' && isUserDeal && (
                 <View style={styles.pendingBadgeInline}>
-                  <Clock size={10} color="#92400E" strokeWidth={2} />
+                  <Clock size={10} color="#F59E0B" strokeWidth={2} />
                   <Text style={styles.pendingBadgeText}>Under Review</Text>
                 </View>
               )}
@@ -289,7 +289,7 @@ const DealCard = React.memo(function DealCard({ deal, timeAgo, trust, onPress }:
                 <Text style={styles.priceTagGreen}>{priceInfo.valueText}</Text>
               ) : (
                 <View style={styles.seeDealPill}>
-                  <DollarSign size={10} color="#0066CC" strokeWidth={1.8} />
+                  <DollarSign size={10} color="#22C55E" strokeWidth={1.8} />
                   <Text style={styles.seeDealText}>See deal</Text>
                 </View>
               )}
@@ -310,7 +310,7 @@ const DealCard = React.memo(function DealCard({ deal, timeAgo, trust, onPress }:
           <View style={styles.cardFooter}>
             <View style={styles.footerLeft}>
               {deal.category && (
-                <View style={[styles.catChip, { backgroundColor: catColor + '12' }]}>
+                <View style={[styles.catChip, { backgroundColor: catColor + '15' }]}>
                   <Text style={[styles.catChipText, { color: catColor }]}>
                     {deal.category.charAt(0).toUpperCase() + deal.category.slice(1).toLowerCase()}
                   </Text>
@@ -331,17 +331,17 @@ const DealCard = React.memo(function DealCard({ deal, timeAgo, trust, onPress }:
             <View style={styles.footerRight}>
               {timeAgo ? (
                 <View style={styles.metaItem}>
-                  <Clock size={10} color="#AEAEB2" strokeWidth={1.5} />
+                  <Clock size={10} color="#555555" strokeWidth={1.5} />
                   <Text style={styles.metaText}>{timeAgo}</Text>
                 </View>
               ) : null}
-              <ChevronRight size={14} color="#C7C7CC" strokeWidth={1.8} />
+              <ChevronRight size={14} color="#444444" strokeWidth={1.8} />
             </View>
           </View>
 
           {!hasPhoto && hasSavings && (
             <View style={styles.savingsInline}>
-              <TrendingDown size={11} color="#059669" strokeWidth={2.5} />
+              <TrendingDown size={11} color="#22C55E" strokeWidth={2.5} />
               <Text style={styles.savingsInlineText}>Save ${deal.savings_amount!.toFixed(2)}</Text>
               {hasSavingsPercent && (
                 <View style={styles.savingsPercentPill}>
@@ -493,7 +493,7 @@ export default function DealsScreen() {
               style={({ pressed }) => [styles.postDealIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
               testID="post-deal-header-btn"
             >
-              <Tag size={20} color="#0066CC" strokeWidth={1.8} />
+              <Tag size={20} color="#22C55E" strokeWidth={1.8} />
             </Pressable>
           </View>
         </Animated.View>
@@ -502,7 +502,7 @@ export default function DealsScreen() {
       {isLoading ? (
         <View style={styles.stateWrap}>
           <View style={styles.stateCard}>
-            <ActivityIndicator size="large" color="#0066CC" />
+            <ActivityIndicator size="large" color="#22C55E" />
             <Text style={styles.stateText}>Loading finds...</Text>
           </View>
         </View>
@@ -526,7 +526,7 @@ export default function DealsScreen() {
         <View style={styles.stateWrap}>
           <View style={styles.stateCard}>
             <View style={styles.emptyIcon}>
-              <ShoppingBag size={26} color="#0066CC" strokeWidth={1.5} />
+              <ShoppingBag size={26} color="#22C55E" strokeWidth={1.5} />
             </View>
             <Text style={styles.stateTitle}>No flips yet</Text>
             <Text style={styles.stateText}>Real flips will appear here once they are posted.</Text>
@@ -560,7 +560,7 @@ export default function DealsScreen() {
                 console.log('[Deals] Pull-to-refresh: fetching fresh backend-only data');
                 void refetch();
               }}
-              tintColor="#0066CC"
+              tintColor="#22C55E"
             />
           }
         />
@@ -572,10 +572,10 @@ export default function DealsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
   },
   headerBar: {
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
     paddingBottom: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 0,
@@ -584,13 +584,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 34,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -1,
   },
   headerSubtitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#5A7A94',
+    color: '#22C55E',
     marginTop: 3,
     letterSpacing: 0.2,
     textTransform: 'uppercase' as const,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#22C55E',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   syncStatusText: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#0066CC',
+    color: '#22C55E',
   },
   scrollContent: {
     paddingTop: 4,
@@ -653,11 +653,11 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#C0D8F0',
+    borderColor: '#22C55E33',
   },
   feedContent: {
     paddingHorizontal: 16,
@@ -669,29 +669,24 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   stateCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   stateTitle: {
     fontSize: 19,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     marginTop: 14,
     letterSpacing: -0.3,
   },
   stateText: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#666666',
     fontWeight: '400' as const,
     textAlign: 'center' as const,
     marginTop: 6,
@@ -702,7 +697,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 20,
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#EF444418',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -710,21 +705,16 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 20,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   retryBtn: {
     marginTop: 18,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 30,
     paddingVertical: 14,
     borderRadius: 14,
-    shadowColor: '#003D7A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
   },
   retryBtnText: {
     fontSize: 15,
@@ -739,16 +729,11 @@ const styles = StyleSheet.create({
 
 
   dealCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E0EAF2',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.09,
-    shadowRadius: 14,
-    elevation: 2,
+    borderColor: '#2A2A2A',
     marginBottom: 14,
   },
   dealCardExpired: {
@@ -758,7 +743,7 @@ const styles = StyleSheet.create({
     position: 'relative' as const,
     width: '100%',
     height: CARD_PHOTO_HEIGHT,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   photoGradientOverlay: {
     position: 'absolute' as const,
@@ -779,15 +764,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#059669',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
   },
   savingsOverlayText: {
     fontSize: 13,
@@ -809,7 +789,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#059669',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -828,7 +808,7 @@ const styles = StyleSheet.create({
   userBadgeText: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#666666',
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -853,7 +833,7 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     flex: 1,
     letterSpacing: -0.2,
   },
@@ -863,20 +843,20 @@ const styles = StyleSheet.create({
   priceTag: {
     fontSize: 22,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.6,
   },
   priceTagGreen: {
     fontSize: 17,
     fontWeight: '800' as const,
-    color: '#0066CC',
+    color: '#22C55E',
     letterSpacing: -0.3,
   },
   seeDealPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 7,
@@ -884,26 +864,26 @@ const styles = StyleSheet.create({
   seeDealText: {
     fontSize: 11,
     fontWeight: '700' as const,
-    color: '#0066CC',
+    color: '#22C55E',
   },
   originalPrice: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#8E8E93',
+    color: '#666666',
     textDecorationLine: 'line-through' as const,
     marginTop: 1,
   },
   dealTitle: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     lineHeight: 21,
     marginBottom: 4,
     letterSpacing: -0.2,
   },
   dealDesc: {
     fontSize: 13,
-    color: '#8E8E93',
+    color: '#666666',
     lineHeight: 18,
     marginBottom: 4,
   },
@@ -914,7 +894,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#D0DDE8',
+    borderTopColor: '#2A2A2A',
   },
   footerLeft: {
     flexDirection: 'row',
@@ -959,7 +939,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: '#555555',
     fontWeight: '400' as const,
   },
   cardSourceBadge: {
@@ -975,7 +955,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   cardSourceBadgeVerified: {
-    backgroundColor: 'rgba(27,94,59,0.85)',
+    backgroundColor: 'rgba(34,197,94,0.85)',
   },
   cardSourceBadgeCommunity: {
     backgroundColor: 'rgba(239,68,68,0.75)',
@@ -1005,17 +985,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#F59E0B18',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 7,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: '#F59E0B33',
   },
   pendingBadgeText: {
     fontSize: 10,
     fontWeight: '600' as const,
-    color: '#D97706',
+    color: '#F59E0B',
     letterSpacing: 0.1,
   },
   savingsInline: {
@@ -1023,21 +1003,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 8,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#22C55E15',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: 'flex-start' as const,
     borderWidth: 1,
-    borderColor: '#DCFCE7',
+    borderColor: '#22C55E33',
   },
   savingsInlineText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: '#059669',
+    color: '#22C55E',
   },
   savingsPercentPill: {
-    backgroundColor: '#059669',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 5,
@@ -1049,7 +1029,7 @@ const styles = StyleSheet.create({
   },
   expiredBanner: {
     marginTop: 6,
-    backgroundColor: '#FF3B3010',
+    backgroundColor: '#EF444418',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 7,
@@ -1065,7 +1045,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 10,
     overflow: 'hidden' as const,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   productThumb: {
     width: 36,
@@ -1077,7 +1057,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden' as const,
     borderWidth: 1.5,
-    borderColor: '#D0DDE8',
+    borderColor: '#2A2A2A',
   },
   posterAvatar: {
     width: '100%' as const,
@@ -1091,14 +1071,14 @@ const styles = StyleSheet.create({
   posterName: {
     fontSize: 13,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
     lineHeight: 16,
   },
   storeNameSmall: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#666666',
     lineHeight: 14,
   },
 });

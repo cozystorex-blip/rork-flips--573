@@ -5,7 +5,7 @@ export default function DiscoverLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#EDEFE8' },
+        contentStyle: { backgroundColor: '#0A0A0A' },
       }}
     />
   );

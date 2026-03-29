@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
-import { Bookmark, ScanLine, Shield, X, Crown, RotateCcw } from 'lucide-react-native';
+import { Bookmark, ScanLine, Shield, X, Zap, RotateCcw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { usePremium, type PlanType } from '@/contexts/PremiumContext';
 
@@ -71,8 +71,6 @@ export default function SavedUpgradeModal({ visible, onClose, currentCount, free
     restorePurchases();
   }, [restorePurchases]);
 
-
-
   const isBusy = isPurchasing || isRestoring;
 
   return (
@@ -97,12 +95,12 @@ export default function SavedUpgradeModal({ visible, onClose, currentCount, free
           ]}
         >
           <Pressable onPress={handleClose} style={styles.closeBtn} hitSlop={12} testID="upgrade-close">
-            <X size={18} color="#AEAEB2" strokeWidth={2} />
+            <X size={18} color="#666666" strokeWidth={2} />
           </Pressable>
 
           <View style={styles.iconRow}>
-            <View style={styles.crownBubble}>
-              <Crown size={28} color="#D4A017" strokeWidth={2} />
+            <View style={styles.iconBubble}>
+              <Zap size={28} color="#22C55E" strokeWidth={2} fill="#22C55E" />
             </View>
           </View>
 
@@ -118,7 +116,7 @@ export default function SavedUpgradeModal({ visible, onClose, currentCount, free
               return (
                 <View key={idx} style={styles.benefitRow}>
                   <View style={styles.benefitDot}>
-                    <Icon size={14} color="#1B5E3B" strokeWidth={2} />
+                    <Icon size={14} color="#22C55E" strokeWidth={2} />
                   </View>
                   <Text style={styles.benefitText}>{b.label}</Text>
                 </View>
@@ -148,10 +146,10 @@ export default function SavedUpgradeModal({ visible, onClose, currentCount, free
             testID="upgrade-btn"
           >
             {isPurchasing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color="#0A0A0A" />
             ) : (
               <>
-                <Crown size={16} color="#FFFFFF" strokeWidth={2.2} />
+                <Zap size={16} color="#0A0A0A" strokeWidth={2.2} fill="#0A0A0A" />
                 <Text style={styles.upgradeBtnText}>
                   Subscribe — {annualPriceRaw}/yr
                 </Text>
@@ -166,10 +164,10 @@ export default function SavedUpgradeModal({ visible, onClose, currentCount, free
             testID="restore-btn"
           >
             {isRestoring ? (
-              <ActivityIndicator size="small" color="#AEAEB2" />
+              <ActivityIndicator size="small" color="#555555" />
             ) : (
               <View style={styles.restoreRow}>
-                <RotateCcw size={12} color="#AEAEB2" strokeWidth={2} />
+                <RotateCcw size={12} color="#555555" strokeWidth={2} />
                 <Text style={styles.restoreText}>Restore Purchases</Text>
               </View>
             )}
@@ -213,21 +211,18 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   card: {
     width: Math.min(SCREEN_W - 48, 380),
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#111111',
     borderRadius: 20,
     paddingTop: 28,
     paddingBottom: 18,
     paddingHorizontal: 22,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
   },
   closeBtn: {
     position: 'absolute',
@@ -236,27 +231,29 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
   },
   iconRow: {
     marginBottom: 16,
   },
-  crownBubble: {
+  iconBubble: {
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#FFF8E1',
+    backgroundColor: '#22C55E15',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#F5E6A3',
+    borderColor: '#22C55E33',
   },
   headline: {
     fontSize: 19,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#F5F5F5',
     textAlign: 'center',
     letterSpacing: -0.3,
     marginBottom: 8,
@@ -264,7 +261,7 @@ const styles = StyleSheet.create({
   subline: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#6B7280',
+    color: '#888888',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -283,25 +280,25 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 8,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#22C55E12',
     justifyContent: 'center',
     alignItems: 'center',
   },
   benefitText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#F5F5F5',
     flex: 1,
   },
   planCard: {
     width: '100%',
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: '#1B7A45',
+    borderColor: '#22C55E',
     paddingVertical: 16,
     paddingHorizontal: 16,
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#22C55E08',
     marginBottom: 18,
   },
   planHeader: {
@@ -312,11 +309,11 @@ const styles = StyleSheet.create({
   planLabelSelected: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#1B5E3B',
+    color: '#22C55E',
     letterSpacing: -0.1,
   },
   saveBadge: {
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#22C55E',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
@@ -324,20 +321,20 @@ const styles = StyleSheet.create({
   saveBadgeText: {
     fontSize: 8,
     fontWeight: '800' as const,
-    color: '#FFFFFF',
+    color: '#0A0A0A',
     letterSpacing: 0.5,
   },
   planPriceSelected: {
     fontSize: 22,
     fontWeight: '700' as const,
-    color: '#1B5E3B',
+    color: '#F5F5F5',
     marginTop: 4,
     letterSpacing: -0.3,
   },
   planSubSelected: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: '#3D8B5E',
+    color: '#666666',
     marginTop: 2,
   },
   upgradeBtn: {
@@ -345,20 +342,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#1B7A45',
+    backgroundColor: '#22C55E',
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 14,
     width: '100%',
     minHeight: 48,
-    shadowColor: '#1B7A45',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   upgradeBtnPressed: {
-    backgroundColor: '#166B3D',
+    backgroundColor: '#16A34A',
     transform: [{ scale: 0.97 }],
   },
   upgradeBtnDisabled: {
@@ -367,7 +359,7 @@ const styles = StyleSheet.create({
   upgradeBtnText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#0A0A0A',
     letterSpacing: -0.2,
   },
   restoreBtn: {
@@ -384,7 +376,7 @@ const styles = StyleSheet.create({
   restoreText: {
     fontSize: 13,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#555555',
   },
   legalRow: {
     flexDirection: 'row',
@@ -395,17 +387,17 @@ const styles = StyleSheet.create({
   legalLink: {
     fontSize: 11,
     fontWeight: '400' as const,
-    color: '#8E8E93',
+    color: '#555555',
     textDecorationLine: 'underline',
   },
   legalDot: {
     fontSize: 11,
-    color: '#C7C7CC',
+    color: '#333333',
   },
   legalDisclaimer: {
     fontSize: 10,
     fontWeight: '400' as const,
-    color: '#AEAEB2',
+    color: '#444444',
     textAlign: 'center',
     lineHeight: 14,
     marginTop: 8,
@@ -414,7 +406,7 @@ const styles = StyleSheet.create({
   laterText: {
     fontSize: 13,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#555555',
     marginTop: 10,
   },
 });

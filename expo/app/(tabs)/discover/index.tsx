@@ -369,7 +369,7 @@ export default function DiscoverScreen() {
 
         {discoverQuery.isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#0066CC" />
+            <ActivityIndicator size="small" color="#22C55E" />
             <Text style={styles.loadingText}>Loading profiles...</Text>
           </View>
         ) : discoverQuery.isError ? (
@@ -390,13 +390,13 @@ export default function DiscoverScreen() {
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconRow}>
                 <View style={[styles.emptyIconCircle, styles.emptyIconCircleSmall]}>
-                  <Search size={16} color="#8A8F82" strokeWidth={1.8} />
+                  <Search size={16} color="#666666" strokeWidth={1.8} />
                 </View>
                 <View style={styles.emptyIconCircleLarge}>
-                  <Users size={30} color="#0066CC" strokeWidth={1.5} />
+                  <Users size={30} color="#22C55E" strokeWidth={1.5} />
                 </View>
                 <View style={[styles.emptyIconCircle, styles.emptyIconCircleSmall]}>
-                  <MessageCircle size={16} color="#8A8F82" strokeWidth={1.8} />
+                  <MessageCircle size={16} color="#666666" strokeWidth={1.8} />
                 </View>
               </View>
               <Text style={styles.emptyTitle}>No profiles yet</Text>
@@ -435,7 +435,7 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
   },
   scrollContent: {
     paddingHorizontal: H_PADDING,
@@ -446,13 +446,13 @@ const styles = StyleSheet.create({
   screenTitle: {
     fontSize: 34,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -1,
   },
   screenSubtitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#5A7A94',
+    color: '#22C55E',
     marginTop: 3,
     letterSpacing: 0.2,
     textTransform: 'uppercase' as const,
@@ -469,29 +469,19 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
     marginTop: 4,
   },
   followingSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginBottom: 16,
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.09,
-    shadowRadius: 16,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   followingHeader: {
     flexDirection: 'row',
@@ -502,11 +492,11 @@ const styles = StyleSheet.create({
   followingLabel: {
     fontSize: 15,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   followingCount: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -545,12 +535,12 @@ const styles = StyleSheet.create({
   followingPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   followingName: {
     fontSize: 11,
     fontWeight: '600' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     textAlign: 'center' as const,
   },
   sectionDivider: {
@@ -564,7 +554,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   loadingContainer: {
@@ -574,26 +564,21 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#5A7A94',
+    color: '#666666',
     fontWeight: '500' as const,
     marginTop: 10,
   },
   errorText: {
     fontSize: 14,
-    color: '#5A7A94',
+    color: '#A0A0A0',
     fontWeight: '600' as const,
   },
   retryBtn: {
     marginTop: 14,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 28,
     paddingVertical: 13,
     borderRadius: 14,
-    shadowColor: '#003D7A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
   },
   retryBtnText: {
     fontSize: 14,
@@ -609,16 +594,11 @@ const styles = StyleSheet.create({
     columnGap: CARD_GAP,
   },
   profileCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.09,
-    shadowRadius: 16,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   cardPressed: {
     opacity: 0.92,
@@ -630,7 +610,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: CARD_WIDTH * 0.85,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   avatarPlaceholder: {
     justifyContent: 'center',
@@ -651,15 +631,15 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   followBtnActive: {
-    backgroundColor: '#0066CC',
-    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#22C55E',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   cardBody: {
     paddingHorizontal: 12,
@@ -670,7 +650,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 15,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   styleTag: {
@@ -695,12 +675,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 17,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.3,
   },
   statLabel: {
     fontSize: 13,
-    color: '#7A8FA3',
+    color: '#666666',
     fontWeight: '400' as const,
   },
   thumbRow: {
@@ -712,25 +692,20 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 38,
     borderRadius: 8,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   emptyWrapper: {
     paddingTop: 20,
     paddingHorizontal: 4,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 22,
     padding: 32,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 4,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   emptyIconRow: {
     flexDirection: 'row',
@@ -742,7 +717,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -755,21 +730,21 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 20,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyTitle: {
     fontSize: 21,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.4,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#5A7A94',
+    color: '#666666',
     textAlign: 'center' as const,
     paddingHorizontal: 12,
     lineHeight: 21,
@@ -777,7 +752,7 @@ const styles = StyleSheet.create({
   emptyDivider: {
     width: 48,
     height: 2,
-    backgroundColor: '#D0DDE8',
+    backgroundColor: '#2A2A2A',
     borderRadius: 1,
     marginTop: 24,
     marginBottom: 20,
@@ -794,13 +769,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     opacity: 0.5,
   },
   emptyHintText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#3A4F65',
+    color: '#A0A0A0',
     letterSpacing: -0.1,
   },
 });

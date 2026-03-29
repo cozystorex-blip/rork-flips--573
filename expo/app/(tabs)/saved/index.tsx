@@ -301,15 +301,15 @@ export default function SavedScreen() {
           ) : (
             <View style={styles.cardImagePlaceholder}>
               {item.type === 'deal' ? (
-                <Tag size={20} color="#9BADBF" strokeWidth={1.5} />
+                <Tag size={20} color="#555555" strokeWidth={1.5} />
               ) : (
-                <Package size={20} color="#9BADBF" strokeWidth={1.5} />
+                <Package size={20} color="#555555" strokeWidth={1.5} />
               )}
             </View>
           )}
           {item.type === 'scan' && (
             <View style={styles.scanDot}>
-              <ScanLine size={10} color="#0066CC" strokeWidth={2} />
+              <ScanLine size={10} color="#22C55E" strokeWidth={2} />
             </View>
           )}
         </View>
@@ -323,7 +323,7 @@ export default function SavedScreen() {
               hitSlop={12}
               testID={`saved-delete-${item.id}`}
             >
-              <Trash2 size={14} color="#B8C9D9" strokeWidth={1.5} />
+              <Trash2 size={14} color="#444444" strokeWidth={1.5} />
             </Pressable>
           </View>
 
@@ -338,7 +338,7 @@ export default function SavedScreen() {
 
           {item.relatedNeeds.length > 0 && (
             <View style={styles.relatedRow}>
-              <Wrench size={10} color="#7A8FA3" strokeWidth={1.5} />
+              <Wrench size={10} color="#666666" strokeWidth={1.5} />
               <Text style={styles.relatedText} numberOfLines={1}>
                 May need: {item.relatedNeeds.join(', ')}
               </Text>
@@ -361,7 +361,7 @@ export default function SavedScreen() {
         testID="saved-upgrade-card"
       >
         <View style={styles.upgradeCardIcon}>
-          <Crown size={20} color="#D4A017" strokeWidth={2} />
+          <Crown size={20} color="#22C55E" strokeWidth={2} />
         </View>
         <View style={styles.upgradeCardBody}>
           <Text style={styles.upgradeCardTitle}>Save more items</Text>
@@ -385,7 +385,7 @@ export default function SavedScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0066CC" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22C55E" />
         }
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -397,7 +397,7 @@ export default function SavedScreen() {
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconArea}>
                 <View style={styles.emptyIconCircle}>
-                  <Heart size={30} color="#0066CC" strokeWidth={1.5} />
+                  <Heart size={30} color="#22C55E" strokeWidth={1.5} />
                 </View>
               </View>
               <Text style={styles.emptyTitle}>Nothing saved yet</Text>
@@ -422,7 +422,7 @@ export default function SavedScreen() {
                   style={({ pressed }) => [styles.emptyBtnOutline, pressed && { opacity: 0.7 }]}
                   testID="saved-empty-finds"
                 >
-                  <ShoppingBag size={15} color="#4A5044" strokeWidth={2} />
+                  <ShoppingBag size={15} color="#A0A0A0" strokeWidth={2} />
                   <Text style={styles.emptyBtnOutlineText}>Browse Deals</Text>
                 </Pressable>
               </View>
@@ -462,23 +462,23 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
   },
   screenHeaderWrap: {
     paddingHorizontal: 22,
     paddingBottom: 6,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
   },
   screenTitle: {
     fontSize: 34,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -1,
   },
   screenSubtitle: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#5A7A94',
+    color: '#22C55E',
     marginTop: 3,
     letterSpacing: 0.2,
     textTransform: 'uppercase' as const,
@@ -497,11 +497,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.4,
   },
   headerCountBadge: {
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     minWidth: 28,
     height: 28,
     borderRadius: 10,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   headerCountText: {
     fontSize: 13,
     fontWeight: '800' as const,
-    color: '#0066CC',
+    color: '#22C55E',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -520,18 +520,13 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 22,
     padding: 36,
     alignItems: 'center',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 4,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   emptyIconArea: {
     marginBottom: 20,
@@ -540,20 +535,20 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyTitle: {
     fontSize: 21,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     marginBottom: 8,
     letterSpacing: -0.4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#5A7A94',
+    color: '#666666',
     textAlign: 'center' as const,
     lineHeight: 21,
     marginBottom: 24,
@@ -568,15 +563,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 14,
-    shadowColor: '#003D7A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 5,
   },
   emptyBtnText: {
     fontSize: 15,
@@ -587,21 +577,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#C0D8F0',
+    borderColor: '#2A2A2A',
   },
   emptyBtnOutlineText: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
+    color: '#A0A0A0',
   },
   loadingText: {
     fontSize: 14,
-    color: '#8A8F82',
+    color: '#666666',
   },
   contentArea: {
     gap: 0,
@@ -611,22 +601,17 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 2,
     padding: 14,
     gap: 14,
     alignItems: 'flex-start',
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   cardPressed: {
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#222222',
     transform: [{ scale: 0.98 }],
   },
   cardImageWrap: {
@@ -643,7 +628,7 @@ const styles = StyleSheet.create({
   cardImagePlaceholder: {
     width: 76,
     height: 76,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -654,7 +639,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: 'rgba(0, 102, 204, 0.12)',
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -672,7 +657,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
     lineHeight: 21,
   },
@@ -684,7 +669,7 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 17,
     fontWeight: '800' as const,
-    color: '#0066CC',
+    color: '#22C55E',
     letterSpacing: -0.3,
     marginTop: 4,
   },
@@ -697,14 +682,14 @@ const styles = StyleSheet.create({
   cardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#7A8FA3',
+    color: '#666666',
     flex: 1,
     marginRight: 8,
   },
   cardTime: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#9BADBF',
+    color: '#555555',
   },
   relatedRow: {
     flexDirection: 'row',
@@ -715,30 +700,25 @@ const styles = StyleSheet.create({
   relatedText: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#7A8FA3',
+    color: '#666666',
     flex: 1,
   },
   upgradeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF9E6',
+    backgroundColor: '#1A1A1A',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: '#F0D860',
+    borderColor: '#22C55E33',
     gap: 12,
     marginTop: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
   },
   upgradeCardIcon: {
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: '#FFF8E1',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -748,17 +728,17 @@ const styles = StyleSheet.create({
   upgradeCardTitle: {
     fontSize: 15,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   upgradeCardSub: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#5A7A94',
+    color: '#666666',
   },
   upgradeCardArrow: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 12,

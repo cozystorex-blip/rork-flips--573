@@ -172,7 +172,7 @@ export default function HomeScreen() {
             style={({ pressed }) => [styles.gridBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
             hitSlop={8}
           >
-            <Grid3x3 size={18} color="#4A6FA5" strokeWidth={1.8} />
+            <Grid3x3 size={18} color="#22C55E" strokeWidth={1.8} />
           </Pressable>
         </View>
       </Animated.View>
@@ -187,7 +187,7 @@ export default function HomeScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
                 <View style={styles.cardIconWrap}>
-                  <Receipt size={15} color="#0066CC" strokeWidth={2} />
+                  <Receipt size={15} color="#22C55E" strokeWidth={2} />
                 </View>
                 <Text style={styles.cardTitle}>Recent Receipts</Text>
               </View>
@@ -208,12 +208,12 @@ export default function HomeScreen() {
                     onPress={() => handleReceiptPress(exp.id)}
                     style={({ pressed }) => [
                       styles.receiptRow,
-                      pressed && { backgroundColor: '#F0F5FA' },
+                      pressed && { backgroundColor: '#222222' },
                       index < recentReceipts.length - 1 && styles.receiptRowBorder,
                     ]}
                   >
                     <View style={styles.receiptIconWrap}>
-                      <Receipt size={13} color="#0066CC" strokeWidth={1.8} />
+                      <Receipt size={13} color="#22C55E" strokeWidth={1.8} />
                     </View>
                     <View style={styles.receiptInfo}>
                       <Text style={styles.receiptMerchant} numberOfLines={1}>
@@ -222,14 +222,14 @@ export default function HomeScreen() {
                       <Text style={styles.receiptDate}>{formatDate(exp.createdAt)}</Text>
                     </View>
                     <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                    <ChevronRight size={14} color="#B8C9D9" strokeWidth={2} />
+                    <ChevronRight size={14} color="#444444" strokeWidth={2} />
                   </Pressable>
                 ))}
               </>
             ) : (
               <View style={styles.emptyCardContent}>
                 <View style={styles.emptyIconCircle}>
-                  <Receipt size={22} color="#0066CC" strokeWidth={1.5} />
+                  <Receipt size={22} color="#22C55E" strokeWidth={1.5} />
                 </View>
                 <Text style={styles.emptyCardText}>No receipts yet</Text>
                 <Text style={styles.emptyCardSubtext}>Scan a receipt to start tracking your spending</Text>
@@ -242,7 +242,7 @@ export default function HomeScreen() {
               <View style={styles.cardHeader}>
                 <View style={styles.cardTitleRow}>
                   <View style={styles.cardIconWrap}>
-                    <Heart size={15} color="#0066CC" strokeWidth={2} />
+                    <Heart size={15} color="#22C55E" strokeWidth={2} />
                   </View>
                   <Text style={styles.cardTitle}>Saved</Text>
                 </View>
@@ -264,7 +264,7 @@ export default function HomeScreen() {
                   onPress={() => handleSavedItemPress(item)}
                   style={({ pressed }) => [
                     styles.savedRow,
-                    pressed && { backgroundColor: '#F0F5FA' },
+                    pressed && { backgroundColor: '#222222' },
                     index < savedItems.length - 1 && styles.savedRowBorder,
                   ]}
                 >
@@ -279,9 +279,9 @@ export default function HomeScreen() {
                     ) : (
                       <View style={styles.savedImagePlaceholder}>
                         {item.type === 'deal' ? (
-                          <Tag size={14} color="#9BADBF" strokeWidth={1.5} />
+                          <Tag size={14} color="#555555" strokeWidth={1.5} />
                         ) : (
-                          <Package size={14} color="#9BADBF" strokeWidth={1.5} />
+                          <Package size={14} color="#555555" strokeWidth={1.5} />
                         )}
                       </View>
                     )}
@@ -297,7 +297,7 @@ export default function HomeScreen() {
                     style={({ pressed }) => [styles.savedDeleteBtn, pressed && { opacity: 0.4 }]}
                     hitSlop={10}
                   >
-                    <Trash2 size={14} color="#B8C9D9" strokeWidth={1.5} />
+                    <Trash2 size={14} color="#444444" strokeWidth={1.5} />
                   </Pressable>
                 </Pressable>
               ))}
@@ -314,10 +314,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
   },
   headerArea: {
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#0A0A0A',
     paddingHorizontal: 22,
     paddingBottom: 6,
   },
@@ -329,13 +329,13 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 34,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -1,
   },
   brandSubtitle: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#5A7A94',
+    color: '#22C55E',
     marginTop: 3,
     letterSpacing: 0.2,
     textTransform: 'uppercase' as const,
@@ -344,17 +344,12 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#D0DDE8',
+    borderColor: '#2A2A2A',
   },
   scrollContent: {
     paddingHorizontal: 18,
@@ -362,17 +357,12 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 20,
     padding: 20,
     marginBottom: 14,
-    shadowColor: '#4A6FA5',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#E0EAF2',
+    borderColor: '#2A2A2A',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -389,20 +379,20 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardTitle: {
     fontSize: 17,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.3,
   },
   seeAllText: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#0066CC',
+    color: '#22C55E',
     letterSpacing: -0.1,
   },
 
@@ -415,14 +405,14 @@ const styles = StyleSheet.create({
   },
   savedRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#E0EAF2',
+    borderBottomColor: '#2A2A2A',
   },
   savedImageWrap: {
     width: 44,
     height: 44,
     borderRadius: 12,
     overflow: 'hidden' as const,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   savedImage: {
     width: 44,
@@ -433,7 +423,7 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
   },
   savedInfo: {
     flex: 1,
@@ -441,13 +431,13 @@ const styles = StyleSheet.create({
   savedTitle: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   savedSubtitle: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#7A8FA3',
+    color: '#666666',
     marginTop: 2,
   },
   savedDeleteBtn: {
@@ -462,18 +452,18 @@ const styles = StyleSheet.create({
   receiptTotalAmount: {
     fontSize: 36,
     fontWeight: '900' as const,
-    color: '#0D1B2A',
+    color: '#22C55E',
     letterSpacing: -1.6,
   },
   receiptTotalLabel: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#5A7A94',
+    color: '#666666',
     marginLeft: 4,
   },
   receiptDivider: {
     height: 1,
-    backgroundColor: '#E0EAF2',
+    backgroundColor: '#2A2A2A',
     marginBottom: 4,
   },
   receiptRow: {
@@ -485,13 +475,13 @@ const styles = StyleSheet.create({
   },
   receiptRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#E0EAF2',
+    borderBottomColor: '#2A2A2A',
   },
   receiptIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 11,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -501,19 +491,19 @@ const styles = StyleSheet.create({
   receiptMerchant: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   receiptDate: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#7A8FA3',
+    color: '#666666',
     marginTop: 2,
   },
   receiptAmount: {
     fontSize: 16,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.3,
     marginRight: 2,
   },
@@ -522,7 +512,7 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 16,
     alignItems: 'center',
-    backgroundColor: '#F0F5FA',
+    backgroundColor: '#111111',
     borderRadius: 16,
     marginTop: 2,
   },
@@ -530,7 +520,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: '#E0EFFF',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
@@ -538,18 +528,16 @@ const styles = StyleSheet.create({
   emptyCardText: {
     fontSize: 17,
     fontWeight: '800' as const,
-    color: '#0D1B2A',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   emptyCardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#5A7A94',
+    color: '#666666',
     marginTop: 4,
     textAlign: 'center' as const,
     lineHeight: 18,
     maxWidth: 240,
   },
-
-
 });

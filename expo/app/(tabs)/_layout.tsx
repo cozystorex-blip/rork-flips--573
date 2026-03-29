@@ -105,7 +105,7 @@ function CenterTabButton() {
                     testID={`menu-action-${action.key}`}
                   >
                     <View style={centerStyles.menuIconCircle}>
-                      <Icon size={18} color="#1C1C1E" strokeWidth={1.8} />
+                      <Icon size={18} color="#22C55E" strokeWidth={1.8} />
                     </View>
                     <Text style={centerStyles.menuLabel}>{action.label}</Text>
                   </Pressable>
@@ -121,7 +121,7 @@ function CenterTabButton() {
               ]}
               testID="menu-cancel-btn"
             >
-              <X size={15} color="#8E8E93" strokeWidth={2} />
+              <X size={15} color="#666666" strokeWidth={2} />
               <Text style={centerStyles.cancelText}>Cancel</Text>
             </Pressable>
           </Animated.View>
@@ -142,9 +142,9 @@ const centerStyles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    shadowColor: '#003D7A',
+    shadowColor: '#22C55E',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 6,
   },
@@ -152,19 +152,19 @@ const centerStyles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#22C55E',
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonPressed: {
-    backgroundColor: '#0052A3',
+    backgroundColor: '#16A34A',
   },
   modalFill: {
     flex: 1,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   menuContainer: {
     position: 'absolute',
@@ -177,14 +177,16 @@ const centerStyles = StyleSheet.create({
   menuCard: {
     width: '100%',
     maxWidth: 300,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.4,
     shadowRadius: 24,
     elevation: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
   },
   menuItem: {
     flexDirection: 'row',
@@ -194,24 +196,24 @@ const centerStyles = StyleSheet.create({
     gap: 12,
   },
   menuItemPressed: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#222222',
   },
   menuItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: '#2A2A2A',
   },
   menuIconCircle: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: '#22C55E18',
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuLabel: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#F5F5F5',
     letterSpacing: -0.2,
   },
   cancelBtn: {
@@ -222,39 +224,41 @@ const centerStyles = StyleSheet.create({
     marginTop: 8,
     width: '100%',
     maxWidth: 300,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1A1A',
     borderRadius: 14,
     paddingVertical: 13,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 14,
     elevation: 6,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
   },
   cancelBtnPressed: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#222222',
   },
   cancelText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#8E8E93',
+    color: '#666666',
   },
 });
 
 const tabBarStyle = StyleSheet.create({
   bar: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#D0DDE8',
+    backgroundColor: '#0F0F0F',
+    borderTopColor: '#1E1E1E',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
-    shadowColor: '#4A6FA5',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.3,
     shadowRadius: 14,
   },
   barWeb: {
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#D0DDE8',
+    backgroundColor: '#0F0F0F',
+    borderTopColor: '#1E1E1E',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
     height: 52,
@@ -263,8 +267,8 @@ const tabBarStyle = StyleSheet.create({
 
 const TAB_SCREEN_OPTIONS = {
   headerShown: false,
-  tabBarActiveTintColor: '#0066CC',
-  tabBarInactiveTintColor: '#9BADBF',
+  tabBarActiveTintColor: '#22C55E',
+  tabBarInactiveTintColor: '#555555',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
   tabBarShowLabel: false,

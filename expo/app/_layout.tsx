@@ -94,7 +94,7 @@ function PaywallGate({ children }: { children: React.ReactNode }) {
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back', headerStyle: { backgroundColor: '#E8F1F8' }, headerTintColor: '#0D1B2A', headerTitleStyle: { color: '#0D1B2A', fontWeight: '700' as const }, contentStyle: { backgroundColor: '#E8F1F8' }, headerShadowVisible: false }}>
+    <Stack screenOptions={{ headerBackTitle: 'Back', headerStyle: { backgroundColor: '#0A0A0A' }, headerTintColor: '#F5F5F5', headerTitleStyle: { color: '#F5F5F5', fontWeight: '700' as const }, contentStyle: { backgroundColor: '#0A0A0A' }, headerShadowVisible: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="auth"
