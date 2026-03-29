@@ -548,10 +548,10 @@ export default function DealsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#F2F2F7',
   },
   headerBar: {
-    backgroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
     paddingBottom: 8,
     paddingHorizontal: 20,
   },
@@ -564,14 +564,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: '800' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     letterSpacing: -0.5,
   },
   postDealBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   stateTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     marginTop: 4,
   },
   stateText: {
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   dealCard: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 12,
@@ -621,12 +621,12 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   dealCardPressed: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
   },
   cardPhotoWrap: {
     position: 'relative' as const,
     width: '100%',
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
   },
   cardPhoto: {
     width: '100%',
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#EF4444',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#FFF7ED',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -720,14 +720,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   storeName: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     flex: 1,
   },
   priceBlock: {
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F0FDF4',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   dealTitle: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     lineHeight: 21,
     marginBottom: 4,
   },
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#38383A',
+    borderTopColor: '#E5E5EA',
   },
   footerLeft: {
     flexDirection: 'row',
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   catChip: {
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 5,
@@ -832,7 +832,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 8,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F0FDF4',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
   },
   expiredBanner: {
     marginTop: 6,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#FEF2F2',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     overflow: 'hidden' as const,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
   },
   productThumb: {
     width: 32,
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
   posterName: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     lineHeight: 16,
   },
   storeNameSmall: {

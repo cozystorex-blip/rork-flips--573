@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { House, Heart, X, UserPen, DollarSign, Users, Receipt } from 'lucide-react-native';
+import { House, Heart, X, UserPen, DollarSign, User, Receipt } from 'lucide-react-native';
 import ScanFrameIcon from '@/components/ScanFrameIcon';
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Pressable, StyleSheet, Platform, Animated, Modal, Text } from 'react-native';
@@ -72,61 +72,57 @@ function CenterTabButton() {
         </Pressable>
       </Animated.View>
 
-      {
-        <Modal visible={menuOpen} transparent animationType="none" statusBarTranslucent>
-          <Pressable style={centerStyles.modalFill} onPress={closeMenu}>
-            <Animated.View style={[centerStyles.backdrop, { opacity: backdropAnim }]} />
-          </Pressable>
-
-          <Animated.View
-            style={[
-              centerStyles.menuContainer,
-              {
-                opacity: menuSlide,
-                transform: [{
-                  translateY: menuSlide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }),
-                }],
-              },
+      <Modal visible={menuOpen} transparent animationType="none" statusBarTranslucent>
+        <Pressable style={centerStyles.modalFill} onPress={closeMenu}>
+          <Animated.View style={[centerStyles.backdrop, { opacity: backdropAnim }]} />
+        </Pressable>
+        <Animated.View
+          style={[
+            centerStyles.menuContainer,
+            {
+              opacity: menuSlide,
+              transform: [{
+                translateY: menuSlide.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }),
+              }],
+            },
+          ]}
+          pointerEvents={menuOpen ? 'auto' : 'none'}
+        >
+          <View style={centerStyles.menuCard}>
+            {MENU_ACTIONS.map((action, idx) => {
+              const Icon = action.icon;
+              return (
+                <Pressable
+                  key={action.key}
+                  onPress={() => handleMenuAction(action.route, action.key)}
+                  style={({ pressed }) => [
+                    centerStyles.menuItem,
+                    pressed && centerStyles.menuItemPressed,
+                    idx < MENU_ACTIONS.length - 1 && centerStyles.menuItemBorder,
+                  ]}
+                  testID={`menu-action-${action.key}`}
+                >
+                  <View style={centerStyles.menuIconCircle}>
+                    <Icon size={17} color="#16A34A" strokeWidth={1.8} />
+                  </View>
+                  <Text style={centerStyles.menuLabel}>{action.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable
+            onPress={closeMenu}
+            style={({ pressed }) => [
+              centerStyles.cancelBtn,
+              pressed && centerStyles.cancelBtnPressed,
             ]}
-            pointerEvents={menuOpen ? 'auto' : 'none'}
+            testID="menu-cancel-btn"
           >
-            <View style={centerStyles.menuCard}>
-              {MENU_ACTIONS.map((action, idx) => {
-                const Icon = action.icon;
-                return (
-                  <Pressable
-                    key={action.key}
-                    onPress={() => handleMenuAction(action.route, action.key)}
-                    style={({ pressed }) => [
-                      centerStyles.menuItem,
-                      pressed && centerStyles.menuItemPressed,
-                      idx < MENU_ACTIONS.length - 1 && centerStyles.menuItemBorder,
-                    ]}
-                    testID={`menu-action-${action.key}`}
-                  >
-                    <View style={centerStyles.menuIconCircle}>
-                      <Icon size={17} color="#34C759" strokeWidth={1.8} />
-                    </View>
-                    <Text style={centerStyles.menuLabel}>{action.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Pressable
-              onPress={closeMenu}
-              style={({ pressed }) => [
-                centerStyles.cancelBtn,
-                pressed && centerStyles.cancelBtnPressed,
-              ]}
-              testID="menu-cancel-btn"
-            >
-              <X size={14} color="#34C759" strokeWidth={2.2} />
-              <Text style={centerStyles.cancelText}>Cancel</Text>
-            </Pressable>
-          </Animated.View>
-        </Modal>
-      }
+            <X size={14} color="#16A34A" strokeWidth={2.2} />
+            <Text style={centerStyles.cancelText}>Cancel</Text>
+          </Pressable>
+        </Animated.View>
+      </Modal>
     </View>
   );
 }
@@ -139,27 +135,30 @@ const centerStyles = StyleSheet.create({
     marginTop: -8,
   },
   outer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   button: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#34C759',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#16A34A',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonPressed: {
-    backgroundColor: '#2DA44E',
+    backgroundColor: '#15803D',
   },
-  modalFill: {
-    flex: 1,
-  },
+  modalFill: { flex: 1 },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   menuContainer: {
     position: 'absolute',
@@ -172,9 +171,14 @@ const centerStyles = StyleSheet.create({
   menuCard: {
     width: '100%',
     maxWidth: 300,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
   menuItem: {
     flexDirection: 'row',
@@ -183,25 +187,23 @@ const centerStyles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  menuItemPressed: {
-    backgroundColor: '#3A3A3C',
-  },
+  menuItemPressed: { backgroundColor: '#F2F2F7' },
   menuItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#48484A',
+    borderBottomColor: '#E5E5EA',
   },
   menuIconCircle: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuLabel: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
   },
   cancelBtn: {
     flexDirection: 'row',
@@ -211,30 +213,28 @@ const centerStyles = StyleSheet.create({
     marginTop: 8,
     width: '100%',
     maxWidth: 300,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingVertical: 14,
   },
-  cancelBtnPressed: {
-    backgroundColor: '#3A3A3C',
-  },
+  cancelBtnPressed: { backgroundColor: '#F2F2F7' },
   cancelText: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#16A34A',
   },
 });
 
 const tabBarStyle = StyleSheet.create({
   bar: {
-    backgroundColor: '#1C1C1E',
-    borderTopColor: '#38383A',
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E5E5EA',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
   },
   barWeb: {
-    backgroundColor: '#1C1C1E',
-    borderTopColor: '#38383A',
+    backgroundColor: '#FFFFFF',
+    borderTopColor: '#E5E5EA',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
     height: 56,
@@ -243,8 +243,8 @@ const tabBarStyle = StyleSheet.create({
 
 const TAB_SCREEN_OPTIONS = {
   headerShown: false,
-  tabBarActiveTintColor: '#34C759',
-  tabBarInactiveTintColor: '#636366',
+  tabBarActiveTintColor: '#1C1C1E',
+  tabBarInactiveTintColor: '#8E8E93',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
   tabBarShowLabel: true,
@@ -261,15 +261,13 @@ const TAB_SCREEN_OPTIONS = {
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={TAB_SCREEN_OPTIONS}
-    >
+    <Tabs screenOptions={TAB_SCREEN_OPTIONS}>
       <Tabs.Screen
         name="(home)"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused, size }) => (
-            <House size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
+            <House size={size - 4} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -278,7 +276,7 @@ export default function TabLayout() {
         options={{
           title: 'Saved',
           tabBarIcon: ({ color, focused, size }) => (
-            <Heart size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
+            <Heart size={size - 4} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -287,22 +285,18 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarButton: () => <CenterTabButton />,
-          tabBarItemStyle: {
-            flex: 1,
-          },
+          tabBarItemStyle: { flex: 1 },
         }}
         listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-          },
+          tabPress: (e) => { e.preventDefault(); },
         }}
       />
       <Tabs.Screen
-        name="map"
+        name="analytics"
         options={{
-          title: 'Flips',
+          title: 'Receipts',
           tabBarIcon: ({ color, focused, size }) => (
-            <Receipt size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} />
+            <Receipt size={size - 4} color={color} strokeWidth={focused ? 2.2 : 1.5} />
           ),
         }}
       />
@@ -311,15 +305,13 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused, size }) => (
-            <Users size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} />
+            <User size={size - 4} color={color} strokeWidth={focused ? 2.2 : 1.5} />
           ),
         }}
       />
       <Tabs.Screen
-        name="analytics"
-        options={{
-          href: null,
-        }}
+        name="map"
+        options={{ href: null }}
       />
     </Tabs>
   );

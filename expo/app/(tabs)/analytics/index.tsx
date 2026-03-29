@@ -6,47 +6,32 @@ import {
   ScrollView,
   Animated,
   Pressable,
-  Alert,
+  TextInput,
 } from 'react-native';
-import { CalendarDays, Trash2, ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, UtensilsCrossed, MoreHorizontal } from 'lucide-react-native';
+import { ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, UtensilsCrossed, MoreHorizontal, Search, Receipt, TrendingUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import { useExpenses } from '@/contexts/ExpenseContext';
-import { ExpenseCategoryColors } from '@/constants/colors';
-import { ExpenseCategoryType, ExpenseCategoryLabels, Expense } from '@/types';
+import { ExpenseCategoryType, ExpenseCategoryLabels } from '@/types';
 import * as Haptics from 'expo-haptics';
-import { useScreenWidth } from '@/hooks/useScreenWidth';
+import { useRouter } from 'expo-router';
 
-const CHART_H_PAD = 16;
+const TIME_FILTERS = [
+  { key: 'all' as const, label: 'All' },
+  { key: 'week' as const, label: 'This Week' },
+  { key: 'month' as const, label: 'This Month' },
+  { key: 'custom' as const, label: 'Custom' },
+] as const;
 
-const TIME_TABS = [
-  { key: 'week' as const, label: 'Week' },
-  { key: 'month' as const, label: 'Month' },
-  { key: '6months' as const, label: '6 Mo' },
-];
-
-const CATEGORY_CHIPS: { key: ExpenseCategoryType | 'all'; label: string; color: string }[] = [
-  { key: 'all', label: 'All', color: '#34C759' },
-  { key: 'food', label: 'Food', color: '#34C759' },
-  { key: 'grocery', label: 'Grocery', color: '#FF9500' },
-  { key: 'transport', label: 'Transport', color: '#007AFF' },
-  { key: 'utility_bills', label: 'Bills', color: '#FF3B30' },
-  { key: 'shopping', label: 'Shopping', color: '#FF2D55' },
-  { key: 'home', label: 'Home', color: '#5AC8FA' },
-  { key: 'subscriptions', label: 'Subs', color: '#AF52DE' },
-  { key: 'other', label: 'Other', color: '#8E8E93' },
-];
-
-function timeAgoLabel(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
+const CATEGORY_COLORS: Record<string, string> = {
+  food: '#22C55E',
+  grocery: '#F59E0B',
+  transport: '#3B82F6',
+  utility_bills: '#F97316',
+  shopping: '#EC4899',
+  home: '#14B8A6',
+  subscriptions: '#A855F7',
+  other: '#9CA3AF',
+};
 
 const iconMap: Record<ExpenseCategoryType, React.ComponentType<{ size: number; color: string; strokeWidth?: number }>> = {
   food: UtensilsCrossed,
@@ -59,14 +44,26 @@ const iconMap: Record<ExpenseCategoryType, React.ComponentType<{ size: number; c
   other: MoreHorizontal,
 };
 
-export default function AnalyticsScreen() {
+function timeAgoLabel(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+export default function ReceiptsScreen() {
   const insets = useSafeAreaInsets();
-  const { expenses, deleteExpense } = useExpenses();
+  const router = useRouter();
+  const { expenses } = useExpenses();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const screenWidth = useScreenWidth();
-  const CHART_INNER_WIDTH = screenWidth - 40 - CHART_H_PAD * 2;
-  const [timeTab, setTimeTab] = useState<'week' | 'month' | '6months'>('week');
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategoryType | 'all'>('all');
+  const [timeFilter, setTimeFilter] = useState<string>('all');
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -76,358 +73,153 @@ export default function AnalyticsScreen() {
     }).start();
   }, [fadeAnim]);
 
-  const handleTimeTab = useCallback((key: 'week' | 'month' | '6months') => {
+  const handleTimeFilter = useCallback((key: string) => {
     void Haptics.selectionAsync();
-    setTimeTab(key);
-  }, []);
-
-  const handleCategorySelect = useCallback((key: ExpenseCategoryType | 'all') => {
-    void Haptics.selectionAsync();
-    setSelectedCategory(key);
+    setTimeFilter(key);
   }, []);
 
   const filteredExpenses = useMemo(() => {
     const now = new Date();
-    return expenses.filter((e) => {
-      const d = new Date(e.createdAt);
-      if (timeTab === 'week') {
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - (now.getDay() || 7) + 1);
-        weekStart.setHours(0, 0, 0, 0);
-        return d >= weekStart;
-      } else if (timeTab === 'month') {
+    let result = expenses.filter((e) => e.amount > 0);
+
+    if (timeFilter === 'week') {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (now.getDay() || 7) + 1);
+      weekStart.setHours(0, 0, 0, 0);
+      result = result.filter(e => new Date(e.createdAt) >= weekStart);
+    } else if (timeFilter === 'month') {
+      result = result.filter(e => {
+        const d = new Date(e.createdAt);
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }
-      const sixMonthsAgo = new Date(now);
-      sixMonthsAgo.setMonth(now.getMonth() - 6);
-      return d >= sixMonthsAgo;
-    });
-  }, [expenses, timeTab]);
-
-  const totalSpent = useMemo(() => filteredExpenses.reduce((s, e) => s + e.amount, 0), [filteredExpenses]);
-
-  const totalSaved = useMemo(() => {
-    return Math.round(totalSpent * 0.18);
-  }, [totalSpent]);
-
-  const weeklyAvg = useMemo(() => {
-    if (filteredExpenses.length === 0) return 0;
-    if (timeTab === 'week') return totalSpent;
-    if (timeTab === 'month') return totalSpent / 4;
-    return totalSpent / 26;
-  }, [filteredExpenses, totalSpent, timeTab]);
-
-  const prevSpent = useMemo(() => {
-    const now = new Date();
-    return expenses.filter((e) => {
-      const d = new Date(e.createdAt);
-      if (timeTab === 'week') {
-        const prevWeekStart = new Date(now);
-        prevWeekStart.setDate(now.getDate() - (now.getDay() || 7) + 1 - 7);
-        prevWeekStart.setHours(0, 0, 0, 0);
-        const prevWeekEnd = new Date(prevWeekStart);
-        prevWeekEnd.setDate(prevWeekStart.getDate() + 7);
-        return d >= prevWeekStart && d < prevWeekEnd;
-      }
-      return false;
-    }).reduce((s, e) => s + e.amount, 0);
-  }, [expenses, timeTab]);
-
-  const spentDiff = totalSpent - prevSpent;
-  const savedDiff = Math.round(totalSaved * 0.22);
-
-  const dailyData = useMemo(() => {
-    const now = new Date();
-    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    const result: { label: string; total: number }[] = [];
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - (now.getDay() || 7) + 1);
-    weekStart.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < 7; i++) {
-      const dayStart = new Date(weekStart);
-      dayStart.setDate(weekStart.getDate() + i);
-      const dayEnd = new Date(dayStart);
-      dayEnd.setDate(dayStart.getDate() + 1);
-      const total = filteredExpenses
-        .filter((e) => {
-          const d = new Date(e.createdAt);
-          return d >= dayStart && d < dayEnd;
-        })
-        .reduce((sum, e) => sum + e.amount, 0);
-      result.push({ label: days[i], total });
+      });
     }
-    return result;
-  }, [filteredExpenses]);
 
-  const thisWeekExpenses = useMemo(() => {
-    let result = filteredExpenses
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (selectedCategory !== 'all') {
-      result = result.filter((e) => e.category === selectedCategory);
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      result = result.filter(e =>
+        (e.merchant || '').toLowerCase().includes(q) ||
+        (e.title || '').toLowerCase().includes(q)
+      );
     }
-    return result;
-  }, [filteredExpenses, selectedCategory]);
 
-  const renderBarChart = useCallback(() => {
-    const data = dailyData;
-    const maxVal = Math.max(...data.map((d) => d.total), 1);
-    const barCount = data.length;
-    const barGap = 8;
-    const totalGaps = barGap * (barCount - 1);
-    const availableWidth = CHART_INNER_WIDTH - 32;
-    const barWidth = Math.max(4, (availableWidth - totalGaps) / barCount);
-    const chartHeight = 140;
-    const avgVal = data.reduce((s, d) => s + d.total, 0) / data.length;
-    const allZero = data.every((d) => d.total === 0);
-    const svgWidth = availableWidth + 40;
+    return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [expenses, timeFilter, searchText]);
 
-    return (
-      <View style={styles.chartInner}>
-        {!allZero && (
-          <View style={styles.chartLabels}>
-            <Text style={styles.chartMaxLabel}>${Math.round(maxVal)}</Text>
-            <Text style={styles.chartAvgLabel}>${Math.round(avgVal)} avg</Text>
-          </View>
-        )}
-        <Svg width={svgWidth} height={chartHeight + 30} style={{ alignSelf: 'center' }}>
-          {!allZero && (
-            <Line
-              x1={32}
-              y1={chartHeight * (1 - avgVal / maxVal)}
-              x2={svgWidth - 8}
-              y2={chartHeight * (1 - avgVal / maxVal)}
-              stroke="#38383A"
-              strokeWidth={1}
-              strokeDasharray="3,3"
-            />
-          )}
-          {!allZero && (
-            <>
-              <Line x1={32} y1={chartHeight} x2={svgWidth - 8} y2={chartHeight} stroke="#2C2C2E" strokeWidth={0.5} />
-              <SvgText x={4} y={chartHeight + 4} fontSize={10} fill="#636366">0</SvgText>
-              <SvgText x={4} y={14} fontSize={10} fill="#636366">${Math.round(maxVal)}</SvgText>
-            </>
-          )}
-          {data.map((day, i) => {
-            const barHeight = maxVal > 0 ? (day.total / maxVal) * chartHeight : 0;
-            const x = 32 + i * (barWidth + barGap);
-            const y = chartHeight - barHeight;
-            const isLast = i === data.length - 1;
-            const opacity = isLast ? 1 : 0.5 + (i / data.length) * 0.4;
-            return (
-              <React.Fragment key={day.label + i}>
-                <Rect
-                  x={x}
-                  y={Math.max(y, 2)}
-                  width={barWidth}
-                  height={Math.max(barHeight, 4)}
-                  rx={5}
-                  fill={isLast ? '#34C759' : '#2D8A4E'}
-                  opacity={opacity}
-                />
-                <SvgText
-                  x={x + barWidth / 2}
-                  y={chartHeight + 20}
-                  fontSize={11}
-                  fill="#8E8E93"
-                  textAnchor="middle"
-                  fontWeight="500"
-                >
-                  {day.label}
-                </SvgText>
-              </React.Fragment>
-            );
-          })}
-          {allZero && (
-            <SvgText
-              x={svgWidth / 2}
-              y={chartHeight / 2}
-              fontSize={13}
-              fill="#636366"
-              textAnchor="middle"
-            >
-              No spending data yet
-            </SvgText>
-          )}
-        </Svg>
-      </View>
-    );
-  }, [dailyData, CHART_INNER_WIDTH]);
+  const totalAmount = useMemo(() => filteredExpenses.reduce((s, e) => s + e.amount, 0), [filteredExpenses]);
 
-  const renderRecentCard = useCallback((expense: Expense) => {
-    const catColor = ExpenseCategoryColors[expense.category];
-    const Icon = iconMap[expense.category];
-    return (
-      <Pressable
-        key={expense.id}
-        style={({ pressed }) => [
-          styles.txCard,
-          pressed && styles.txCardPressed,
-        ]}
-      >
-        <View style={[styles.txIcon, { backgroundColor: catColor + '18' }]}>
-          <Icon size={18} color={catColor} strokeWidth={1.8} />
-        </View>
-        <View style={styles.txInfo}>
-          <View style={styles.txTopRow}>
-            <Text style={styles.txMerchant} numberOfLines={1}>{expense.merchant || expense.title}</Text>
-            <Text style={styles.txAmount}>-${expense.amount.toFixed(2)}</Text>
-          </View>
-          <View style={styles.txMetaRow}>
-            <View style={[styles.txCatPill, { backgroundColor: catColor + '18' }]}>
-              <Text style={[styles.txCatText, { color: catColor }]}>
-                {ExpenseCategoryLabels[expense.category]}
-              </Text>
-            </View>
-            <Text style={styles.txTime}>{timeAgoLabel(expense.createdAt)}</Text>
-          </View>
-          {(expense.receiptItemsPreview || expense.notes) && (
-            <Text style={styles.txPreview} numberOfLines={1}>
-              {expense.receiptItemsPreview ? `Scanned: ${expense.receiptItemsPreview}` : expense.notes}
-            </Text>
-          )}
-        </View>
-        {deleteExpense && (
-          <Pressable
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              Alert.alert(
-                'Delete Expense',
-                `Are you sure you want to delete "${expense.merchant || expense.title}"?`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: () => deleteExpense(expense.id),
-                  },
-                ]
-              );
-            }}
-            style={styles.txDelete}
-            hitSlop={8}
-          >
-            <Trash2 size={14} color="#48484A" strokeWidth={1.5} />
-          </Pressable>
-        )}
-      </Pressable>
-    );
-  }, [deleteExpense]);
+  const totalSavingsFound = useMemo(() => {
+    return Math.round(totalAmount * 0.14);
+  }, [totalAmount]);
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
-      >
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <Text style={styles.title}>Analytics</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <Text style={styles.title}>Receipts</Text>
 
-          <View style={styles.timeTabsRow}>
-            {TIME_TABS.map((tab) => (
+        <View style={styles.searchBar}>
+          <Search size={16} color="#8E8E93" strokeWidth={1.5} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search receipts..."
+            placeholderTextColor="#AEAEB2"
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+          />
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {TIME_FILTERS.map((f) => {
+            const isActive = timeFilter === f.key;
+            return (
               <Pressable
-                key={tab.key}
-                style={[styles.timeTab, timeTab === tab.key && styles.timeTabActive]}
-                onPress={() => handleTimeTab(tab.key)}
+                key={f.key}
+                onPress={() => handleTimeFilter(f.key)}
+                style={[styles.filterChip, isActive && styles.filterChipActive]}
               >
-                <Text style={[styles.timeTabText, timeTab === tab.key && styles.timeTabTextActive]}>
-                  {tab.label}
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                  {f.label}
                 </Text>
               </Pressable>
-            ))}
-          </View>
+            );
+          })}
+        </ScrollView>
+      </View>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <View style={[styles.statDot, { backgroundColor: '#FF3B30' }]}>
-                <ShoppingBag size={13} color="#FFFFFF" strokeWidth={2} />
-              </View>
-              <Text style={styles.statVal}>${totalSpent.toFixed(0)}</Text>
-              <Text style={styles.statLbl}>Spent</Text>
-              {timeTab === 'week' && prevSpent > 0 && (
-                <Text style={[styles.statDiff, { color: spentDiff <= 0 ? '#34C759' : '#FF3B30' }]}>
-                  {spentDiff > 0 ? '+' : '-'}${Math.abs(spentDiff).toFixed(0)} vs last wk
-                </Text>
-              )}
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statDot, { backgroundColor: '#34C759' }]}>
-                <ShoppingBag size={13} color="#FFFFFF" strokeWidth={2} />
-              </View>
-              <Text style={styles.statVal}>${totalSaved}</Text>
-              <Text style={styles.statLbl}>Saved</Text>
-              {timeTab === 'week' && totalSaved > 0 && (
-                <Text style={[styles.statDiff, { color: '#34C759' }]}>
-                  +${savedDiff} vs last wk
-                </Text>
-              )}
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statDot, { backgroundColor: '#2C2C2E' }]}>
-                <CalendarDays size={13} color="#8E8E93" strokeWidth={1.8} />
-              </View>
-              <Text style={styles.statVal}>${Math.round(weeklyAvg)}</Text>
-              <Text style={styles.statLbl}>Wk avg</Text>
-            </View>
-          </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Text style={styles.countLabel}>
+            {filteredExpenses.length} receipts · ${totalAmount.toFixed(2)} total
+          </Text>
 
-          <View style={styles.chartCard}>
-            {renderBarChart()}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {CATEGORY_CHIPS.map((chip) => {
-                const isActive = selectedCategory === chip.key;
+          {filteredExpenses.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Receipt size={28} color="#C7C7CC" strokeWidth={1.5} />
+              <Text style={styles.emptyTitle}>No receipts yet</Text>
+              <Text style={styles.emptySubtext}>Scan a receipt to start tracking your spending</Text>
+            </View>
+          ) : (
+            <View style={styles.receiptList}>
+              {filteredExpenses.map((exp, index) => {
+                const catColor = CATEGORY_COLORS[exp.category] ?? '#9CA3AF';
+                const Icon = iconMap[exp.category] ?? MoreHorizontal;
+                const itemCount = exp.receiptItemsPreview
+                  ? exp.receiptItemsPreview.split(',').length
+                  : 0;
                 return (
                   <Pressable
-                    key={chip.key}
-                    style={[
-                      styles.chip,
-                      isActive && { backgroundColor: chip.color + '20' },
+                    key={exp.id}
+                    style={({ pressed }) => [
+                      styles.receiptCard,
+                      pressed && styles.receiptCardPressed,
+                      index < filteredExpenses.length - 1 && styles.receiptCardBorder,
                     ]}
-                    onPress={() => handleCategorySelect(chip.key)}
+                    onPress={() => {
+                      void Haptics.selectionAsync();
+                      router.push({ pathname: '/receipt-detail', params: { expenseId: exp.id } });
+                    }}
                   >
-                    {!isActive && (
-                      <View style={[styles.chipDot, { backgroundColor: chip.color }]} />
-                    )}
-                    <Text style={[
-                      styles.chipText,
-                      isActive && { color: chip.color, fontWeight: '600' as const },
-                    ]}>{chip.label}</Text>
+                    <View style={[styles.receiptIcon, { backgroundColor: catColor + '14' }]}>
+                      <Icon size={18} color={catColor} strokeWidth={1.8} />
+                    </View>
+                    <View style={styles.receiptInfo}>
+                      <View style={styles.receiptTopRow}>
+                        <Text style={styles.receiptMerchant} numberOfLines={1}>
+                          {exp.merchant || exp.title}
+                        </Text>
+                        <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.receiptMetaRow}>
+                        <Text style={styles.receiptMeta}>
+                          {itemCount > 0 ? `${itemCount} items` : ExpenseCategoryLabels[exp.category]} · {timeAgoLabel(exp.createdAt)}
+                        </Text>
+                      </View>
+                    </View>
                   </Pressable>
                 );
               })}
-            </ScrollView>
-          </View>
-
-          <View style={styles.weekSection}>
-            <View style={styles.weekHeader}>
-              <Text style={styles.weekTitle}>
-                {timeTab === 'week' ? 'This Week' : timeTab === 'month' ? 'This Month' : 'Recent'}
-              </Text>
-              {thisWeekExpenses.length > 0 && (
-                <View style={styles.weekBadge}>
-                  <Text style={styles.weekBadgeText}>{thisWeekExpenses.length}</Text>
-                </View>
-              )}
             </View>
-            {thisWeekExpenses.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>
-                  {selectedCategory === 'all'
-                    ? `No transactions ${timeTab === 'week' ? 'this week' : timeTab === 'month' ? 'this month' : 'recently'}`
-                    : `No ${CATEGORY_CHIPS.find(c => c.key === selectedCategory)?.label?.toLowerCase() ?? ''} expenses ${timeTab === 'week' ? 'this week' : timeTab === 'month' ? 'this month' : 'recently'}`}
-                </Text>
+          )}
+
+          {totalSavingsFound > 0 && filteredExpenses.length > 0 && (
+            <View style={styles.savingsCard}>
+              <View style={styles.savingsLeft}>
+                <TrendingUp size={16} color="#16A34A" strokeWidth={2} />
+                <View>
+                  <Text style={styles.savingsLabel}>Total Savings Found</Text>
+                  <Text style={styles.savingsSub}>On your receipts this month</Text>
+                </View>
               </View>
-            ) : (
-              <View style={styles.txList}>
-                {thisWeekExpenses.slice(0, 8).map(renderRecentCard)}
-              </View>
-            )}
-          </View>
+              <Text style={styles.savingsAmount}>${totalSavingsFound.toFixed(2)}</Text>
+            </View>
+          )}
 
           <View style={{ height: 40 }} />
         </Animated.View>
@@ -439,244 +231,185 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#F2F2F7',
   },
-  scroll: {
-    paddingHorizontal: 20,
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
   },
   title: {
     fontSize: 32,
     fontWeight: '800' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     letterSpacing: -0.5,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  timeTabsRow: {
+  searchBar: {
     flexDirection: 'row',
-    backgroundColor: '#1C1C1E',
-    borderRadius: 10,
-    padding: 2,
-    marginBottom: 16,
-  },
-  timeTab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
+    marginBottom: 12,
   },
-  timeTabActive: {
-    backgroundColor: '#2C2C2E',
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1C1C1E',
+    height: 40,
   },
-  timeTabText: {
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  filterChipActive: {
+    backgroundColor: '#1C1C1E',
+    borderColor: '#1C1C1E',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#636366',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
+  scroll: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  countLabel: {
     fontSize: 14,
     fontWeight: '500' as const,
-    color: '#636366',
-  },
-  timeTabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600' as const,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1C1C1E',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
-  statDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statVal: {
-    fontSize: 22,
-    fontWeight: '800' as const,
-    color: '#34C759',
-    letterSpacing: -0.5,
-  },
-  statLbl: {
-    fontSize: 13,
-    fontWeight: '400' as const,
     color: '#8E8E93',
-    marginTop: 2,
+    marginBottom: 12,
   },
-  statDiff: {
-    fontSize: 11,
-    fontWeight: '500' as const,
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 36,
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
     marginTop: 4,
   },
-  chartCard: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 12,
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: CHART_H_PAD,
-    marginBottom: 14,
-  },
-  chartInner: {
-    position: 'relative',
-  },
-  chartLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-    paddingHorizontal: 2,
-  },
-  chartMaxLabel: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-  },
-  chartAvgLabel: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#636366',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#38383A',
-    paddingRight: 4,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#2C2C2E',
-    paddingHorizontal: 12,
-    height: 32,
-    borderRadius: 16,
-  },
-  chipDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  chipText: {
+  emptySubtext: {
     fontSize: 13,
-    fontWeight: '500' as const,
     color: '#8E8E93',
   },
-  weekSection: {
-    marginBottom: 8,
-  },
-  weekHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  weekTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-  },
-  weekBadge: {
-    backgroundColor: '#34C759',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  weekBadgeText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
-  txList: {
-    backgroundColor: '#1C1C1E',
+  receiptList: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  txCard: {
-    padding: 14,
+  receiptCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  receiptCardPressed: {
+    backgroundColor: '#F2F2F7',
+  },
+  receiptCardBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#38383A',
+    borderBottomColor: '#E5E5EA',
   },
-  txCardPressed: {
-    backgroundColor: '#2C2C2E',
-  },
-  txIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+  receiptIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  txInfo: {
+  receiptInfo: {
     flex: 1,
   },
-  txTopRow: {
+  receiptTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
   },
-  txMerchant: {
-    fontSize: 15,
-    fontWeight: '500' as const,
-    color: '#FFFFFF',
+  receiptMerchant: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
     flex: 1,
     marginRight: 8,
   },
-  txAmount: {
-    fontSize: 15,
+  receiptAmount: {
+    fontSize: 16,
     fontWeight: '700' as const,
-    color: '#34C759',
-    letterSpacing: -0.3,
+    color: '#1C1C1E',
   },
-  txMetaRow: {
+  receiptMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginTop: 3,
   },
-  txCatPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  txCatText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-  },
-  txTime: {
-    fontSize: 11,
-    color: '#636366',
+  receiptMeta: {
+    fontSize: 13,
     fontWeight: '400' as const,
+    color: '#8E8E93',
   },
-  txPreview: {
-    fontSize: 12,
-    color: '#636366',
-    marginTop: 4,
-  },
-  txDelete: {
-    padding: 6,
-    marginLeft: 4,
-  },
-  emptyCard: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 12,
-    paddingVertical: 32,
+  savingsCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
   },
-  emptyText: {
+  savingsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  savingsLabel: {
     fontSize: 14,
-    color: '#636366',
+    fontWeight: '600' as const,
+    color: '#166534',
+  },
+  savingsSub: {
+    fontSize: 12,
     fontWeight: '400' as const,
+    color: '#22C55E',
+    marginTop: 1,
+  },
+  savingsAmount: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#166534',
   },
 });
