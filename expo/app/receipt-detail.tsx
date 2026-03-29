@@ -19,7 +19,6 @@ import {
   TrendingDown,
   FileText,
   AlertCircle,
-  CheckCircle2,
   PieChart,
   Clock,
   CreditCard,
@@ -57,8 +56,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BUDGET_CHART_WIDTH = SCREEN_WIDTH - 64 - 32;
 
 const BUDGET_TIME_TABS = [
-  { key: 'week' as const, label: 'Week' },
-  { key: 'month' as const, label: 'Month' },
+  { key: 'week' as const, label: 'This Week' },
+  { key: 'month' as const, label: 'This Month' },
   { key: 'all' as const, label: 'All' },
 ];
 
@@ -267,23 +266,8 @@ export default function ReceiptDetailScreen() {
   const catColor = expense ? (CATEGORY_COLORS[expense.category] ?? '#9CA3AF') : '#9CA3AF';
   const catLabel = expense ? (ExpenseCategoryLabels[expense.category as ExpenseCategoryType] ?? 'Other') : 'Other';
 
-  const confidencePct = expense?.receiptConfidence
-    ? Math.round(expense.receiptConfidence * 100)
-    : null;
 
-  const confidenceLabel = useMemo(() => {
-    if (confidencePct === null) return '';
-    if (confidencePct >= 80) return 'High';
-    if (confidencePct >= 60) return 'Medium';
-    return 'Low';
-  }, [confidencePct]);
 
-  const confidenceColor = useMemo(() => {
-    if (confidencePct === null) return '#9CA3AF';
-    if (confidencePct >= 80) return '#16A34A';
-    if (confidencePct >= 60) return '#D97706';
-    return '#EF4444';
-  }, [confidencePct]);
 
   const itemsTotal = useMemo(() => {
     return receiptData.items.reduce((sum, i) => sum + i.totalPrice, 0);
@@ -631,41 +615,7 @@ export default function ReceiptDetailScreen() {
             </View>
           </View>
 
-          {confidencePct !== null && (
-            <View style={styles.insightCard}>
-              <View style={styles.insightHeader}>
-                <View style={[styles.insightIconBadge, { backgroundColor: confidenceColor }]}>
-                  <CheckCircle2 size={14} color="#FFFFFF" strokeWidth={2} />
-                </View>
-                <Text style={styles.insightTitle}>Scan Confidence</Text>
-                <View style={[styles.confidenceBadge, { backgroundColor: `${confidenceColor}15` }]}>
-                  <View style={[styles.confidenceBadgeDot, { backgroundColor: confidenceColor }]} />
-                  <Text style={[styles.confidenceBadgeText, { color: confidenceColor }]}>{confidenceLabel}</Text>
-                </View>
-              </View>
-              <View style={styles.confidenceRow}>
-                <View style={styles.confidenceBarBg}>
-                  <View
-                    style={[
-                      styles.confidenceBarFill,
-                      {
-                        width: `${Math.min(confidencePct, 100)}%`,
-                        backgroundColor: confidenceColor,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.confidenceText}>{confidencePct}%</Text>
-              </View>
-              <Text style={styles.confidenceHint}>
-                {confidencePct >= 80
-                  ? 'High confidence — details were clearly extracted'
-                  : confidencePct >= 60
-                  ? 'Moderate confidence — some details may need review'
-                  : 'Low confidence — consider verifying the amounts'}
-              </Text>
-            </View>
-          )}
+
 
           {receiptData.items.length > 0 && (
             <View style={styles.insightCard}>
