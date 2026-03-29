@@ -9,7 +9,6 @@ import {
   Platform,
   UIManager,
   Dimensions,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -18,17 +17,13 @@ import {
   Receipt,
   Grid3x3,
   Camera,
-  Lightbulb,
-  RefreshCw,
   ScanLine,
-  Bookmark,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { useQuery } from '@tanstack/react-query';
+
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -36,8 +31,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
-import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
-import { generateAISuggestions, AISuggestion } from '@/services/aiSuggestionsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCANNED_ITEM_WIDTH = (SCREEN_WIDTH - 48 - 24) / 3;
@@ -52,7 +45,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { expenses } = useExpenses();
   const { entries: scanEntries } = useScanHistory();
-  const { savedDeals } = useSavedItems();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
   const headerFade = useRef(new Animated.Value(0)).current;
@@ -97,19 +89,6 @@ export default function HomeScreen() {
       .slice(0, 6);
   }, [scanEntries]);
 
-  const suggestionQuery = useQuery({
-    queryKey: ['ai_suggestions', scanEntries.length, expenses.length],
-    queryFn: () => generateAISuggestions(scanEntries, expenses),
-    staleTime: 1000 * 60 * 5,
-    enabled: scanEntries.length > 0 || expenses.length > 0,
-  });
-
-  const currentSuggestion = useMemo<AISuggestion | null>(() => {
-    const suggestions = suggestionQuery.data;
-    if (!suggestions || suggestions.length === 0) return null;
-    return suggestions[0];
-  }, [suggestionQuery.data]);
-
   const handleScanPress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push('/smart-scan');
@@ -129,11 +108,6 @@ export default function HomeScreen() {
     void Haptics.selectionAsync();
     router.push('/(tabs)/saved');
   }, [router]);
-
-  const handleRefreshSuggestions = useCallback(() => {
-    void Haptics.selectionAsync();
-    void suggestionQuery.refetch();
-  }, [suggestionQuery]);
 
   return (
     <View style={styles.container}>
@@ -279,161 +253,6 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
-
-          <View style={styles.card} testID="suggestions-card">
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTitleRow}>
-                <View style={[styles.cardIconWrap, { backgroundColor: '#FFF8E7' }]}>
-                  <Sparkles size={15} color="#D4A017" strokeWidth={2} />
-                </View>
-                <Text style={styles.cardTitle}>You May Also Need</Text>
-              </View>
-              {(scanEntries.length > 0 || expenses.length > 0) && (
-                <Pressable onPress={handleRefreshSuggestions} hitSlop={8} style={({ pressed }) => [pressed && { opacity: 0.5 }]}>
-                  <RefreshCw size={15} color="#A09B93" strokeWidth={2} />
-                </Pressable>
-              )}
-            </View>
-
-            {suggestionQuery.isLoading ? (
-              <View style={styles.suggestionLoading}>
-                <ActivityIndicator size="small" color="#2D6A4F" />
-                <Text style={styles.suggestionLoadingText}>Finding suggestions...</Text>
-              </View>
-            ) : currentSuggestion ? (
-              <View style={styles.suggestionContent}>
-                <View style={styles.suggestionBox}>
-                  {currentSuggestion.image ? (
-                    <Image
-                      source={{ uri: currentSuggestion.image }}
-                      style={styles.suggestionImage}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
-                  ) : (
-                    <View style={styles.suggestionImagePlaceholder}>
-                      <Lightbulb size={18} color="#2D6A4F" strokeWidth={1.5} />
-                    </View>
-                  )}
-                  <View style={styles.suggestionTextWrap}>
-                    <Text style={styles.suggestionTitle}>{currentSuggestion.title}</Text>
-                    {currentSuggestion.reason ? (
-                      <Text style={styles.suggestionReason} numberOfLines={2}>{currentSuggestion.reason}</Text>
-                    ) : null}
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.emptyCardContent}>
-                <View style={[styles.emptyIconCircle, { backgroundColor: '#FFF8E7' }]}>
-                  <Sparkles size={20} color="#D4A017" strokeWidth={1.5} />
-                </View>
-                <Text style={styles.emptyCardText}>Smart suggestions</Text>
-                <Text style={styles.emptyCardSubtext}>Scan items to get personalized recommendations</Text>
-              </View>
-            )}
-          </View>
-
-          {(() => {
-            const recentSaved: { id: string; type: 'scan' | 'deal'; title: string; imageUri: string | null; time: string; raw: ScanHistoryEntry | SavedDeal }[] = [
-              ...scanEntries.map((e) => ({
-                id: `scan-${e.id}`,
-                type: 'scan' as const,
-                title: e.result.item_name || 'Scanned Item',
-                imageUri: e.imageUri,
-                time: e.scannedAt,
-                raw: e as ScanHistoryEntry | SavedDeal,
-              })),
-              ...savedDeals.map((d) => ({
-                id: `deal-${d.id}`,
-                type: 'deal' as const,
-                title: d.title,
-                imageUri: d.photoUrl,
-                time: d.savedAt,
-                raw: d as ScanHistoryEntry | SavedDeal,
-              })),
-            ]
-              .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-              .slice(0, 5);
-
-            if (recentSaved.length === 0) return null;
-
-            return (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.cardTitleRow}>
-                    <View style={[styles.cardIconWrap, { backgroundColor: '#EDE9FE' }]}>
-                      <Bookmark size={15} color="#7C3AED" strokeWidth={2} />
-                    </View>
-                    <Text style={styles.cardTitle}>Saved</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => {
-                      void Haptics.selectionAsync();
-                      router.push('/(tabs)/saved');
-                    }}
-                    hitSlop={8}
-                  >
-                    <Text style={styles.seeAllText}>See all</Text>
-                  </Pressable>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.savedScrollContent}
-                >
-                  {recentSaved.map((item) => (
-                    <Pressable
-                      key={item.id}
-                      style={({ pressed }) => [
-                        styles.savedCard,
-                        pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
-                      ]}
-                      onPress={() => {
-                        void Haptics.selectionAsync();
-                        if (item.type === 'scan') {
-                          const scanEntry = item.raw as ScanHistoryEntry;
-                          router.push({ pathname: '/smart-scan', params: { historyEntryId: scanEntry.id } });
-                        } else {
-                          const deal = item.raw as SavedDeal;
-                          router.push({
-                            pathname: '/post-detail',
-                            params: {
-                              dealId: deal.dealId,
-                              title: deal.title,
-                              storeName: deal.storeName,
-                              imageUrl: deal.photoUrl ?? '',
-                              category: deal.category ?? '',
-                              sourceType: deal.sourceType ?? '',
-                              price: deal.price != null ? String(deal.price) : '',
-                              originalPrice: deal.originalPrice != null ? String(deal.originalPrice) : '',
-                              savingsAmount: deal.savingsAmount != null ? String(deal.savingsAmount) : '',
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      <View style={styles.savedCardImageWrap}>
-                        {item.imageUri ? (
-                          <Image
-                            source={{ uri: item.imageUri }}
-                            style={styles.savedCardImage}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                          />
-                        ) : (
-                          <View style={styles.savedCardPlaceholder}>
-                            <Package size={18} color="#C8C4BC" strokeWidth={1.5} />
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.savedCardTitle} numberOfLines={2}>{item.title}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            );
-          })()}
 
           <Pressable
             onPress={handleScanPress}
@@ -654,58 +473,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  suggestionLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-  },
-  suggestionLoadingText: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#A0A59A',
-  },
-  suggestionContent: {},
-  suggestionBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E4EDE6',
-    borderRadius: 16,
-    padding: 14,
-    gap: 14,
-  },
-  suggestionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: '#D0DFD3',
-  },
-  suggestionImagePlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
-    backgroundColor: '#D0DFD3',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  suggestionTextWrap: {
-    flex: 1,
-  },
-  suggestionTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#1A1F16',
-    letterSpacing: -0.2,
-  },
-  suggestionReason: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#4A5044',
-    marginTop: 3,
-    lineHeight: 18,
-  },
-
   emptyCardContent: {
     paddingVertical: 28,
     paddingHorizontal: 16,
@@ -737,40 +504,6 @@ const styles = StyleSheet.create({
     textAlign: 'center' as const,
     lineHeight: 18,
     maxWidth: 240,
-  },
-
-  savedScrollContent: {
-    gap: 10,
-    paddingRight: 4,
-  },
-  savedCard: {
-    width: 114,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#F6F8F3',
-  },
-  savedCardImageWrap: {
-    width: 114,
-    height: 90,
-  },
-  savedCardImage: {
-    width: 114,
-    height: 90,
-  },
-  savedCardPlaceholder: {
-    width: 114,
-    height: 90,
-    backgroundColor: '#E8EBE3',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  savedCardTitle: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#1A1F16',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    lineHeight: 16,
   },
 
   scanCta: {
