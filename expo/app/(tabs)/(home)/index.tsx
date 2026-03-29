@@ -11,7 +11,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Package,
-  Receipt,
   Bell,
   Flame,
 } from 'lucide-react-native';
@@ -19,15 +18,14 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import ScanFrameIcon from '@/components/ScanFrameIcon';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import AdMobBanner from '@/components/ads/AdMobBanner';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -71,6 +69,7 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
     const v = d.value_verdict.toLowerCase();
     if (v.includes('good') || v.includes('great') || v.includes('excellent')) return { label: 'Good Deal', color: '#16A34A' };
     if (v.includes('fair')) return { label: 'Fair Price', color: '#F59E0B' };
+    if (v.includes('low')) return { label: 'Price Drop', color: '#16A34A' };
   }
   if (d.resale_demand && typeof d.resale_demand === 'string') {
     const rd = d.resale_demand.toLowerCase();
@@ -145,7 +144,7 @@ export default function HomeScreen() {
           <Text style={styles.brandTitle}>Flip</Text>
           {streakDays > 0 && (
             <View style={styles.streakBadge}>
-              <Flame size={12} color="#FF9500" strokeWidth={2} />
+              <Flame size={12} color="#FF9500" strokeWidth={2.5} fill="#FF9500" />
               <Text style={styles.streakText}>{streakDays}-day streak</Text>
             </View>
           )}
@@ -155,7 +154,7 @@ export default function HomeScreen() {
             style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.6 }]}
             hitSlop={8}
           >
-            <Bell size={18} color="#1C1C1E" strokeWidth={1.5} />
+            <Bell size={20} color="#1C1C1E" strokeWidth={1.5} />
           </Pressable>
         </View>
       </View>
@@ -170,7 +169,7 @@ export default function HomeScreen() {
           testID="home-scan-card"
         >
           <View style={styles.scanCardInner}>
-            <ScanFrameIcon size={40} color="#FFFFFF" strokeWidth={2} />
+            <ScanFrameIcon size={44} color="#FFFFFF" strokeWidth={2.5} />
             <Text style={styles.scanCardTitle}>Scan Item</Text>
             <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
           </View>
@@ -197,7 +196,7 @@ export default function HomeScreen() {
                 const price = getScanPrice(entry);
                 const badge = getScanBadge(entry);
                 const category = entry.result.category || entry.result.item_type || '';
-                const subtitle = category ? `${category} · ${entry.result.item_type || ''}` : '';
+                const subtitle = category ? `${category}` : '';
                 return (
                   <Pressable
                     key={entry.id}
@@ -218,7 +217,7 @@ export default function HomeScreen() {
                         />
                       ) : (
                         <View style={styles.scanImagePlaceholder}>
-                          <Package size={16} color="#C7C7CC" strokeWidth={1.5} />
+                          <Package size={18} color="#C7C7CC" strokeWidth={1.5} />
                         </View>
                       )}
                     </View>
@@ -230,7 +229,7 @@ export default function HomeScreen() {
                         {subtitle}{subtitle ? ' · ' : ''}{formatTimeAgo(entry.scannedAt)}
                       </Text>
                       {badge && (
-                        <View style={[styles.scanBadgePill, { backgroundColor: badge.color + '14' }]}>
+                        <View style={[styles.scanBadgePill, { backgroundColor: badge.color + '18' }]}>
                           <Text style={[styles.scanBadgeText, { color: badge.color }]}>{badge.label}</Text>
                         </View>
                       )}
@@ -267,7 +266,7 @@ export default function HomeScreen() {
               <Pressable
                 onPress={() => {
                   void Haptics.selectionAsync();
-                  router.push('/(tabs)/analytics');
+                  router.push('/(tabs)/receipts' as any);
                 }}
                 hitSlop={8}
                 style={({ pressed }) => [pressed && { opacity: 0.6 }]}
@@ -290,7 +289,9 @@ export default function HomeScreen() {
                   ]}
                 >
                   <View style={styles.receiptIconWrap}>
-                    <Receipt size={16} color="#16A34A" strokeWidth={1.8} />
+                    <Text style={styles.receiptStoreIcon}>
+                      {(exp.merchant || exp.title || 'S').charAt(0).toUpperCase()}
+                    </Text>
                   </View>
                   <View style={styles.scanInfo}>
                     <Text style={styles.scanItemTitle} numberOfLines={1}>
@@ -306,7 +307,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Receipt size={24} color="#C7C7CC" strokeWidth={1.3} />
+              <Package size={24} color="#C7C7CC" strokeWidth={1.3} />
               <Text style={styles.emptyTitle}>No receipts yet</Text>
               <Text style={styles.emptySubtext}>Scan a receipt to start tracking</Text>
             </View>
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   headerArea: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
@@ -337,7 +338,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandTitle: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -373,27 +374,23 @@ const styles = StyleSheet.create({
   scanCard: {
     backgroundColor: '#16A34A',
     borderRadius: 16,
-    padding: 28,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
   },
   scanCardPressed: {
     backgroundColor: '#15803D',
   },
   scanCardInner: {
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   scanCardTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    marginTop: 4,
+    marginTop: 8,
   },
   scanCardSub: {
     fontSize: 13,
@@ -421,8 +418,8 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -441,7 +438,7 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   statValue: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -471,7 +468,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   scanRowPressed: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F8F8FA',
   },
   scanRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -539,6 +536,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  receiptStoreIcon: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#16A34A',
   },
   receiptAmount: {
     fontSize: 15,

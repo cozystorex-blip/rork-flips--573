@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   receiptCardPressed: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F8F8FA',
   },
   receiptCardBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,

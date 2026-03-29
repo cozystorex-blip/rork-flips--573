@@ -5,7 +5,7 @@ export default function SavedLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#000000' },
+        contentStyle: { backgroundColor: '#F2F2F7' },
       }}
     />
   );

@@ -13,7 +13,6 @@ import { Image } from 'expo-image';
 import {
   Tag,
   Package,
-  Crown,
   Heart,
   Camera,
   Search,
@@ -25,11 +24,9 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
-import { usePremium } from '@/contexts/PremiumContext';
-import SavedUpgradeModal from '@/components/SavedUpgradeModal';
-import type { SmartScanResult } from '@/services/smartScanService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 import { useScreenWidth } from '@/hooks/useScreenWidth';
+import type { SmartScanResult } from '@/services/smartScanService';
 
 const FILTER_CHIPS = [
   { key: 'all', label: 'All Items' },
@@ -95,14 +92,9 @@ export default function SavedScreen() {
   const screenWidth = useScreenWidth();
   const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
   const { entries: scanEntries, isLoading: scanLoading } = useScanHistory();
-  const {
-    savedDeals, isLoading: dealsLoading,
-    totalSavedCount, isAtFreeLimit, freeLimit,
-  } = useSavedItems();
-  const { isPremium } = usePremium();
+  const { savedDeals, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const [upgradeVisible, setUpgradeVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
 
@@ -196,7 +188,7 @@ export default function SavedScreen() {
         <View style={styles.headerTopRow}>
           <Text style={styles.screenTitle}>Saved</Text>
           <Pressable style={styles.notifBtn} hitSlop={8}>
-            <Bell size={18} color="#1C1C1E" strokeWidth={1.5} />
+            <Bell size={20} color="#1C1C1E" strokeWidth={1.5} />
           </Pressable>
         </View>
 
@@ -313,7 +305,7 @@ export default function SavedScreen() {
                       <Text style={styles.gridCardPrice}>{item.price}</Text>
                     )}
                     {item.badge && (
-                      <View style={[styles.gridBadge, { backgroundColor: item.badgeColor + '14' }]}>
+                      <View style={[styles.gridBadge, { backgroundColor: item.badgeColor + '18' }]}>
                         <Text style={[styles.gridBadgeText, { color: item.badgeColor }]}>{item.badge}</Text>
                       </View>
                     )}
@@ -323,37 +315,11 @@ export default function SavedScreen() {
             </View>
 
             <AdMobBanner />
-
-            {!isPremium && isAtFreeLimit && (
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setUpgradeVisible(true);
-                }}
-                style={({ pressed }) => [styles.upgradeCard, pressed && { opacity: 0.8 }]}
-              >
-                <Crown size={18} color="#16A34A" strokeWidth={1.8} />
-                <View style={styles.upgradeCardBody}>
-                  <Text style={styles.upgradeCardTitle}>Save more items</Text>
-                  <Text style={styles.upgradeCardSub}>Upgrade for unlimited saves</Text>
-                </View>
-                <View style={styles.upgradeCardBtn}>
-                  <Text style={styles.upgradeCardBtnText}>Upgrade</Text>
-                </View>
-              </Pressable>
-            )}
           </View>
         )}
 
         <View style={{ height: 32 }} />
       </ScrollView>
-
-      <SavedUpgradeModal
-        visible={upgradeVisible}
-        onClose={() => setUpgradeVisible(false)}
-        currentCount={totalSavedCount}
-        freeLimit={freeLimit}
-      />
     </View>
   );
 }
@@ -377,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   screenTitle: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -562,44 +528,5 @@ const styles = StyleSheet.create({
   gridBadgeText: {
     fontSize: 11,
     fontWeight: '600' as const,
-  },
-  upgradeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-    marginTop: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  upgradeCardBody: {
-    flex: 1,
-  },
-  upgradeCardTitle: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#16A34A',
-  },
-  upgradeCardSub: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 1,
-  },
-  upgradeCardBtn: {
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  upgradeCardBtnText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
   },
 });

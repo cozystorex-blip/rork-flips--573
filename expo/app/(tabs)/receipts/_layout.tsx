@@ -1,11 +1,11 @@
 import { Stack } from 'expo-router';
 import React from 'react';
-export default function DiscoverLayout() {
+export default function ReceiptsLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#000000' },
+        contentStyle: { backgroundColor: '#F2F2F7' },
       }}
     />
   );
