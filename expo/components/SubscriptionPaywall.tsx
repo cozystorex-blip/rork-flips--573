@@ -13,13 +13,12 @@ import {
   Platform,
 } from 'react-native';
 import {
-  Zap,
   X,
   Bookmark,
   ScanLine,
   Shield,
   RotateCcw,
-  Sparkles,
+  Check,
   ArrowRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -33,9 +32,9 @@ const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stde
 const PRIVACY_URL = 'https://rork.app/privacy';
 
 const BENEFITS = [
-  { icon: Shield, label: 'Ad-free experience', desc: 'No interruptions' },
-  { icon: Bookmark, label: 'Unlimited saves', desc: 'Never lose a deal' },
-  { icon: ScanLine, label: 'Scan history', desc: 'Full access to scans' },
+  { icon: Shield, label: 'Ad-free experience', desc: 'No interruptions while you browse' },
+  { icon: Bookmark, label: 'Unlimited saves', desc: 'Save as many items as you want' },
+  { icon: ScanLine, label: 'Full scan history', desc: 'Access all your past scans' },
 ];
 
 interface SubscriptionPaywallProps {
@@ -54,6 +53,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('annual');
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
+
   useEffect(() => {
     if (visible) {
       Animated.parallel([
@@ -99,7 +99,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
 
         <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
           <Pressable onPress={handleClose} style={styles.closeBtn} hitSlop={16} testID="paywall-close">
-            <X size={18} color="#666666" strokeWidth={2.2} />
+            <X size={16} color="#8E8E93" strokeWidth={2.2} />
           </Pressable>
 
           <ScrollView
@@ -108,17 +108,9 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.heroSection}>
-              <View style={styles.iconContainer}>
-                <View style={styles.iconInner}>
-                  <Zap size={34} color="#22C55E" strokeWidth={2.2} fill="#22C55E" />
-                </View>
-              </View>
-              <View style={styles.heroTextWrap}>
-                <Text style={styles.heroLabel}>FLIPS</Text>
-                <Text style={styles.heroTitle}>Go Premium</Text>
-              </View>
+              <Text style={styles.heroTitle}>Flips Premium</Text>
               <Text style={styles.heroSubtitle}>
-                Unlock the full Flips experience with unlimited saves, scans, and zero ads.
+                Unlimited saves, full scan history, and no ads.
               </Text>
             </View>
 
@@ -126,7 +118,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               <View style={styles.usageRow}>
                 <View style={styles.usageItem}>
                   <View style={styles.usageLabelRow}>
-                    <Bookmark size={12} color="#22C55E" strokeWidth={2} />
+                    <Bookmark size={12} color="#34C759" strokeWidth={2} />
                     <Text style={styles.usageLabel}>Saves</Text>
                     <Text style={styles.usageCount}>{savesUsed}/{freeLimit}</Text>
                   </View>
@@ -136,7 +128,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
                 </View>
                 <View style={styles.usageItem}>
                   <View style={styles.usageLabelRow}>
-                    <ScanLine size={12} color="#22C55E" strokeWidth={2} />
+                    <ScanLine size={12} color="#34C759" strokeWidth={2} />
                     <Text style={styles.usageLabel}>Scans</Text>
                     <Text style={styles.usageCount}>{scansUsed}/{scanFreeLimit}</Text>
                   </View>
@@ -151,14 +143,15 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               {BENEFITS.map((b, idx) => {
                 const Icon = b.icon;
                 return (
-                  <View key={idx} style={styles.benefitRow}>
+                  <View key={idx} style={[styles.benefitRow, idx < BENEFITS.length - 1 && styles.benefitRowBorder]}>
                     <View style={styles.benefitIcon}>
-                      <Icon size={18} color="#22C55E" strokeWidth={2} />
+                      <Icon size={18} color="#34C759" strokeWidth={1.8} />
                     </View>
                     <View style={styles.benefitText}>
                       <Text style={styles.benefitLabel}>{b.label}</Text>
                       <Text style={styles.benefitDesc}>{b.desc}</Text>
                     </View>
+                    <Check size={16} color="#34C759" strokeWidth={2} />
                   </View>
                 );
               })}
@@ -176,19 +169,20 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
                 ]}
                 testID="paywall-plan-annual"
               >
-                {selectedPlan === 'annual' && (
-                  <View style={styles.bestValueBadge}>
-                    <Sparkles size={9} color="#0A0A0A" strokeWidth={2.5} />
-                    <Text style={styles.bestValueText}>BEST VALUE</Text>
-                  </View>
-                )}
-                <View style={styles.planRadio}>
+                <View style={[styles.planRadio, selectedPlan === 'annual' && styles.planRadioSelected]}>
                   {selectedPlan === 'annual' && <View style={styles.planRadioInner} />}
                 </View>
                 <View style={styles.planInfo}>
-                  <Text style={[styles.planName, selectedPlan === 'annual' && styles.planNameSelected]}>
-                    Yearly
-                  </Text>
+                  <View style={styles.planNameRow}>
+                    <Text style={[styles.planName, selectedPlan === 'annual' && styles.planNameActive]}>
+                      Yearly
+                    </Text>
+                    {selectedPlan === 'annual' && (
+                      <View style={styles.bestValueBadge}>
+                        <Text style={styles.bestValueText}>Best Value</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={styles.planPrice}>{annualPriceRaw}/year</Text>
                   <Text style={styles.planSub}>~$2.50/mo · Save 58%</Text>
                 </View>
@@ -205,11 +199,11 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
                 ]}
                 testID="paywall-plan-monthly"
               >
-                <View style={styles.planRadio}>
+                <View style={[styles.planRadio, selectedPlan === 'monthly' && styles.planRadioSelected]}>
                   {selectedPlan === 'monthly' && <View style={styles.planRadioInner} />}
                 </View>
                 <View style={styles.planInfo}>
-                  <Text style={[styles.planName, selectedPlan === 'monthly' && styles.planNameSelected]}>
+                  <Text style={[styles.planName, selectedPlan === 'monthly' && styles.planNameActive]}>
                     Monthly
                   </Text>
                   <Text style={styles.planPrice}>{monthlyPriceRaw}/month</Text>
@@ -229,13 +223,13 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               testID="paywall-subscribe-btn"
             >
               {isPurchasing ? (
-                <ActivityIndicator size="small" color="#0A0A0A" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
                   <Text style={styles.upgradeBtnText}>
                     Continue with {selectedPlan === 'annual' ? 'Yearly' : 'Monthly'}
                   </Text>
-                  <ArrowRight size={18} color="#0A0A0A" strokeWidth={2.5} />
+                  <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.2} />
                 </>
               )}
             </Pressable>
@@ -247,10 +241,10 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
               testID="paywall-restore-btn"
             >
               {isRestoring ? (
-                <ActivityIndicator size="small" color="#555555" />
+                <ActivityIndicator size="small" color="#636366" />
               ) : (
                 <View style={styles.restoreRow}>
-                  <RotateCcw size={13} color="#555555" strokeWidth={2} />
+                  <RotateCcw size={13} color="#636366" strokeWidth={2} />
                   <Text style={styles.restoreText}>Restore Purchases</Text>
                 </View>
               )}
@@ -295,13 +289,13 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   sheet: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: '#000000',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
     marginTop: Platform.OS === 'ios' ? 54 : 36,
     overflow: 'hidden',
   },
@@ -309,15 +303,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1A1A1A',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -325,61 +317,29 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 24,
     paddingTop: 8,
   },
-  iconContainer: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    backgroundColor: '#22C55E12',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1.5,
-    borderColor: '#22C55E33',
-  },
-  iconInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: '#22C55E18',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heroTextWrap: {
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  heroLabel: {
-    fontSize: 12,
-    fontWeight: '800' as const,
-    color: '#22C55E',
-    letterSpacing: 3,
-    marginBottom: 4,
-  },
   heroTitle: {
-    fontSize: 32,
-    fontWeight: '900' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.8,
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: 8,
   },
   heroSubtitle: {
     fontSize: 15,
     fontWeight: '400' as const,
-    color: '#888888',
+    color: '#8E8E93',
     textAlign: 'center',
     lineHeight: 22,
     maxWidth: 300,
   },
   usageSection: {
-    backgroundColor: '#141414',
-    borderRadius: 18,
-    padding: 18,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#222222',
   },
   usageRow: {
     gap: 14,
@@ -394,52 +354,51 @@ const styles = StyleSheet.create({
   },
   usageLabel: {
     fontSize: 14,
-    fontWeight: '700' as const,
-    color: '#F5F5F5',
+    fontWeight: '500' as const,
+    color: '#FFFFFF',
     flex: 1,
   },
   usageCount: {
     fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#666666',
+    fontWeight: '400' as const,
+    color: '#8E8E93',
   },
   progressBarBg: {
-    height: 6,
-    backgroundColor: '#222222',
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressBarFill: {
-    height: 6,
-    backgroundColor: '#22C55E',
-    borderRadius: 3,
+    height: 4,
+    backgroundColor: '#34C759',
+    borderRadius: 2,
   },
   progressBarWarning: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#FF9500',
   },
   benefitsSection: {
-    gap: 0,
-    marginBottom: 24,
-    backgroundColor: '#141414',
-    borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#222222',
+    marginBottom: 24,
   },
   benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     gap: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E1E1E',
+  },
+  benefitRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#38383A',
   },
   benefitIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#22C55E12',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#2C2C2E',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -448,15 +407,14 @@ const styles = StyleSheet.create({
   },
   benefitLabel: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.2,
+    fontWeight: '500' as const,
+    color: '#FFFFFF',
   },
   benefitDesc: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '400' as const,
-    color: '#666666',
-    marginTop: 2,
+    color: '#8E8E93',
+    marginTop: 1,
   },
   plansSection: {
     gap: 10,
@@ -465,101 +423,95 @@ const styles = StyleSheet.create({
   planOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#141414',
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 2,
-    borderColor: '#222222',
+    borderColor: '#1C1C1E',
     gap: 14,
-    position: 'relative' as const,
-    overflow: 'hidden',
   },
   planOptionSelected: {
-    borderColor: '#22C55E',
-    backgroundColor: '#22C55E08',
-  },
-  bestValueBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 10,
-  },
-  bestValueText: {
-    fontSize: 9,
-    fontWeight: '800' as const,
-    color: '#0A0A0A',
-    letterSpacing: 0.5,
+    borderColor: '#34C759',
   },
   planRadio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#333333',
+    borderColor: '#48484A',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  planRadioSelected: {
+    borderColor: '#34C759',
   },
   planRadioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#34C759',
   },
   planInfo: {
     flex: 1,
   },
+  planNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   planName: {
     fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#888888',
-    letterSpacing: -0.2,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
   },
-  planNameSelected: {
-    color: '#F5F5F5',
+  planNameActive: {
+    color: '#FFFFFF',
+  },
+  bestValueBadge: {
+    backgroundColor: '#34C759',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  bestValueText: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   planPrice: {
     fontSize: 20,
-    fontWeight: '800' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.3,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
     marginTop: 4,
   },
   planSub: {
     fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#666666',
+    fontWeight: '400' as const,
+    color: '#8E8E93',
     marginTop: 2,
   },
   upgradeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#22C55E',
-    paddingVertical: 18,
+    gap: 8,
+    backgroundColor: '#34C759',
+    paddingVertical: 16,
     paddingHorizontal: 32,
-    borderRadius: 16,
+    borderRadius: 12,
     width: '100%',
-    minHeight: 58,
+    minHeight: 54,
   },
   upgradeBtnPressed: {
-    backgroundColor: '#16A34A',
-    transform: [{ scale: 0.97 }],
+    backgroundColor: '#2DA44E',
   },
   upgradeBtnDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   upgradeBtnText: {
     fontSize: 17,
-    fontWeight: '800' as const,
-    color: '#0A0A0A',
-    letterSpacing: 0.1,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   restoreBtn: {
     marginTop: 14,
@@ -573,8 +525,8 @@ const styles = StyleSheet.create({
   },
   restoreText: {
     fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#555555',
+    fontWeight: '400' as const,
+    color: '#636366',
   },
   legalSection: {
     marginTop: 16,
@@ -588,17 +540,17 @@ const styles = StyleSheet.create({
   legalLink: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#555555',
+    color: '#636366',
     textDecorationLine: 'underline' as const,
   },
   legalDot: {
     fontSize: 12,
-    color: '#333333',
+    color: '#48484A',
   },
   legalDisclaimer: {
     fontSize: 10,
     fontWeight: '400' as const,
-    color: '#444444',
+    color: '#48484A',
     textAlign: 'center' as const,
     lineHeight: 14,
     marginTop: 10,
@@ -611,8 +563,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#555555',
-    textDecorationLine: 'underline' as const,
+    fontWeight: '400' as const,
+    color: '#636366',
   },
 });

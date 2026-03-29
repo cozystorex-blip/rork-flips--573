@@ -29,7 +29,7 @@ function CenterTabButton() {
   const handleScanPress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.88, duration: 80, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.9, duration: 80, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }),
     ]).start();
     router.push('/smart-scan');
@@ -68,7 +68,7 @@ function CenterTabButton() {
           ]}
           testID="tab-center-scan-btn"
         >
-          <ScanFrameIcon size={26} color="#FFFFFF" strokeWidth={2.4} />
+          <ScanFrameIcon size={24} color="#FFFFFF" strokeWidth={2.2} />
         </Pressable>
       </Animated.View>
 
@@ -105,7 +105,7 @@ function CenterTabButton() {
                     testID={`menu-action-${action.key}`}
                   >
                     <View style={centerStyles.menuIconCircle}>
-                      <Icon size={18} color="#22C55E" strokeWidth={1.8} />
+                      <Icon size={17} color="#34C759" strokeWidth={1.8} />
                     </View>
                     <Text style={centerStyles.menuLabel}>{action.label}</Text>
                   </Pressable>
@@ -121,7 +121,7 @@ function CenterTabButton() {
               ]}
               testID="menu-cancel-btn"
             >
-              <X size={15} color="#666666" strokeWidth={2} />
+              <X size={14} color="#8E8E93" strokeWidth={2} />
               <Text style={centerStyles.cancelText}>Cancel</Text>
             </Pressable>
           </Animated.View>
@@ -139,27 +139,27 @@ const centerStyles = StyleSheet.create({
     marginTop: -10,
   },
   outer: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   button: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: '#22C55E',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#34C759',
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonPressed: {
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2DA44E',
   },
   modalFill: {
     flex: 1,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   menuContainer: {
     position: 'absolute',
@@ -172,16 +172,9 @@ const centerStyles = StyleSheet.create({
   menuCard: {
     width: '100%',
     maxWidth: 300,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2C2C2E',
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
   },
   menuItem: {
     flexDirection: 'row',
@@ -191,25 +184,24 @@ const centerStyles = StyleSheet.create({
     gap: 12,
   },
   menuItemPressed: {
-    backgroundColor: '#222222',
+    backgroundColor: '#3A3A3C',
   },
   menuItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#2A2A2A',
+    borderBottomColor: '#48484A',
   },
   menuIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#22C55E18',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#3A3A3C',
     justifyContent: 'center',
     alignItems: 'center',
   },
   menuLabel: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.2,
+    fontSize: 16,
+    fontWeight: '400' as const,
+    color: '#FFFFFF',
   },
   cancelBtn: {
     flexDirection: 'row',
@@ -219,41 +211,30 @@ const centerStyles = StyleSheet.create({
     marginTop: 8,
     width: '100%',
     maxWidth: 300,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#2C2C2E',
     borderRadius: 14,
-    paddingVertical: 13,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
+    paddingVertical: 14,
   },
   cancelBtnPressed: {
-    backgroundColor: '#222222',
+    backgroundColor: '#3A3A3C',
   },
   cancelText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600' as const,
-    color: '#666666',
+    color: '#8E8E93',
   },
 });
 
 const tabBarStyle = StyleSheet.create({
   bar: {
-    backgroundColor: '#0F0F0F',
-    borderTopColor: '#1E1E1E',
+    backgroundColor: '#1C1C1E',
+    borderTopColor: '#38383A',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
   },
   barWeb: {
-    backgroundColor: '#0F0F0F',
-    borderTopColor: '#1E1E1E',
+    backgroundColor: '#1C1C1E',
+    borderTopColor: '#38383A',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
     height: 52,
@@ -262,8 +243,8 @@ const tabBarStyle = StyleSheet.create({
 
 const TAB_SCREEN_OPTIONS = {
   headerShown: false,
-  tabBarActiveTintColor: '#22C55E',
-  tabBarInactiveTintColor: '#555555',
+  tabBarActiveTintColor: '#34C759',
+  tabBarInactiveTintColor: '#636366',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
   tabBarShowLabel: false,
@@ -283,7 +264,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <House size={size - 3} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
+            <House size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -292,7 +273,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <Heart size={size - 3} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
+            <Heart size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -316,7 +297,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <Tag size={size - 3} color={color} strokeWidth={focused ? 2.2 : 1.5} fill={focused ? color : 'none'} />
+            <Tag size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -325,7 +306,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused, size }) => (
-            <Users size={size - 3} color={color} strokeWidth={focused ? 2.0 : 1.5} />
+            <Users size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} />
           ),
         }}
       />

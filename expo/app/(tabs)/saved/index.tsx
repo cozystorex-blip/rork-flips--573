@@ -251,7 +251,7 @@ export default function SavedScreen() {
 
   const isLoading = scanLoading || dealsLoading;
 
-  const renderSavedCard = useCallback((item: UnifiedItem) => {
+  const renderSavedCard = useCallback((item: UnifiedItem, index: number, arr: UnifiedItem[]) => {
     return (
       <Pressable
         key={item.id}
@@ -259,6 +259,7 @@ export default function SavedScreen() {
         style={({ pressed }) => [
           styles.card,
           pressed && styles.cardPressed,
+          index < arr.length - 1 && styles.cardBorder,
         ]}
         testID={`saved-card-${item.id}`}
       >
@@ -274,15 +275,15 @@ export default function SavedScreen() {
           ) : (
             <View style={styles.cardImagePlaceholder}>
               {item.type === 'deal' ? (
-                <Tag size={20} color="#555555" strokeWidth={1.5} />
+                <Tag size={18} color="#636366" strokeWidth={1.5} />
               ) : (
-                <Package size={20} color="#555555" strokeWidth={1.5} />
+                <Package size={18} color="#636366" strokeWidth={1.5} />
               )}
             </View>
           )}
           {item.type === 'scan' && (
-            <View style={styles.scanDot}>
-              <ScanLine size={10} color="#22C55E" strokeWidth={2} />
+            <View style={styles.scanBadge}>
+              <ScanLine size={8} color="#34C759" strokeWidth={2} />
             </View>
           )}
         </View>
@@ -296,7 +297,7 @@ export default function SavedScreen() {
               hitSlop={12}
               testID={`saved-delete-${item.id}`}
             >
-              <Trash2 size={14} color="#444444" strokeWidth={1.5} />
+              <Trash2 size={14} color="#48484A" strokeWidth={1.5} />
             </Pressable>
           </View>
 
@@ -311,7 +312,7 @@ export default function SavedScreen() {
 
           {item.relatedNeeds.length > 0 && (
             <View style={styles.relatedRow}>
-              <Wrench size={10} color="#666666" strokeWidth={1.5} />
+              <Wrench size={10} color="#8E8E93" strokeWidth={1.5} />
               <Text style={styles.relatedText} numberOfLines={1}>
                 May need: {item.relatedNeeds.join(', ')}
               </Text>
@@ -330,18 +331,16 @@ export default function SavedScreen() {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setUpgradeVisible(true);
         }}
-        style={styles.upgradeCard}
+        style={({ pressed }) => [styles.upgradeCard, pressed && { opacity: 0.8 }]}
         testID="saved-upgrade-card"
       >
-        <View style={styles.upgradeCardIcon}>
-          <Crown size={20} color="#22C55E" strokeWidth={2} />
-        </View>
+        <Crown size={18} color="#34C759" strokeWidth={1.8} />
         <View style={styles.upgradeCardBody}>
           <Text style={styles.upgradeCardTitle}>Save more items</Text>
-          <Text style={styles.upgradeCardSub}>Upgrade for unlimited saves and full history</Text>
+          <Text style={styles.upgradeCardSub}>Upgrade for unlimited saves</Text>
         </View>
-        <View style={styles.upgradeCardArrow}>
-          <Text style={styles.upgradeCardArrowText}>Upgrade</Text>
+        <View style={styles.upgradeCardBtn}>
+          <Text style={styles.upgradeCardBtnText}>Upgrade</Text>
         </View>
       </Pressable>
     );
@@ -349,16 +348,15 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeaderWrap, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
         <Text style={styles.screenTitle}>Saved</Text>
-        <Text style={styles.screenSubtitle}>Your scans & saved deals</Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#22C55E" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#34C759" />
         }
       >
         <View>
@@ -368,11 +366,7 @@ export default function SavedScreen() {
             </View>
           ) : filteredItems.length === 0 ? (
             <View style={styles.emptyCard}>
-              <View style={styles.emptyIconArea}>
-                <View style={styles.emptyIconCircle}>
-                  <Heart size={30} color="#22C55E" strokeWidth={1.5} />
-                </View>
-              </View>
+              <Heart size={32} color="#636366" strokeWidth={1.3} />
               <Text style={styles.emptyTitle}>Nothing saved yet</Text>
               <Text style={styles.emptySubtitle}>Scan items or save deals to build your collection</Text>
               <View style={styles.emptyActions}>
@@ -381,7 +375,7 @@ export default function SavedScreen() {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/smart-scan');
                   }}
-                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
                   testID="saved-empty-scan"
                 >
                   <Camera size={15} color="#FFFFFF" strokeWidth={2} />
@@ -392,25 +386,22 @@ export default function SavedScreen() {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/(tabs)/discover');
                   }}
-                  style={({ pressed }) => [styles.emptyBtnOutline, pressed && { opacity: 0.7 }]}
+                  style={({ pressed }) => [styles.emptyBtnSecondary, pressed && { opacity: 0.7 }]}
                   testID="saved-empty-finds"
                 >
-                  <ShoppingBag size={15} color="#A0A0A0" strokeWidth={2} />
-                  <Text style={styles.emptyBtnOutlineText}>Browse Deals</Text>
+                  <ShoppingBag size={15} color="#FFFFFF" strokeWidth={2} />
+                  <Text style={styles.emptyBtnSecondaryText}>Browse Deals</Text>
                 </Pressable>
               </View>
             </View>
           ) : (
-            <View style={styles.contentArea}>
-              <View style={styles.headerRow}>
-                <Text style={styles.headerTitle}>Your Items</Text>
-                <View style={styles.headerCountBadge}>
-                  <Text style={styles.headerCountText}>{filteredItems.length}</Text>
-                </View>
+            <View>
+              <View style={styles.countRow}>
+                <Text style={styles.countLabel}>{filteredItems.length} items</Text>
               </View>
 
               <View style={styles.cardList}>
-                {filteredItems.map(renderSavedCard)}
+                {filteredItems.map((item, index) => renderSavedCard(item, index, filteredItems))}
               </View>
 
               <AdMobBanner />
@@ -435,57 +426,32 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000000',
   },
-  screenHeaderWrap: {
-    paddingHorizontal: 22,
-    paddingBottom: 6,
-    backgroundColor: '#0A0A0A',
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    backgroundColor: '#000000',
   },
   screenTitle: {
     fontSize: 34,
-    fontWeight: '900' as const,
-    color: '#F5F5F5',
-    letterSpacing: -1,
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#22C55E',
-    marginTop: 3,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase' as const,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
   },
   scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 14,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    paddingHorizontal: 2,
+  countRow: {
+    marginBottom: 12,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.4,
-  },
-  headerCountBadge: {
-    backgroundColor: '#22C55E18',
-    minWidth: 28,
-    height: 28,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  headerCountText: {
+  countLabel: {
     fontSize: 13,
-    fontWeight: '800' as const,
-    color: '#22C55E',
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -493,133 +459,113 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 22,
-    padding: 36,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    padding: 32,
     alignItems: 'center',
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
-  },
-  emptyIconArea: {
-    marginBottom: 20,
-  },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: '#22C55E18',
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: 8,
   },
   emptyTitle: {
-    fontSize: 21,
-    fontWeight: '900' as const,
-    color: '#F5F5F5',
-    marginBottom: 8,
-    letterSpacing: -0.4,
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    marginTop: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666666',
+    color: '#8E8E93',
     textAlign: 'center' as const,
-    lineHeight: 21,
-    marginBottom: 24,
-    paddingHorizontal: 8,
+    lineHeight: 20,
     maxWidth: 260,
   },
   emptyActions: {
     flexDirection: 'row',
     gap: 10,
+    marginTop: 16,
   },
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 14,
+    backgroundColor: '#34C759',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
   emptyBtnText: {
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#FFFFFF',
   },
-  emptyBtnOutline: {
+  emptyBtnSecondary: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#1A1A1A',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#2A2A2A',
+    backgroundColor: '#2C2C2E',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
-  emptyBtnOutlineText: {
+  emptyBtnSecondaryText: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#A0A0A0',
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   loadingText: {
     fontSize: 14,
-    color: '#666666',
-  },
-  contentArea: {
-    gap: 0,
+    color: '#8E8E93',
   },
   cardList: {
-    gap: 10,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   card: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 18,
-    overflow: 'hidden',
     padding: 14,
-    gap: 14,
+    gap: 12,
     alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
   },
   cardPressed: {
-    backgroundColor: '#222222',
-    transform: [{ scale: 0.98 }],
+    backgroundColor: '#2C2C2E',
+  },
+  cardBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#38383A',
   },
   cardImageWrap: {
-    width: 76,
-    height: 76,
-    borderRadius: 14,
+    width: 64,
+    height: 64,
+    borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#2C2C2E',
   },
   cardImage: {
-    width: 76,
-    height: 76,
+    width: 64,
+    height: 64,
   },
   cardImagePlaceholder: {
-    width: 76,
-    height: 76,
-    backgroundColor: '#111111',
+    width: 64,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scanDot: {
+  scanBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    bottom: 3,
+    right: 3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#2C2C2E',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardBody: {
     flex: 1,
     justifyContent: 'center',
-    minHeight: 76,
+    minHeight: 64,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -628,11 +574,10 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.2,
-    lineHeight: 21,
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: '#FFFFFF',
+    lineHeight: 20,
   },
   deleteBtn: {
     padding: 6,
@@ -640,86 +585,73 @@ const styles = StyleSheet.create({
     marginRight: -4,
   },
   cardPrice: {
-    fontSize: 17,
-    fontWeight: '800' as const,
-    color: '#22C55E',
-    letterSpacing: -0.3,
-    marginTop: 4,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#34C759',
+    marginTop: 2,
   },
   cardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 5,
+    marginTop: 4,
   },
   cardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#666666',
+    color: '#8E8E93',
     flex: 1,
     marginRight: 8,
   },
   cardTime: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#555555',
+    color: '#636366',
   },
   relatedRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginTop: 6,
+    marginTop: 4,
   },
   relatedText: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#666666',
+    color: '#8E8E93',
     flex: 1,
   },
   upgradeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 16,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     padding: 16,
-    borderWidth: 1.5,
-    borderColor: '#22C55E33',
     gap: 12,
     marginTop: 14,
-  },
-  upgradeCardIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: '#22C55E18',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   upgradeCardBody: {
     flex: 1,
   },
   upgradeCardTitle: {
     fontSize: 15,
-    fontWeight: '800' as const,
-    color: '#F5F5F5',
-    marginBottom: 2,
-    letterSpacing: -0.2,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   upgradeCardSub: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: '#666666',
-  },
-  upgradeCardArrow: {
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 12,
-  },
-  upgradeCardArrowText: {
     fontSize: 13,
-    fontWeight: '700' as const,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 1,
+  },
+  upgradeCardBtn: {
+    backgroundColor: '#34C759',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  upgradeCardBtnText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
-    letterSpacing: 0.2,
   },
 });

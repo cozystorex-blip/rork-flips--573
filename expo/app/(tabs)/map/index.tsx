@@ -20,7 +20,6 @@ import {
   DollarSign,
   TrendingDown,
   Tag,
-
   Flame,
   ChevronRight,
 } from 'lucide-react-native';
@@ -37,7 +36,7 @@ import { getProductImageUrl } from '@/constants/productImages';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_PHOTO_HEIGHT = (SCREEN_WIDTH - 32) * 0.48;
+const CARD_PHOTO_HEIGHT = (SCREEN_WIDTH - 40) * 0.48;
 
 function formatTimeAgo(dateStr: string | null): string {
   if (!dateStr) return '';
@@ -92,8 +91,6 @@ async function fetchDeals(): Promise<VerifiedDealRow[]> {
   }
 }
 
-
-
 function isValidPhotoUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   const trimmed = url.trim();
@@ -117,24 +114,24 @@ function getDealDisplayTime(deal: VerifiedDealRow): string {
   return formatTimeAgo(deal.created_at);
 }
 
-function getTrustBadgeConfig(trust: DealTrustInfo): { label: string; color: string; bgColor: string; borderColor: string } {
+function getTrustBadgeConfig(trust: DealTrustInfo): { label: string; color: string } {
   switch (trust.level) {
     case 'high':
-      return { label: 'Store Verified', color: '#22C55E', bgColor: '#22C55E15', borderColor: '#22C55E33' };
+      return { label: 'Verified', color: '#34C759' };
     case 'medium':
-      return { label: 'Likely Accurate', color: '#F59E0B', bgColor: '#F59E0B15', borderColor: '#F59E0B33' };
+      return { label: 'Likely Accurate', color: '#FF9500' };
     case 'low':
-      return { label: 'Estimate', color: '#F97316', bgColor: '#F9731615', borderColor: '#F9731633' };
+      return { label: 'Estimate', color: '#FF9500' };
     default:
-      return { label: 'Unverified', color: '#666666', bgColor: '#66666615', borderColor: '#66666633' };
+      return { label: 'Unverified', color: '#8E8E93' };
   }
 }
 
 function getFreshnessIndicator(trust: DealTrustInfo): { label: string; color: string } | null {
-  if (trust.freshnessHours < 6) return { label: 'Fresh', color: '#22C55E' };
-  if (trust.freshnessHours < 24) return { label: 'Today', color: '#22C55E' };
-  if (trust.freshnessHours < 48) return { label: 'Recent', color: '#F59E0B' };
-  if (trust.isStale) return { label: 'Aging', color: '#EF4444' };
+  if (trust.freshnessHours < 6) return { label: 'Fresh', color: '#34C759' };
+  if (trust.freshnessHours < 24) return { label: 'Today', color: '#34C759' };
+  if (trust.freshnessHours < 48) return { label: 'Recent', color: '#FF9500' };
+  if (trust.isStale) return { label: 'Aging', color: '#FF3B30' };
   return null;
 }
 
@@ -185,180 +182,173 @@ const DealCard = React.memo(function DealCard({ deal, timeAgo, trust, onPress }:
   const priceInfo = getPriceDisplay(deal);
   const trustBadge = getTrustBadgeConfig(trust);
   const freshness = getFreshnessIndicator(trust);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const onPressIn = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, tension: 300, friction: 10 }).start();
-  }, [scaleAnim]);
-
-  const onPressOut = useCallback(() => {
-    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 10 }).start();
-  }, [scaleAnim]);
 
   return (
-    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
-      <Pressable onPressIn={onPressIn} onPressOut={onPressOut} onPress={onPress} style={[styles.dealCard, expired && styles.dealCardExpired]}>
-        {hasPhoto && (
-          <View style={styles.cardPhotoWrap}>
-            <Image
-              source={{ uri: deal.photo_url! }}
-              style={styles.cardPhoto}
-              contentFit="cover"
-              transition={200}
-              recyclingKey={deal.id}
-            />
-            <View style={styles.photoGradientOverlay} />
-            {hasSavings && (
-              <View style={styles.savingsOverlay}>
-                <TrendingDown size={11} color="#FFFFFF" strokeWidth={2.5} />
-                <Text style={styles.savingsOverlayText}>Save ${deal.savings_amount!.toFixed(2)}</Text>
-              </View>
-            )}
-            {hasSavingsPercent && !hasSavings && (
-              <View style={styles.savingsOverlay}>
-                <Text style={styles.savingsOverlayText}>{deal.savings_percent!.toFixed(0)}% off</Text>
-              </View>
-            )}
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.dealCard,
+        expired && styles.dealCardExpired,
+        pressed && styles.dealCardPressed,
+      ]}
+    >
+      {hasPhoto && (
+        <View style={styles.cardPhotoWrap}>
+          <Image
+            source={{ uri: deal.photo_url! }}
+            style={styles.cardPhoto}
+            contentFit="cover"
+            transition={200}
+            recyclingKey={deal.id}
+          />
+          {hasSavings && (
+            <View style={styles.savingsOverlay}>
+              <TrendingDown size={11} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={styles.savingsOverlayText}>Save ${deal.savings_amount!.toFixed(2)}</Text>
+            </View>
+          )}
+          {hasSavingsPercent && !hasSavings && (
+            <View style={styles.savingsOverlay}>
+              <Text style={styles.savingsOverlayText}>{deal.savings_percent!.toFixed(0)}% off</Text>
+            </View>
+          )}
+          {isUserDeal && (
+            <View style={styles.communityBadgeOverlay}>
+              <Flame size={10} color="#FFFFFF" strokeWidth={2} />
+              <Text style={styles.communityBadgeOverlayText}>Community</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      <View style={styles.cardContent}>
+        {!hasPhoto && (
+          <View style={styles.badgeRow}>
             {isUserDeal && (
-              <View style={[styles.cardSourceBadge, styles.cardSourceBadgeCommunity]}>
+              <View style={styles.communityBadgeInline}>
                 <Flame size={10} color="#FFFFFF" strokeWidth={2} />
-                <Text style={styles.cardSourceText}>Community</Text>
+                <Text style={styles.communityBadgeText}>Community</Text>
+              </View>
+            )}
+            {deal.moderation_status === 'pending' && isUserDeal && (
+              <View style={styles.pendingBadge}>
+                <Clock size={10} color="#FF9500" strokeWidth={2} />
+                <Text style={styles.pendingBadgeText}>Under Review</Text>
               </View>
             )}
           </View>
         )}
 
-        <View style={styles.cardContent}>
-          {!hasPhoto && (
-            <View style={styles.badgeRow}>
-              {isUserDeal && (
-                <View style={styles.communityBadgeInline}>
-                  <Flame size={10} color="#FFFFFF" strokeWidth={2} />
-                  <Text style={styles.communityBadgeText}>Community</Text>
-                </View>
+        <View style={styles.cardTopRow}>
+          <View style={styles.storeRow}>
+            {poster ? (
+              <View style={styles.posterAvatarWrap}>
+                <Image
+                  source={{ uri: poster.avatar }}
+                  style={styles.posterAvatar}
+                  contentFit="cover"
+                  transition={150}
+                  recyclingKey={`poster-${deal.id}`}
+                />
+              </View>
+            ) : !hasPhoto && productThumbUrl ? (
+              <View style={styles.productThumbWrap}>
+                <Image
+                  source={{ uri: productThumbUrl }}
+                  style={styles.productThumb}
+                  contentFit="cover"
+                  transition={200}
+                  recyclingKey={`thumb-${deal.id}`}
+                />
+              </View>
+            ) : (
+              <View style={styles.storeIcon}>
+                <Store size={13} color="#8E8E93" strokeWidth={1.8} />
+              </View>
+            )}
+            <View style={styles.storeNameCol}>
+              {poster && (
+                <Text style={styles.posterName} numberOfLines={1}>{poster.name}</Text>
               )}
-              {deal.moderation_status === 'pending' && isUserDeal && (
-                <View style={styles.pendingBadgeInline}>
-                  <Clock size={10} color="#F59E0B" strokeWidth={2} />
-                  <Text style={styles.pendingBadgeText}>Under Review</Text>
-                </View>
-              )}
+              <Text style={[styles.storeName, poster && styles.storeNameSmall]} numberOfLines={1}>
+                {deal.store_name || 'Unknown Store'}
+              </Text>
             </View>
-          )}
+          </View>
+          <View style={styles.priceBlock}>
+            {priceInfo.hasPrice ? (
+              <Text style={styles.priceTag}>{priceInfo.priceText}</Text>
+            ) : priceInfo.valueText && priceInfo.valueText !== 'See deal' ? (
+              <Text style={styles.priceTagGreen}>{priceInfo.valueText}</Text>
+            ) : (
+              <View style={styles.seeDealPill}>
+                <DollarSign size={10} color="#34C759" strokeWidth={1.8} />
+                <Text style={styles.seeDealText}>See deal</Text>
+              </View>
+            )}
+            {hasOriginalPrice && (
+              <Text style={styles.originalPrice}>${deal.original_price!.toFixed(2)}</Text>
+            )}
+          </View>
+        </View>
 
-          <View style={styles.cardTopRow}>
-            <View style={styles.storeRow}>
-              {poster ? (
-                <View style={styles.posterAvatarWrap}>
-                  <Image
-                    source={{ uri: poster.avatar }}
-                    style={styles.posterAvatar}
-                    contentFit="cover"
-                    transition={150}
-                    recyclingKey={`poster-${deal.id}`}
-                  />
-                </View>
-              ) : !hasPhoto && productThumbUrl ? (
-                <View style={styles.productThumbWrap}>
-                  <Image
-                    source={{ uri: productThumbUrl }}
-                    style={styles.productThumb}
-                    contentFit="cover"
-                    transition={200}
-                    recyclingKey={`thumb-${deal.id}`}
-                  />
-                </View>
-              ) : (
-                <View style={[styles.storeIcon, { backgroundColor: catColor + '15' }]}>
-                  <Store size={13} color={catColor} strokeWidth={1.8} />
-                </View>
-              )}
-              <View style={styles.storeNameCol}>
-                {poster && (
-                  <Text style={styles.posterName} numberOfLines={1}>{poster.name}</Text>
-                )}
-                <Text style={[styles.storeName, poster && styles.storeNameSmall]} numberOfLines={1}>
-                  {deal.store_name || 'Unknown Store'}
+        <Text style={styles.dealTitle} numberOfLines={2}>
+          {deal.title || 'Untitled Deal'}
+        </Text>
+
+        {deal.description ? (
+          <Text style={styles.dealDesc} numberOfLines={2}>{deal.description}</Text>
+        ) : null}
+
+        <View style={styles.cardFooter}>
+          <View style={styles.footerLeft}>
+            {deal.category && (
+              <View style={styles.catChip}>
+                <Text style={[styles.catChipText, { color: catColor }]}>
+                  {deal.category.charAt(0).toUpperCase() + deal.category.slice(1).toLowerCase()}
                 </Text>
               </View>
-            </View>
-            <View style={styles.priceBlock}>
-              {priceInfo.hasPrice ? (
-                <Text style={styles.priceTag}>{priceInfo.priceText}</Text>
-              ) : priceInfo.valueText && priceInfo.valueText !== 'See deal' ? (
-                <Text style={styles.priceTagGreen}>{priceInfo.valueText}</Text>
-              ) : (
-                <View style={styles.seeDealPill}>
-                  <DollarSign size={10} color="#22C55E" strokeWidth={1.8} />
-                  <Text style={styles.seeDealText}>See deal</Text>
-                </View>
-              )}
-              {hasOriginalPrice && (
-                <Text style={styles.originalPrice}>${deal.original_price!.toFixed(2)}</Text>
-              )}
-            </View>
+            )}
+            {!verified && trust.level !== 'unverified' && (
+              <Text style={[styles.trustText, { color: trustBadge.color }]}>{trustBadge.label}</Text>
+            )}
+            {freshness && !expired && (
+              <View style={styles.metaItem}>
+                <View style={[styles.freshDot, { backgroundColor: freshness.color }]} />
+                <Text style={[styles.metaText, { color: freshness.color }]}>{freshness.label}</Text>
+              </View>
+            )}
           </View>
-
-          <Text style={styles.dealTitle} numberOfLines={2}>
-            {deal.title || 'Untitled Deal'}
-          </Text>
-
-          {deal.description ? (
-            <Text style={styles.dealDesc} numberOfLines={2}>{deal.description}</Text>
-          ) : null}
-
-          <View style={styles.cardFooter}>
-            <View style={styles.footerLeft}>
-              {deal.category && (
-                <View style={[styles.catChip, { backgroundColor: catColor + '15' }]}>
-                  <Text style={[styles.catChipText, { color: catColor }]}>
-                    {deal.category.charAt(0).toUpperCase() + deal.category.slice(1).toLowerCase()}
-                  </Text>
-                </View>
-              )}
-              {!verified && trust.level !== 'unverified' && (
-                <View style={[styles.trustPill, { backgroundColor: trustBadge.bgColor, borderColor: trustBadge.borderColor }]}>
-                  <Text style={[styles.trustPillText, { color: trustBadge.color }]}>{trustBadge.label}</Text>
-                </View>
-              )}
-              {freshness && !expired && (
-                <View style={styles.metaItem}>
-                  <View style={[styles.freshDot, { backgroundColor: freshness.color }]} />
-                  <Text style={[styles.metaText, { color: freshness.color }]}>{freshness.label}</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.footerRight}>
-              {timeAgo ? (
-                <View style={styles.metaItem}>
-                  <Clock size={10} color="#555555" strokeWidth={1.5} />
-                  <Text style={styles.metaText}>{timeAgo}</Text>
-                </View>
-              ) : null}
-              <ChevronRight size={14} color="#444444" strokeWidth={1.8} />
-            </View>
+          <View style={styles.footerRight}>
+            {timeAgo ? (
+              <View style={styles.metaItem}>
+                <Clock size={10} color="#636366" strokeWidth={1.5} />
+                <Text style={styles.metaText}>{timeAgo}</Text>
+              </View>
+            ) : null}
+            <ChevronRight size={14} color="#48484A" strokeWidth={1.8} />
           </View>
-
-          {!hasPhoto && hasSavings && (
-            <View style={styles.savingsInline}>
-              <TrendingDown size={11} color="#22C55E" strokeWidth={2.5} />
-              <Text style={styles.savingsInlineText}>Save ${deal.savings_amount!.toFixed(2)}</Text>
-              {hasSavingsPercent && (
-                <View style={styles.savingsPercentPill}>
-                  <Text style={styles.savingsPercentPillText}>{deal.savings_percent!.toFixed(0)}%</Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {expired && (
-            <View style={styles.expiredBanner}>
-              <Text style={styles.expiredBannerText}>Deal may have expired</Text>
-            </View>
-          )}
         </View>
-      </Pressable>
-    </Animated.View>
+
+        {!hasPhoto && hasSavings && (
+          <View style={styles.savingsInline}>
+            <TrendingDown size={11} color="#34C759" strokeWidth={2.5} />
+            <Text style={styles.savingsInlineText}>Save ${deal.savings_amount!.toFixed(2)}</Text>
+            {hasSavingsPercent && (
+              <View style={styles.savingsPercentPill}>
+                <Text style={styles.savingsPercentPillText}>{deal.savings_percent!.toFixed(0)}%</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {expired && (
+          <View style={styles.expiredBanner}>
+            <Text style={styles.expiredBannerText}>Deal may have expired</Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
   );
 });
 
@@ -482,61 +472,49 @@ export default function DealsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerBar, { paddingTop: insets.top }]}>
-        <Animated.View style={[styles.headerInner, { opacity: fadeAnim }]}>
-          <Text style={styles.headerTitle}>Flips</Text>
-          <Text style={styles.headerSubtitle}>Discover and share deals</Text>
-          <View style={styles.headerRow}>
-            <View style={styles.headerLeft} />
+      <View style={[styles.headerBar, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.headerInner}>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.headerTitle}>Flips</Text>
             <Pressable
               onPress={() => router.push('/post-deal')}
-              style={({ pressed }) => [styles.postDealIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
+              style={({ pressed }) => [styles.postDealBtn, pressed && { opacity: 0.6 }]}
               testID="post-deal-header-btn"
             >
-              <Tag size={20} color="#22C55E" strokeWidth={1.8} />
+              <Tag size={18} color="#34C759" strokeWidth={1.8} />
             </Pressable>
           </View>
-        </Animated.View>
+        </View>
       </View>
 
       {isLoading ? (
         <View style={styles.stateWrap}>
-          <View style={styles.stateCard}>
-            <ActivityIndicator size="large" color="#22C55E" />
-            <Text style={styles.stateText}>Loading finds...</Text>
-          </View>
+          <ActivityIndicator size="large" color="#34C759" />
+          <Text style={styles.stateText}>Loading finds...</Text>
         </View>
       ) : error ? (
         <View style={styles.stateWrap}>
-          <View style={styles.stateCard}>
-            <View style={styles.errorIcon}>
-              <AlertCircle size={24} color={Colors.destructive} strokeWidth={1.5} />
-            </View>
-            <Text style={styles.stateTitle}>Couldn't load finds</Text>
-            <Text style={styles.stateText}>Pull down to refresh</Text>
-            <Pressable
-              style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
-              onPress={() => void refetch()}
-            >
-              <Text style={styles.retryBtnText}>Retry</Text>
-            </Pressable>
-          </View>
+          <AlertCircle size={28} color="#FF3B30" strokeWidth={1.5} />
+          <Text style={styles.stateTitle}>Couldn't load finds</Text>
+          <Text style={styles.stateText}>Pull down to refresh</Text>
+          <Pressable
+            style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => void refetch()}
+          >
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </Pressable>
         </View>
       ) : sortedDeals.length === 0 ? (
         <View style={styles.stateWrap}>
-          <View style={styles.stateCard}>
-            <View style={styles.emptyIcon}>
-              <ShoppingBag size={26} color="#22C55E" strokeWidth={1.5} />
-            </View>
-            <Text style={styles.stateTitle}>No flips yet</Text>
-            <Text style={styles.stateText}>Real flips will appear here once they are posted.</Text>
-            <Pressable
-              style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
-              onPress={() => router.push('/post-deal')}
-            >
-              <Text style={styles.retryBtnText}>Post your first flip</Text>
-            </Pressable>
-          </View>
+          <ShoppingBag size={28} color="#636366" strokeWidth={1.3} />
+          <Text style={styles.stateTitle}>No flips yet</Text>
+          <Text style={styles.stateText}>Real flips will appear here once they are posted.</Text>
+          <Pressable
+            style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => router.push('/post-deal')}
+          >
+            <Text style={styles.retryBtnText}>Post your first flip</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -560,7 +538,7 @@ export default function DealsScreen() {
                 console.log('[Deals] Pull-to-refresh: fetching fresh backend-only data');
                 void refetch();
               }}
-              tintColor="#22C55E"
+              tintColor="#34C759"
             />
           }
         />
@@ -572,186 +550,86 @@ export default function DealsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#000000',
   },
   headerBar: {
-    backgroundColor: '#0A0A0A',
-    paddingBottom: 10,
-    paddingHorizontal: 16,
-    borderBottomWidth: 0,
+    backgroundColor: '#000000',
+    paddingBottom: 8,
+    paddingHorizontal: 20,
   },
   headerInner: {},
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   headerTitle: {
     fontSize: 34,
-    fontWeight: '900' as const,
-    color: '#F5F5F5',
-    letterSpacing: -1,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#22C55E',
-    marginTop: 3,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase' as const,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  dealsBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: '#22C55E',
+  postDealBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  syncBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1A1A1A',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  syncStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-  },
-  syncStatusText: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: '#22C55E',
-  },
-  scrollContent: {
-    paddingTop: 4,
   },
   flatListContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingTop: 4,
     paddingBottom: 20,
   },
-
-  postDealIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#22C55E18',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#22C55E33',
-  },
-  feedContent: {
-    paddingHorizontal: 16,
-  },
   stateWrap: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    gap: 0,
-  },
-  stateCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 20,
-    padding: 32,
-    alignItems: 'center',
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    gap: 8,
   },
   stateTitle: {
-    fontSize: 19,
-    fontWeight: '800' as const,
-    color: '#F5F5F5',
-    marginTop: 14,
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    marginTop: 4,
   },
   stateText: {
     fontSize: 14,
-    color: '#666666',
-    fontWeight: '400' as const,
+    color: '#8E8E93',
     textAlign: 'center' as const,
-    marginTop: 6,
     lineHeight: 20,
-    paddingHorizontal: 8,
-  },
-  errorIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: '#EF444418',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: '#22C55E18',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   retryBtn: {
-    marginTop: 18,
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 30,
-    paddingVertical: 14,
-    borderRadius: 14,
+    marginTop: 12,
+    backgroundColor: '#34C759',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
   retryBtnText: {
     fontSize: 15,
-    fontWeight: '700' as const,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
-    letterSpacing: 0.2,
   },
-
-  dealsList: {
-    gap: 8,
-  },
-
-
   dealCard: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#2A2A2A',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   dealCardExpired: {
     opacity: 0.5,
+  },
+  dealCardPressed: {
+    backgroundColor: '#2C2C2E',
   },
   cardPhotoWrap: {
     position: 'relative' as const,
     width: '100%',
     height: CARD_PHOTO_HEIGHT,
-    backgroundColor: '#111111',
-  },
-  photoGradientOverlay: {
-    position: 'absolute' as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: 'transparent',
+    backgroundColor: '#2C2C2E',
   },
   cardPhoto: {
     width: '100%',
@@ -764,20 +642,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    backgroundColor: '#34C759',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   savingsOverlayText: {
     fontSize: 13,
-    fontWeight: '700' as const,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
-    letterSpacing: -0.1,
+  },
+  communityBadgeOverlay: {
+    position: 'absolute' as const,
+    bottom: 10,
+    left: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  communityBadgeOverlayText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   cardContent: {
     padding: 14,
-    paddingTop: 12,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -785,30 +678,33 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 8,
   },
-  verifiedBadge: {
+  communityBadgeInline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#22C55E',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  verifiedBadgeText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
+  communityBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
-    letterSpacing: 0.2,
   },
-  _userBadgeRow: {
+  pendingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: '#2C2C2E',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  userBadgeText: {
+  pendingBadgeText: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#666666',
+    color: '#FF9500',
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -819,7 +715,7 @@ const styles = StyleSheet.create({
   storeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
     flex: 1,
     marginRight: 10,
   },
@@ -827,63 +723,61 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
+    backgroundColor: '#2C2C2E',
     justifyContent: 'center',
     alignItems: 'center',
   },
   storeName: {
     fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#F5F5F5',
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
     flex: 1,
-    letterSpacing: -0.2,
   },
   priceBlock: {
     alignItems: 'flex-end',
   },
   priceTag: {
-    fontSize: 22,
-    fontWeight: '800' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.6,
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   priceTagGreen: {
     fontSize: 17,
-    fontWeight: '800' as const,
-    color: '#22C55E',
-    letterSpacing: -0.3,
+    fontWeight: '600' as const,
+    color: '#34C759',
   },
   seeDealPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#22C55E18',
+    backgroundColor: '#2C2C2E',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 7,
+    borderRadius: 6,
   },
   seeDealText: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: '#22C55E',
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#34C759',
   },
   originalPrice: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: '#666666',
+    color: '#8E8E93',
     textDecorationLine: 'line-through' as const,
     marginTop: 1,
   },
   dealTitle: {
     fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#F5F5F5',
+    fontWeight: '500' as const,
+    color: '#FFFFFF',
     lineHeight: 21,
     marginBottom: 4,
-    letterSpacing: -0.2,
   },
   dealDesc: {
     fontSize: 13,
-    color: '#666666',
+    color: '#8E8E93',
     lineHeight: 18,
     marginBottom: 4,
   },
@@ -894,12 +788,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#2A2A2A',
+    borderTopColor: '#38383A',
   },
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     flex: 1,
   },
   footerRight: {
@@ -908,24 +802,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   catChip: {
+    backgroundColor: '#2C2C2E',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 5,
   },
   catChipText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '500' as const,
   },
-  trustPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  trustPillText: {
-    fontSize: 9,
-    fontWeight: '700' as const,
-    letterSpacing: 0.2,
+  trustText: {
+    fontSize: 11,
+    fontWeight: '500' as const,
   },
   freshDot: {
     width: 5,
@@ -939,130 +827,70 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 11,
-    color: '#555555',
+    color: '#636366',
     fontWeight: '400' as const,
-  },
-  cardSourceBadge: {
-    position: 'absolute' as const,
-    bottom: 10,
-    left: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 9,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  cardSourceBadgeVerified: {
-    backgroundColor: 'rgba(34,197,94,0.85)',
-  },
-  cardSourceBadgeCommunity: {
-    backgroundColor: 'rgba(239,68,68,0.75)',
-  },
-  cardSourceText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.1,
-  },
-  communityBadgeInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 7,
-  },
-  communityBadgeText: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.2,
-  },
-  pendingBadgeInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F59E0B18',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: '#F59E0B33',
-  },
-  pendingBadgeText: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    color: '#F59E0B',
-    letterSpacing: 0.1,
   },
   savingsInline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: 8,
-    backgroundColor: '#22C55E15',
+    backgroundColor: '#2C2C2E',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 6,
     alignSelf: 'flex-start' as const,
-    borderWidth: 1,
-    borderColor: '#22C55E33',
   },
   savingsInlineText: {
     fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#22C55E',
+    fontWeight: '600' as const,
+    color: '#34C759',
   },
   savingsPercentPill: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#34C759',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 5,
+    borderRadius: 4,
   },
   savingsPercentPillText: {
     fontSize: 10,
-    fontWeight: '700' as const,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
   },
   expiredBanner: {
     marginTop: 6,
-    backgroundColor: '#EF444418',
+    backgroundColor: '#2C2C2E',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 7,
+    borderRadius: 6,
     alignSelf: 'flex-start' as const,
   },
   expiredBannerText: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    color: Colors.destructive,
+    fontSize: 11,
+    fontWeight: '400' as const,
+    color: '#FF3B30',
   },
   productThumbWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     overflow: 'hidden' as const,
-    backgroundColor: '#111111',
+    backgroundColor: '#2C2C2E',
   },
   productThumb: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
   },
   posterAvatarWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     overflow: 'hidden' as const,
-    borderWidth: 1.5,
-    borderColor: '#2A2A2A',
   },
   posterAvatar: {
     width: '100%' as const,
     height: '100%' as const,
-    borderRadius: 18,
+    borderRadius: 16,
   },
   storeNameCol: {
     flex: 1,
@@ -1070,15 +898,14 @@ const styles = StyleSheet.create({
   },
   posterName: {
     fontSize: 13,
-    fontWeight: '700' as const,
-    color: '#F5F5F5',
-    letterSpacing: -0.2,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
     lineHeight: 16,
   },
   storeNameSmall: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: '#666666',
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
     lineHeight: 14,
   },
 });
