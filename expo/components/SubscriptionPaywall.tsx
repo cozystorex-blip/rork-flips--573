@@ -99,7 +99,7 @@ export default function SubscriptionPaywall({ visible, onClose }: SubscriptionPa
 
         <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
           <Pressable onPress={handleClose} style={styles.closeBtn} hitSlop={16} testID="paywall-close">
-            <X size={16} color="#8E8E93" strokeWidth={2.2} />
+            <X size={16} color="#34C759" strokeWidth={2.5} />
           </Pressable>
 
           <ScrollView
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#1A2E1F',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -322,10 +322,12 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 28,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
+    fontWeight: '800' as const,
+    color: '#34C759',
     textAlign: 'center',
     marginBottom: 8,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.6,
   },
   heroSubtitle: {
     fontSize: 15,
@@ -407,7 +409,7 @@ const styles = StyleSheet.create({
   },
   benefitLabel: {
     fontSize: 15,
-    fontWeight: '500' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   benefitDesc: {
@@ -480,8 +482,8 @@ const styles = StyleSheet.create({
   },
   planPrice: {
     fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
+    fontWeight: '800' as const,
+    color: '#34C759',
     marginTop: 4,
   },
   planSub: {
@@ -510,8 +512,10 @@ const styles = StyleSheet.create({
   },
   upgradeBtnText: {
     fontSize: 17,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.4,
   },
   restoreBtn: {
     marginTop: 14,

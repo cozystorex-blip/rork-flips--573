@@ -121,7 +121,7 @@ function CenterTabButton() {
               ]}
               testID="menu-cancel-btn"
             >
-              <X size={14} color="#8E8E93" strokeWidth={2} />
+              <X size={14} color="#34C759" strokeWidth={2.2} />
               <Text style={centerStyles.cancelText}>Cancel</Text>
             </Pressable>
           </Animated.View>
@@ -200,7 +200,7 @@ const centerStyles = StyleSheet.create({
   },
   menuLabel: {
     fontSize: 16,
-    fontWeight: '400' as const,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
   },
   cancelBtn: {
@@ -220,8 +220,8 @@ const centerStyles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
+    fontWeight: '700' as const,
+    color: '#34C759',
   },
 });
 

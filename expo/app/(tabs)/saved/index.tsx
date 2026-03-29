@@ -435,9 +435,10 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontSize: 34,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    fontWeight: '800' as const,
+    color: '#34C759',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -467,8 +468,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
     marginTop: 4,
   },
   emptySubtitle: {
@@ -575,7 +576,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
     lineHeight: 20,
   },
@@ -634,8 +635,8 @@ const styles = StyleSheet.create({
   },
   upgradeCardTitle: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
   },
   upgradeCardSub: {
     fontSize: 13,

@@ -291,9 +291,10 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontSize: 34,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    fontWeight: '800' as const,
+    color: '#34C759',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
   },
   gridBtn: {
     width: 36,
@@ -324,8 +325,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
   },
   seeAllText: {
     fontSize: 15,
@@ -339,8 +340,8 @@ const styles = StyleSheet.create({
   },
   receiptTotalAmount: {
     fontSize: 28,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
+    fontWeight: '800' as const,
+    color: '#34C759',
     letterSpacing: -0.5,
   },
   receiptTotalLabel: {
@@ -392,8 +393,8 @@ const styles = StyleSheet.create({
   },
   listAmount: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
     marginRight: 4,
   },
   savedImageWrap: {
@@ -427,8 +428,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
   },
   emptySubtext: {
     fontSize: 13,

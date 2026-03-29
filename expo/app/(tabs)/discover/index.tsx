@@ -406,9 +406,10 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontSize: 34,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    fontWeight: '800' as const,
+    color: '#34C759',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
   },
   followingSection: {
     backgroundColor: '#1C1C1E',
@@ -425,8 +426,8 @@ const styles = StyleSheet.create({
   },
   followingLabel: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
   },
   followingCount: {
     fontSize: 13,
@@ -479,8 +480,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500' as const,
+    color: '#34C759',
+    fontWeight: '600' as const,
   },
   retryBtn: {
     marginTop: 12,
@@ -543,7 +544,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   styleTag: {
@@ -599,8 +600,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
     marginTop: 4,
   },
   emptySubtext: {

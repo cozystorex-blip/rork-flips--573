@@ -565,9 +565,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 34,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    fontWeight: '800' as const,
+    color: '#34C759',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
   },
   postDealBtn: {
     width: 36,
@@ -591,8 +592,8 @@ const styles = StyleSheet.create({
   },
   stateTitle: {
     fontSize: 20,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
     marginTop: 4,
   },
   stateText: {
@@ -729,7 +730,7 @@ const styles = StyleSheet.create({
   },
   storeName: {
     fontSize: 15,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
     flex: 1,
   },
@@ -738,8 +739,8 @@ const styles = StyleSheet.create({
   },
   priceTag: {
     fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
+    fontWeight: '800' as const,
+    color: '#34C759',
     letterSpacing: -0.3,
   },
   priceTagGreen: {
@@ -770,7 +771,7 @@ const styles = StyleSheet.create({
   },
   dealTitle: {
     fontSize: 16,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
     lineHeight: 21,
     marginBottom: 4,

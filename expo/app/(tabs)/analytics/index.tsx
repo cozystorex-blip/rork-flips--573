@@ -446,9 +446,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 34,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
+    fontWeight: '800' as const,
+    color: '#34C759',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
     marginBottom: 16,
   },
   timeTabsRow: {
@@ -499,8 +500,8 @@ const styles = StyleSheet.create({
   },
   statVal: {
     fontSize: 22,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
+    fontWeight: '800' as const,
+    color: '#34C759',
     letterSpacing: -0.5,
   },
   statLbl: {
@@ -581,8 +582,8 @@ const styles = StyleSheet.create({
   },
   weekTitle: {
     fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
   },
   weekBadge: {
     backgroundColor: '#34C759',
@@ -636,8 +637,8 @@ const styles = StyleSheet.create({
   },
   txAmount: {
     fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
+    fontWeight: '700' as const,
+    color: '#34C759',
     letterSpacing: -0.3,
   },
   txMetaRow: {
