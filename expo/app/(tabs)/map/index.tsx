@@ -8,7 +8,6 @@ import {
   Animated,
   ActivityIndicator,
   RefreshControl,
-  Dimensions,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,8 +34,6 @@ import { computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionSe
 import { getProductImageUrl } from '@/constants/productImages';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_PHOTO_HEIGHT = (SCREEN_WIDTH - 40) * 0.48;
 
 function formatTimeAgo(dateStr: string | null): string {
   if (!dateStr) return '';
@@ -356,6 +353,7 @@ export default function DealsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const { data: rawDeals, isLoading, error, refetch, isRefetching } = useQuery({
@@ -629,12 +627,11 @@ const styles = StyleSheet.create({
   cardPhotoWrap: {
     position: 'relative' as const,
     width: '100%',
-    height: CARD_PHOTO_HEIGHT,
     backgroundColor: '#2C2C2E',
   },
   cardPhoto: {
     width: '100%',
-    height: '100%',
+    aspectRatio: 1 / 0.48,
   },
   savingsOverlay: {
     position: 'absolute' as const,

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
-  Dimensions,
   Pressable,
   Alert,
 } from 'react-native';
@@ -16,10 +15,9 @@ import { useExpenses } from '@/contexts/ExpenseContext';
 import { ExpenseCategoryColors } from '@/constants/colors';
 import { ExpenseCategoryType, ExpenseCategoryLabels, Expense } from '@/types';
 import * as Haptics from 'expo-haptics';
+import { useScreenWidth } from '@/hooks/useScreenWidth';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_H_PAD = 16;
-const CHART_INNER_WIDTH = SCREEN_WIDTH - 40 - CHART_H_PAD * 2;
 
 const TIME_TABS = [
   { key: 'week' as const, label: 'Week' },
@@ -65,6 +63,8 @@ export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const { expenses, deleteExpense } = useExpenses();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const screenWidth = useScreenWidth();
+  const CHART_INNER_WIDTH = screenWidth - 40 - CHART_H_PAD * 2;
   const [timeTab, setTimeTab] = useState<'week' | 'month' | '6months'>('week');
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategoryType | 'all'>('all');
 
@@ -253,7 +253,7 @@ export default function AnalyticsScreen() {
         </Svg>
       </View>
     );
-  }, [dailyData]);
+  }, [dailyData, CHART_INNER_WIDTH]);
 
   const renderRecentCard = useCallback((expense: Expense) => {
     const catColor = ExpenseCategoryColors[expense.category];

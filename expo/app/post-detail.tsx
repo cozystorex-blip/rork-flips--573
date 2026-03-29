@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
   Animated,
   Pressable,
   Linking,
@@ -37,8 +36,6 @@ import Colors from '@/constants/colors';
 import { computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
 import { classifySourceUrl } from '@/utils/sourceUrlQuality';
 import AdMobBanner from '@/components/ads/AdMobBanner';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '';
@@ -768,7 +765,7 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
   },
   imageWrap: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     aspectRatio: 1,
     backgroundColor: '#F2F2F7',
   },
@@ -826,8 +823,8 @@ const styles = StyleSheet.create({
   },
 
   dealImageWrap: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.6,
+    width: '100%',
+    aspectRatio: 1 / 0.6,
     backgroundColor: '#F2F2F7',
     position: 'relative' as const,
   },

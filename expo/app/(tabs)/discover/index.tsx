@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   Animated,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,12 +22,11 @@ import { CategoryLabels, UserProfile, CategoryType } from '@/types';
 import CategoryIcon from '@/components/CategoryIcon';
 import { useAuth } from '@/contexts/AuthContext';
 import AdProfileCard from '@/components/ads/AdProfileCard';
+import { useScreenWidth } from '@/hooks/useScreenWidth';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const H_PADDING = 20;
 const CARD_GAP = 10;
 const NUM_COLUMNS = 2;
-const CARD_WIDTH = (SCREEN_WIDTH - H_PADDING * 2 - CARD_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 const FOLLOWED_STORAGE_KEY = 'followed_creators';
 
 interface DiscoverProfile {
@@ -104,6 +102,7 @@ const ProfileCard = React.memo(function ProfileCard({
   isOwnProfile,
   onPress,
   onToggleFollow,
+  cardWidth,
 }: {
   profile: UserProfile;
   catColor: string;
@@ -111,6 +110,7 @@ const ProfileCard = React.memo(function ProfileCard({
   isOwnProfile: boolean;
   onPress: () => void;
   onToggleFollow: () => void;
+  cardWidth: number;
 }) {
   const thumbs = profile.thumbnails ?? [];
 
@@ -118,7 +118,7 @@ const ProfileCard = React.memo(function ProfileCard({
     <Pressable
       style={({ pressed }) => [
         styles.profileCard,
-        { width: CARD_WIDTH },
+        { width: cardWidth },
         pressed && styles.cardPressed,
       ]}
       onPress={onPress}
@@ -199,6 +199,8 @@ export default function DiscoverScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const screenWidth = useScreenWidth();
+  const CARD_WIDTH = (screenWidth - H_PADDING * 2 - CARD_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   const [followedIds, setFollowedIds] = useState<string[]>([]);
 
@@ -304,11 +306,12 @@ export default function DiscoverScreen() {
           isOwnProfile={isOwnProfile}
           onPress={() => navigateToProfile(p.id)}
           onToggleFollow={() => void toggleFollow(p.id)}
+          cardWidth={CARD_WIDTH}
         />
       );
     });
     return elements;
-  }, [displayProfiles, followedIds, userId, navigateToProfile, toggleFollow]);
+  }, [displayProfiles, followedIds, userId, navigateToProfile, toggleFollow, CARD_WIDTH]);
 
   return (
     <View style={styles.container}>
@@ -515,7 +518,7 @@ const styles = StyleSheet.create({
   },
   avatar: {
     width: '100%',
-    height: CARD_WIDTH * 0.85,
+    aspectRatio: 1 / 0.85,
     backgroundColor: '#2C2C2E',
   },
   avatarPlaceholder: {

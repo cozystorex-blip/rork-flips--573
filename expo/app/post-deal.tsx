@@ -10,7 +10,6 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -39,8 +38,7 @@ import { generateObject } from '@rork-ai/toolkit-sdk';
 import { saveLocalDeal } from '@/services/localDealsService';
 import type { VerifiedDealRow } from '@/types';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PHOTO_HEIGHT = SCREEN_WIDTH * 0.65;
+
 
 const CATEGORIES: { key: string; label: string; icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }> }[] = [
   { key: 'Deals', label: 'Deals', icon: Tag },
@@ -746,7 +744,7 @@ const styles = StyleSheet.create({
   },
   photoPreview: {
     width: '100%',
-    height: PHOTO_HEIGHT,
+    aspectRatio: 1 / 0.65,
   },
   validatingOverlay: {
     position: 'absolute' as const,
