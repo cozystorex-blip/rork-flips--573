@@ -562,11 +562,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800' as const,
-    color: '#34C759',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   postDealBtn: {
     width: 36,
@@ -591,7 +590,7 @@ const styles = StyleSheet.create({
   stateTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#FFFFFF',
     marginTop: 4,
   },
   stateText: {

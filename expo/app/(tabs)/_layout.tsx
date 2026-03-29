@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from 'expo-router';
-import { House, Tag, Heart, X, UserPen, DollarSign, Users } from 'lucide-react-native';
+import { House, Heart, X, UserPen, DollarSign, Users, Receipt } from 'lucide-react-native';
 import ScanFrameIcon from '@/components/ScanFrameIcon';
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Pressable, StyleSheet, Platform, Animated, Modal, Text } from 'react-native';
@@ -68,7 +68,7 @@ function CenterTabButton() {
           ]}
           testID="tab-center-scan-btn"
         >
-          <ScanFrameIcon size={24} color="#FFFFFF" strokeWidth={2.2} />
+          <ScanFrameIcon size={22} color="#FFFFFF" strokeWidth={2.2} />
         </Pressable>
       </Animated.View>
 
@@ -136,17 +136,17 @@ const centerStyles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -10,
+    marginTop: -8,
   },
   outer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
   button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#34C759',
     justifyContent: 'center',
     alignItems: 'center',
@@ -237,7 +237,7 @@ const tabBarStyle = StyleSheet.create({
     borderTopColor: '#38383A',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
-    height: 52,
+    height: 56,
   },
 });
 
@@ -247,9 +247,14 @@ const TAB_SCREEN_OPTIONS = {
   tabBarInactiveTintColor: '#636366',
   tabBarStyle: Platform.OS === 'web' ? tabBarStyle.barWeb : tabBarStyle.bar,
   tabBarItemStyle: { flex: 1 } as const,
-  tabBarShowLabel: false,
+  tabBarShowLabel: true,
+  tabBarLabelStyle: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    marginTop: -2,
+  },
   tabBarIconStyle: {
-    marginBottom: -1,
+    marginBottom: -2,
   },
   lazy: true,
 } as const;
@@ -262,18 +267,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(home)"
         options={{
-          title: '',
+          title: 'Home',
           tabBarIcon: ({ color, focused, size }) => (
-            <House size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
+            <House size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: '',
+          title: 'Saved',
           tabBarIcon: ({ color, focused, size }) => (
-            <Heart size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
+            <Heart size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
           ),
         }}
       />
@@ -295,18 +300,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: '',
+          title: 'Flips',
           tabBarIcon: ({ color, focused, size }) => (
-            <Tag size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} fill={focused ? color : 'none'} />
+            <Receipt size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} />
           ),
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
-          title: '',
+          title: 'Profile',
           tabBarIcon: ({ color, focused, size }) => (
-            <Users size={size - 3} color={color} strokeWidth={focused ? 2 : 1.5} />
+            <Users size={size - 4} color={color} strokeWidth={focused ? 2 : 1.5} />
           ),
         }}
       />

@@ -445,11 +445,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800' as const,
-    color: '#34C759',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
     marginBottom: 16,
   },
   timeTabsRow: {
@@ -583,7 +582,7 @@ const styles = StyleSheet.create({
   weekTitle: {
     fontSize: 17,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#FFFFFF',
   },
   weekBadge: {
     backgroundColor: '#34C759',

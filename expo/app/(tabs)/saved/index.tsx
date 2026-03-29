@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -19,6 +20,9 @@ import {
   ShoppingBag,
   Heart,
   Camera,
+  Search,
+  Bell,
+  ChevronDown,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -30,18 +34,12 @@ import SavedUpgradeModal from '@/components/SavedUpgradeModal';
 import type { SmartScanResult } from '@/services/smartScanService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
-const RELATED_ITEMS: Record<string, string[]> = {
-  drill: ['Drill bits', 'Battery pack'],
-  shelf: ['Wall anchors', 'Screws'],
-  lamp: ['Light bulb', 'Extension cord'],
-  furniture: ['Assembly tools', 'Hardware kit'],
-  chair: ['Floor protectors', 'Cushion'],
-  desk: ['Cable management', 'Desk mat'],
-  table: ['Coasters', 'Placemats'],
-  mirror: ['Wall anchors', 'Level tool'],
-  cabinet: ['Shelf liners', 'Handles'],
-  bookshelf: ['Bookends', 'Wall anchor kit'],
-};
+const FILTER_CHIPS = [
+  { key: 'all', label: 'All Items' },
+  { key: 'deals', label: 'Deals' },
+  { key: 'scans', label: 'Scans' },
+  { key: 'receipts', label: 'Receipts' },
+] as const;
 
 interface UnifiedItem {
   id: string;
@@ -140,10 +138,6 @@ function getRelatedNeeds(entry: ScanHistoryEntry): string[] {
       return (fd.extra_purchase_items as Array<{ item?: string }>).slice(0, 2).map(i => i.item || 'Accessory');
     }
   }
-  const name = (r.item_name || '').toLowerCase();
-  for (const [keyword, needs] of Object.entries(RELATED_ITEMS)) {
-    if (name.includes(keyword)) return needs;
-  }
   return [];
 }
 
@@ -165,6 +159,8 @@ export default function SavedScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [upgradeVisible, setUpgradeVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
     const scanItems: UnifiedItem[] = scanEntries.map((e) => ({
@@ -204,7 +200,19 @@ export default function SavedScreen() {
     );
   }, [scanEntries, savedDeals]);
 
-  const filteredItems = unifiedItems;
+  const filteredItems = useMemo(() => {
+    let items = unifiedItems;
+    if (activeFilter === 'deals') {
+      items = items.filter(i => i.type === 'deal');
+    } else if (activeFilter === 'scans') {
+      items = items.filter(i => i.type === 'scan');
+    }
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      items = items.filter(i => i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q));
+    }
+    return items;
+  }, [unifiedItems, activeFilter, searchText]);
 
   const handleDelete = useCallback((item: UnifiedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -306,7 +314,7 @@ export default function SavedScreen() {
           )}
 
           <View style={styles.cardMetaRow}>
-            <Text style={styles.cardSubtext} numberOfLines={1}>{item.source.toLowerCase()}</Text>
+            <Text style={styles.cardSubtext} numberOfLines={1}>{item.source}</Text>
             <Text style={styles.cardTime}>{formatTimeAgo(item.savedAt)}</Text>
           </View>
 
@@ -348,8 +356,49 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.screenTitle}>Saved</Text>
+      <View style={[styles.screenHeader, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.screenTitle}>Saved</Text>
+          <Pressable style={styles.notifBtn} hitSlop={8}>
+            <Bell size={18} color="#FFFFFF" strokeWidth={1.5} />
+          </Pressable>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={16} color="#8E8E93" strokeWidth={1.5} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search saved items..."
+            placeholderTextColor="#636366"
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+          />
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {FILTER_CHIPS.map((chip) => {
+            const isActive = activeFilter === chip.key;
+            return (
+              <Pressable
+                key={chip.key}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setActiveFilter(chip.key);
+                }}
+                style={[styles.filterChip, isActive && styles.filterChipActive]}
+              >
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                  {chip.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <ScrollView
@@ -397,7 +446,11 @@ export default function SavedScreen() {
           ) : (
             <View>
               <View style={styles.countRow}>
-                <Text style={styles.countLabel}>{filteredItems.length} items</Text>
+                <Text style={styles.countLabel}>{filteredItems.length} items saved</Text>
+                <Pressable style={styles.sortBtn}>
+                  <Text style={styles.sortText}>Recently Added</Text>
+                  <ChevronDown size={12} color="#8E8E93" strokeWidth={1.5} />
+                </Pressable>
               </View>
 
               <View style={styles.cardList}>
@@ -430,29 +483,90 @@ const styles = StyleSheet.create({
   },
   screenHeader: {
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 12,
     backgroundColor: '#000000',
   },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   screenTitle: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800' as const,
-    color: '#34C759',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  notifBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1C1C1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C1C1E',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
+    height: 40,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#1C1C1E',
+  },
+  filterChipActive: {
+    backgroundColor: '#34C759',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
   },
   countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   countLabel: {
-    fontSize: 13,
-    fontWeight: '400' as const,
+    fontSize: 14,
+    fontWeight: '500' as const,
     color: '#8E8E93',
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sortText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -469,7 +583,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#FFFFFF',
     marginTop: 4,
   },
   emptySubtitle: {

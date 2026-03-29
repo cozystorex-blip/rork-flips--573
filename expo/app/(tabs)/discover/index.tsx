@@ -408,11 +408,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   screenTitle: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: '800' as const,
-    color: '#34C759',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
   followingSection: {
     backgroundColor: '#1C1C1E',
@@ -430,7 +429,7 @@ const styles = StyleSheet.create({
   followingLabel: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#FFFFFF',
   },
   followingCount: {
     fontSize: 13,
@@ -604,7 +603,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#FFFFFF',
     marginTop: 4,
   },
   emptySubtext: {
