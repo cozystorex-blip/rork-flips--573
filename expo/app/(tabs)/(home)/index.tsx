@@ -451,12 +451,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F4F5F0',
   },
   headerArea: {
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F4F5F0',
     paddingHorizontal: 20,
-    paddingBottom: 6,
+    paddingBottom: 10,
   },
   headerRow: {
     flexDirection: 'row',
@@ -464,16 +464,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   brandTitle: {
-    fontSize: 32,
-    fontWeight: '700' as const,
+    fontSize: 30,
+    fontWeight: '800' as const,
     color: '#1A1A1A',
-    letterSpacing: -0.8,
+    letterSpacing: -0.6,
   },
   brandSubtitle: {
-    fontSize: 15,
-    fontWeight: '400' as const,
-    color: '#8B8680',
-    marginTop: 2,
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#9B9690',
+    marginTop: 3,
     letterSpacing: -0.1,
   },
   gridBtn: {
@@ -492,18 +492,18 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 10,
   },
 
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
     elevation: 2,
   },
   cardHeader: {
@@ -693,19 +693,23 @@ const styles = StyleSheet.create({
   },
 
   emptyCardContent: {
-    paddingVertical: 16,
+    paddingVertical: 24,
     alignItems: 'center',
+    backgroundColor: '#F9FAF7',
+    borderRadius: 14,
+    marginTop: 4,
   },
   emptyCardText: {
     fontSize: 15,
-    fontWeight: '500' as const,
-    color: '#A09B93',
+    fontWeight: '600' as const,
+    color: '#8B8680',
+    letterSpacing: -0.1,
   },
   emptyCardSubtext: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: '#C8C4BC',
-    marginTop: 4,
+    color: '#B5B0A8',
+    marginTop: 5,
   },
 
   savedScrollContent: {
@@ -748,12 +752,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#2D6A4F',
     borderRadius: 20,
-    padding: 18,
+    padding: 20,
     marginBottom: 4,
-    shadowColor: '#2D6A4F',
+    shadowColor: '#1B4332',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
     elevation: 6,
   },
   scanCtaLeft: {
@@ -782,7 +786,8 @@ const styles = StyleSheet.create({
   scanCtaSubtitle: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 3,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 4,
+    lineHeight: 17,
   },
 });

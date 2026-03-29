@@ -480,6 +480,8 @@ export default function DealsScreen() {
     <View style={styles.container}>
       <View style={[styles.headerBar, { paddingTop: insets.top }]}>
         <Animated.View style={[styles.headerInner, { opacity: fadeAnim }]}>
+          <Text style={styles.headerTitle}>Flips</Text>
+          <Text style={styles.headerSubtitle}>Discover and share deals</Text>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft} />
             <Pressable
@@ -490,42 +492,47 @@ export default function DealsScreen() {
               <Tag size={20} color="#1B5E3B" strokeWidth={1.8} />
             </Pressable>
           </View>
-
         </Animated.View>
       </View>
 
       {isLoading ? (
         <View style={styles.stateWrap}>
-          <ActivityIndicator size="large" color="#1B5E3B" />
-          <Text style={styles.stateText}>Loading finds...</Text>
+          <View style={styles.stateCard}>
+            <ActivityIndicator size="large" color="#1B5E3B" />
+            <Text style={styles.stateText}>Loading finds...</Text>
+          </View>
         </View>
       ) : error ? (
         <View style={styles.stateWrap}>
-          <View style={styles.errorIcon}>
-            <AlertCircle size={22} color={Colors.destructive} strokeWidth={1.5} />
+          <View style={styles.stateCard}>
+            <View style={styles.errorIcon}>
+              <AlertCircle size={24} color={Colors.destructive} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.stateTitle}>Couldn't load finds</Text>
+            <Text style={styles.stateText}>Pull down to refresh</Text>
+            <Pressable
+              style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+              onPress={() => void refetch()}
+            >
+              <Text style={styles.retryBtnText}>Retry</Text>
+            </Pressable>
           </View>
-          <Text style={styles.stateTitle}>Couldn't load finds</Text>
-          <Text style={styles.stateText}>Pull down to refresh</Text>
-          <Pressable
-            style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85 }]}
-            onPress={() => void refetch()}
-          >
-            <Text style={styles.retryBtnText}>Retry</Text>
-          </Pressable>
         </View>
       ) : sortedDeals.length === 0 ? (
         <View style={styles.stateWrap}>
-          <View style={styles.emptyIcon}>
-            <ShoppingBag size={22} color="#1B5E3B" strokeWidth={1.5} />
+          <View style={styles.stateCard}>
+            <View style={styles.emptyIcon}>
+              <ShoppingBag size={24} color="#1B5E3B" strokeWidth={1.5} />
+            </View>
+            <Text style={styles.stateTitle}>No flips yet</Text>
+            <Text style={styles.stateText}>Real flips will appear here once they are posted.</Text>
+            <Pressable
+              style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+              onPress={() => router.push('/post-deal')}
+            >
+              <Text style={styles.retryBtnText}>Post your first flip</Text>
+            </Pressable>
           </View>
-          <Text style={styles.stateTitle}>No flips yet</Text>
-          <Text style={styles.stateText}>Real flips will appear here once they are posted.</Text>
-          <Pressable
-            style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.85 }]}
-            onPress={() => router.push('/post-deal')}
-          >
-            <Text style={styles.retryBtnText}>Post your first flip</Text>
-          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -560,19 +567,32 @@ export default function DealsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F4F5F0',
   },
   headerBar: {
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F4F5F0',
     paddingBottom: 10,
     paddingHorizontal: 16,
     borderBottomWidth: 0,
   },
   headerInner: {},
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800' as const,
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#9B9690',
+    marginTop: 2,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 10,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -587,12 +607,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1B7A45',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#00C853',
-    letterSpacing: -0.2,
   },
   headerActions: {
     flexDirection: 'row',
@@ -641,45 +655,68 @@ const styles = StyleSheet.create({
   },
   stateWrap: {
     alignItems: 'center',
-    paddingVertical: 44,
-    gap: 6,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    gap: 0,
+  },
+  stateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#8B8680',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 2,
   },
   stateTitle: {
-    fontSize: 17,
-    fontWeight: '600' as const,
+    fontSize: 18,
+    fontWeight: '700' as const,
     color: '#1C1C1E',
-    marginTop: 4,
+    marginTop: 14,
+    letterSpacing: -0.3,
   },
   stateText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#8E8E93',
     fontWeight: '400' as const,
+    textAlign: 'center' as const,
+    marginTop: 6,
+    lineHeight: 20,
+    paddingHorizontal: 8,
   },
   errorIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FF3B3010',
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#FFF0EF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#2D6A4F10',
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#E8F5EE',
     justifyContent: 'center',
     alignItems: 'center',
   },
   retryBtn: {
-    marginTop: 12,
+    marginTop: 18,
     backgroundColor: '#2D6A4F',
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 28,
+    paddingVertical: 13,
+    borderRadius: 14,
+    shadowColor: '#2D6A4F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   retryBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
     color: '#FFFFFF',
   },

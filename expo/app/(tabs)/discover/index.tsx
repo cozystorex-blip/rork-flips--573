@@ -317,6 +317,11 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8 }]}
       >
+        <View style={styles.screenHeader}>
+          <Text style={styles.screenTitle}>Community</Text>
+          <Text style={styles.screenSubtitle}>Connect with other users</Text>
+        </View>
+
         {followedProfiles.length > 0 && (
           <View style={styles.followingSection}>
             <View style={styles.followingHeader}>
@@ -367,11 +372,13 @@ export default function DiscoverScreen() {
           </View>
         ) : displayProfiles.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconWrap}>
-              <User size={32} color="#C7C7CC" strokeWidth={1.3} />
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIconWrap}>
+                <User size={28} color="#2D6A4F" strokeWidth={1.5} />
+              </View>
+              <Text style={styles.emptyTitle}>No profiles yet</Text>
+              <Text style={styles.emptySubtext}>Be the first to set up your profile and start connecting with other shoppers</Text>
             </View>
-            <Text style={styles.emptyTitle}>No profiles yet</Text>
-            <Text style={styles.emptySubtext}>Be the first to set up your profile and start connecting with other shoppers</Text>
           </View>
         ) : (
           <Animated.View style={[styles.grid, { opacity: fadeAnim }]}>
@@ -388,10 +395,25 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F3EF',
+    backgroundColor: '#F4F5F0',
   },
   scrollContent: {
     paddingHorizontal: H_PADDING,
+  },
+  screenHeader: {
+    marginBottom: 16,
+  },
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '800' as const,
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
+  },
+  screenSubtitle: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#9B9690',
+    marginTop: 2,
   },
   headerSection: {
     marginBottom: 16,
@@ -400,18 +422,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-  },
-  screenTitle: {
-    fontSize: 32,
-    fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.8,
-  },
-  screenSubtitle: {
-    fontSize: 14,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 2,
   },
   accountBtn: {
     width: 38,
@@ -654,35 +664,45 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     width: '100%',
-    paddingVertical: 64,
+    paddingVertical: 32,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    gap: 8,
+    gap: 0,
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#8B8680',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 2,
   },
   emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#E8F5EE',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
-    shadowColor: '#8B8680',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    elevation: 3,
   },
   emptyTitle: {
-    fontSize: 17,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    marginTop: 14,
+    letterSpacing: -0.3,
   },
   emptySubtext: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400' as const,
-    color: '#AEAEB2',
+    color: '#8E8E93',
     textAlign: 'center' as const,
-    paddingHorizontal: 40,
-    lineHeight: 18,
+    paddingHorizontal: 16,
+    lineHeight: 20,
+    marginTop: 6,
   },
 });
