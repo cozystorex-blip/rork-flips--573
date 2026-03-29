@@ -14,7 +14,6 @@ import {
   Package,
   Bell,
   Flame,
-  ChevronRight,
   DollarSign,
   Scan,
 } from 'lucide-react-native';
@@ -80,6 +79,16 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
     if (rd.includes('high')) return { label: 'High Demand', color: '#16A34A' };
   }
   return null;
+}
+
+function getScanSubtitle(entry: ScanHistoryEntry): string {
+  const r = entry.result;
+  const category = r.category || '';
+  const itemType = r.item_type || '';
+  const parts: string[] = [];
+  if (category) parts.push(category);
+  if (itemType && itemType !== category) parts.push(itemType);
+  return parts.join(' · ');
 }
 
 export default function HomeScreen() {
@@ -155,15 +164,12 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={[styles.headerArea, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.brandTitle}>Flip</Text>
-            <Text style={styles.brandSub}>Smart price scanner</Text>
-          </View>
+          <Text style={styles.brandTitle}>Flip</Text>
           <View style={{ flex: 1 }} />
           {streakDays > 0 && (
             <View style={styles.streakBadge}>
-              <Flame size={11} color="#FF9500" strokeWidth={2.5} fill="#FF9500" />
-              <Text style={styles.streakText}>{streakDays}d</Text>
+              <Flame size={12} color="#FF9500" strokeWidth={2.5} fill="#FF9500" />
+              <Text style={styles.streakText}>{streakDays}-day streak</Text>
             </View>
           )}
           <Pressable
@@ -186,16 +192,13 @@ export default function HomeScreen() {
           style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
           testID="home-scan-card"
         >
-          <View style={styles.scanCardLeft}>
+          <View style={styles.scanCardContent}>
             <View style={styles.scanCardIconWrap}>
-              <ScanFrameIcon size={28} color="#FFFFFF" strokeWidth={2.5} />
+              <ScanFrameIcon size={32} color="#FFFFFF" strokeWidth={2.5} />
             </View>
-            <View style={styles.scanCardTextWrap}>
-              <Text style={styles.scanCardTitle}>Scan Item</Text>
-              <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
-            </View>
+            <Text style={styles.scanCardTitle}>Scan Item</Text>
+            <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
           </View>
-          <ChevronRight size={20} color="rgba(255,255,255,0.6)" strokeWidth={2} />
         </Pressable>
 
         {recentScans.length > 0 && (
@@ -218,8 +221,7 @@ export default function HomeScreen() {
               {recentScans.map((entry, index) => {
                 const price = getScanPrice(entry);
                 const badge = getScanBadge(entry);
-                const category = entry.result.category || entry.result.item_type || '';
-                const subtitle = category ? `${category}` : '';
+                const subtitle = getScanSubtitle(entry);
                 return (
                   <Pressable
                     key={entry.id}
@@ -272,15 +274,17 @@ export default function HomeScreen() {
             <View style={styles.statIconWrap}>
               <DollarSign size={14} color="#16A34A" strokeWidth={2} />
             </View>
-            <Text style={styles.statValue}>${totalSavings > 0 ? totalSavings.toFixed(0) : '0'}</Text>
             <Text style={styles.statLabel}>Total Saved</Text>
+            <Text style={styles.statValue}>${totalSavings > 0 ? totalSavings.toFixed(0) : '0'}</Text>
+            <Text style={styles.statPeriod}>This month</Text>
           </View>
           <View style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <Scan size={14} color="#3B82F6" strokeWidth={2} />
             </View>
-            <Text style={styles.statValue}>{itemsScannedCount}</Text>
             <Text style={styles.statLabel}>Items Scanned</Text>
+            <Text style={styles.statValue}>{itemsScannedCount}</Text>
+            <Text style={styles.statPeriod}>This week</Text>
           </View>
         </View>
 
@@ -305,32 +309,37 @@ export default function HomeScreen() {
 
           {recentReceipts.length > 0 ? (
             <View style={styles.listCard}>
-              {recentReceipts.map((exp, index) => (
-                <Pressable
-                  key={exp.id}
-                  onPress={() => handleReceiptPress(exp.id)}
-                  style={({ pressed }) => [
-                    styles.receiptRow,
-                    pressed && styles.scanRowPressed,
-                    index < recentReceipts.length - 1 && styles.scanRowBorder,
-                  ]}
-                >
-                  <View style={styles.receiptIconWrap}>
-                    <Text style={styles.receiptStoreIcon}>
-                      {(exp.merchant || exp.title || 'S').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.scanInfo}>
-                    <Text style={styles.scanItemTitle} numberOfLines={1}>
-                      {exp.merchant || exp.title}
-                    </Text>
-                    <Text style={styles.scanItemSub}>
-                      {exp.receiptItemsPreview ? `${exp.receiptItemsPreview.split(',').length} items` : ''} · {formatDate(exp.createdAt)}
-                    </Text>
-                  </View>
-                  <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                </Pressable>
-              ))}
+              {recentReceipts.map((exp, index) => {
+                const itemCount = exp.receiptItemsPreview
+                  ? exp.receiptItemsPreview.split(',').length
+                  : 0;
+                return (
+                  <Pressable
+                    key={exp.id}
+                    onPress={() => handleReceiptPress(exp.id)}
+                    style={({ pressed }) => [
+                      styles.receiptRow,
+                      pressed && styles.scanRowPressed,
+                      index < recentReceipts.length - 1 && styles.scanRowBorder,
+                    ]}
+                  >
+                    <View style={styles.receiptIconWrap}>
+                      <Text style={styles.receiptStoreIcon}>
+                        {(exp.merchant || exp.title || 'S').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.scanInfo}>
+                      <Text style={styles.scanItemTitle} numberOfLines={1}>
+                        {exp.merchant || exp.title}
+                      </Text>
+                      <Text style={styles.scanItemSub}>
+                        {itemCount > 0 ? `· ${itemCount} items` : ''} · {formatDate(exp.createdAt)}
+                      </Text>
+                    </View>
+                    <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           ) : (
             <View style={styles.emptyState}>
@@ -371,18 +380,12 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     letterSpacing: -0.5,
   },
-  brandSub: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-    marginTop: 1,
-  },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     backgroundColor: '#FFF7ED',
-    paddingHorizontal: 9,
+    paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
@@ -409,11 +412,10 @@ const styles = StyleSheet.create({
   scanCard: {
     backgroundColor: '#16A34A',
     borderRadius: 16,
-    paddingVertical: 20,
+    paddingVertical: 28,
     paddingHorizontal: 18,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 20,
     shadowColor: '#16A34A',
     shadowOffset: { width: 0, height: 4 },
@@ -425,24 +427,21 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
-  scanCardLeft: {
-    flexDirection: 'row',
+  scanCardContent: {
     alignItems: 'center',
-    gap: 14,
+    gap: 6,
   },
   scanCardIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  scanCardTextWrap: {
-    gap: 2,
+    marginBottom: 4,
   },
   scanCardTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
@@ -503,13 +502,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500' as const,
     color: '#8E8E93',
-    marginTop: 2,
+    marginBottom: 2,
   },
   statValue: {
     fontSize: 24,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
+  },
+  statPeriod: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+    marginTop: 2,
   },
   listCard: {
     backgroundColor: '#FFFFFF',

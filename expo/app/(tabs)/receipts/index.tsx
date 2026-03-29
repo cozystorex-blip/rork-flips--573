@@ -8,10 +8,9 @@ import {
   Pressable,
   TextInput,
 } from 'react-native';
-import { ShoppingCart, Car, Zap, ShoppingBag, Home, Tv, UtensilsCrossed, MoreHorizontal, Search, Receipt, TrendingUp } from 'lucide-react-native';
+import { Search, Receipt, TrendingUp } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useExpenses } from '@/contexts/ExpenseContext';
-import { ExpenseCategoryType, ExpenseCategoryLabels } from '@/types';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 
@@ -21,28 +20,6 @@ const TIME_FILTERS = [
   { key: 'month' as const, label: 'This Month' },
   { key: 'custom' as const, label: 'Custom' },
 ] as const;
-
-const CATEGORY_COLORS: Record<string, string> = {
-  food: '#22C55E',
-  grocery: '#F59E0B',
-  transport: '#3B82F6',
-  utility_bills: '#F97316',
-  shopping: '#EC4899',
-  home: '#14B8A6',
-  subscriptions: '#A855F7',
-  other: '#9CA3AF',
-};
-
-const iconMap: Record<ExpenseCategoryType, React.ComponentType<{ size: number; color: string; strokeWidth?: number }>> = {
-  food: UtensilsCrossed,
-  grocery: ShoppingCart,
-  transport: Car,
-  utility_bills: Zap,
-  shopping: ShoppingBag,
-  home: Home,
-  subscriptions: Tv,
-  other: MoreHorizontal,
-};
 
 function timeAgoLabel(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -55,6 +32,28 @@ function timeAgoLabel(iso: string): string {
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days} days ago`;
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function getStoreInfo(merchant: string): { color: string; initial: string; bgColor: string } {
+  const m = (merchant || '').toLowerCase();
+  if (m.includes('target')) return { color: '#CC0000', initial: '🎯', bgColor: '#FEF2F2' };
+  if (m.includes('walmart')) return { color: '#0071CE', initial: 'W', bgColor: '#EFF6FF' };
+  if (m.includes('costco')) return { color: '#E31837', initial: 'C', bgColor: '#FEF2F2' };
+  if (m.includes('amazon')) return { color: '#FF9900', initial: 'a', bgColor: '#FFFBEB' };
+  if (m.includes('kroger')) return { color: '#0033A0', initial: 'K', bgColor: '#EFF6FF' };
+  if (m.includes('whole foods')) return { color: '#00674B', initial: 'W', bgColor: '#F0FDF4' };
+  if (m.includes('trader joe')) return { color: '#BA2026', initial: 'T', bgColor: '#FEF2F2' };
+  if (m.includes('aldi')) return { color: '#00005F', initial: 'A', bgColor: '#EFF6FF' };
+  if (m.includes('grocery')) return { color: '#16A34A', initial: '🛒', bgColor: '#F0FDF4' };
+  const initial = (merchant || 'S').charAt(0).toUpperCase();
+  return { color: '#16A34A', initial, bgColor: '#F0FDF4' };
+}
+
+function getReceiptBadge(amount: number, _itemCount: number): { label: string; color: string } | null {
+  if (amount > 200) return { label: 'Best haul', color: '#7C3AED' };
+  const savings = Math.round(amount * 0.14);
+  if (savings > 15) return { label: `+$${savings} saved`, color: '#16A34A' };
+  return null;
 }
 
 export default function ReceiptsScreen() {
@@ -168,11 +167,11 @@ export default function ReceiptsScreen() {
           ) : (
             <View style={styles.receiptList}>
               {filteredExpenses.map((exp, index) => {
-                const catColor = CATEGORY_COLORS[exp.category] ?? '#9CA3AF';
-                const Icon = iconMap[exp.category] ?? MoreHorizontal;
+                const storeInfo = getStoreInfo(exp.merchant || exp.title || '');
                 const itemCount = exp.receiptItemsPreview
                   ? exp.receiptItemsPreview.split(',').length
                   : 0;
+                const badge = getReceiptBadge(exp.amount, itemCount);
                 return (
                   <Pressable
                     key={exp.id}
@@ -186,8 +185,10 @@ export default function ReceiptsScreen() {
                       router.push({ pathname: '/receipt-detail', params: { expenseId: exp.id } });
                     }}
                   >
-                    <View style={[styles.receiptIcon, { backgroundColor: catColor + '14' }]}>
-                      <Icon size={18} color={catColor} strokeWidth={1.8} />
+                    <View style={[styles.receiptIcon, { backgroundColor: storeInfo.bgColor }]}>
+                      <Text style={[styles.receiptIconText, { color: storeInfo.color }]}>
+                        {storeInfo.initial}
+                      </Text>
                     </View>
                     <View style={styles.receiptInfo}>
                       <View style={styles.receiptTopRow}>
@@ -198,8 +199,13 @@ export default function ReceiptsScreen() {
                       </View>
                       <View style={styles.receiptMetaRow}>
                         <Text style={styles.receiptMeta}>
-                          {itemCount > 0 ? `${itemCount} items` : ExpenseCategoryLabels[exp.category]} · {timeAgoLabel(exp.createdAt)}
+                          {itemCount > 0 ? `${itemCount} items · ` : ''}{timeAgoLabel(exp.createdAt)}
                         </Text>
+                        {badge && (
+                          <View style={[styles.receiptBadge, { backgroundColor: badge.color + '14' }]}>
+                            <Text style={[styles.receiptBadgeText, { color: badge.color }]}>{badge.label}</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                   </Pressable>
@@ -350,6 +356,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  receiptIconText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+  },
   receiptInfo: {
     flex: 1,
   },
@@ -374,11 +384,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 3,
+    gap: 8,
   },
   receiptMeta: {
     fontSize: 13,
     fontWeight: '400' as const,
     color: '#8E8E93',
+  },
+  receiptBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  receiptBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
   },
   savingsCard: {
     flexDirection: 'row',
