@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,16 @@ import {
   Pressable,
   Platform,
   UIManager,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Package,
   Bell,
   Flame,
+  ChevronRight,
+  DollarSign,
+  Scan,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -122,6 +126,16 @@ export default function HomeScreen() {
     return total;
   }, [savedDeals]);
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
   const handleScanPress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push('/smart-scan');
@@ -139,22 +153,25 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerArea, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.headerArea, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
-          <Text style={styles.brandTitle}>Flip</Text>
+          <View>
+            <Text style={styles.brandTitle}>Flip</Text>
+            <Text style={styles.brandSub}>Smart price scanner</Text>
+          </View>
+          <View style={{ flex: 1 }} />
           {streakDays > 0 && (
             <View style={styles.streakBadge}>
-              <Flame size={12} color="#FF9500" strokeWidth={2.5} fill="#FF9500" />
-              <Text style={styles.streakText}>{streakDays}-day streak</Text>
+              <Flame size={11} color="#FF9500" strokeWidth={2.5} fill="#FF9500" />
+              <Text style={styles.streakText}>{streakDays}d</Text>
             </View>
           )}
-          <View style={{ flex: 1 }} />
           <Pressable
             onPress={() => { void Haptics.selectionAsync(); }}
-            style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.6, transform: [{ scale: 0.92 }] }]}
             hitSlop={8}
           >
-            <Bell size={20} color="#1C1C1E" strokeWidth={1.5} />
+            <Bell size={19} color="#1C1C1E" strokeWidth={1.5} />
           </Pressable>
         </View>
       </View>
@@ -163,16 +180,22 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <Pressable
           onPress={handleScanPress}
           style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
           testID="home-scan-card"
         >
-          <View style={styles.scanCardInner}>
-            <ScanFrameIcon size={44} color="#FFFFFF" strokeWidth={2.5} />
-            <Text style={styles.scanCardTitle}>Scan Item</Text>
-            <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
+          <View style={styles.scanCardLeft}>
+            <View style={styles.scanCardIconWrap}>
+              <ScanFrameIcon size={28} color="#FFFFFF" strokeWidth={2.5} />
+            </View>
+            <View style={styles.scanCardTextWrap}>
+              <Text style={styles.scanCardTitle}>Scan Item</Text>
+              <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
+            </View>
           </View>
+          <ChevronRight size={20} color="rgba(255,255,255,0.6)" strokeWidth={2} />
         </Pressable>
 
         {recentScans.length > 0 && (
@@ -245,15 +268,19 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Saved</Text>
+          <View style={[styles.statCard, styles.statCardSavings]}>
+            <View style={styles.statIconWrap}>
+              <DollarSign size={14} color="#16A34A" strokeWidth={2} />
+            </View>
             <Text style={styles.statValue}>${totalSavings > 0 ? totalSavings.toFixed(0) : '0'}</Text>
-            <Text style={styles.statPeriod}>This month</Text>
+            <Text style={styles.statLabel}>Total Saved</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Items Scanned</Text>
+            <View style={styles.statIconWrap}>
+              <Scan size={14} color="#3B82F6" strokeWidth={2} />
+            </View>
             <Text style={styles.statValue}>{itemsScannedCount}</Text>
-            <Text style={styles.statPeriod}>This week</Text>
+            <Text style={styles.statLabel}>Items Scanned</Text>
           </View>
         </View>
 
@@ -315,6 +342,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ height: 32 }} />
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -328,7 +356,7 @@ const styles = StyleSheet.create({
   headerArea: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
@@ -338,25 +366,32 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandTitle: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
   },
+  brandSub: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+    marginTop: 1,
+  },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#FFF7ED',
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 5,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FED7AA',
+    marginRight: 6,
   },
   streakText: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: '#EA580C',
   },
   headerIconBtn: {
@@ -374,28 +409,47 @@ const styles = StyleSheet.create({
   scanCard: {
     backgroundColor: '#16A34A',
     borderRadius: 16,
-    paddingVertical: 32,
-    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
   scanCardPressed: {
-    backgroundColor: '#15803D',
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
-  scanCardInner: {
+  scanCardLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 14,
+  },
+  scanCardIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanCardTextWrap: {
+    gap: 2,
   },
   scanCardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    marginTop: 8,
   },
   scanCardSub: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.75)',
   },
   section: {
     marginBottom: 20,
@@ -424,31 +478,38 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statCardSavings: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#16A34A',
+  },
+  statIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500' as const,
     color: '#8E8E93',
+    marginTop: 2,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
-    marginTop: 2,
-  },
-  statPeriod: {
-    fontSize: 11,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    marginTop: 1,
   },
   listCard: {
     backgroundColor: '#FFFFFF',

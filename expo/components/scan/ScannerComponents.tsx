@@ -58,7 +58,7 @@ export function ScannerActionButtons({
   return (
     <View style={styles.actionRow}>
       <Pressable
-        style={styles.actionBtnPrimary}
+        style={({ pressed }) => [styles.actionBtnPrimary, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
         onPress={onCamera}
         disabled={scanning}
         testID={cameraTestID}
@@ -73,7 +73,7 @@ export function ScannerActionButtons({
         </Text>
       </Pressable>
       <Pressable
-        style={styles.actionBtnSecondary}
+        style={({ pressed }) => [styles.actionBtnSecondary, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
         onPress={onGallery}
         disabled={scanning}
         testID={galleryTestID}
@@ -161,16 +161,16 @@ export function ScannerErrorCard({
       </View>
       <Text style={styles.errorMessage}>{message}</Text>
       <View style={styles.errorActions}>
-        <Pressable style={styles.errorActionBtn} onPress={onRetakeCamera}>
+        <Pressable style={({ pressed }) => [styles.errorActionBtn, pressed && { opacity: 0.85 }]} onPress={onRetakeCamera}>
           <RefreshCw size={14} color={ScannerColors.text} />
           <Text style={styles.errorActionText}>Retake</Text>
         </Pressable>
-        <Pressable style={styles.errorActionBtn} onPress={onUploadGallery}>
+        <Pressable style={({ pressed }) => [styles.errorActionBtn, pressed && { opacity: 0.85 }]} onPress={onUploadGallery}>
           <ImageIcon size={14} color={ScannerColors.text} />
           <Text style={styles.errorActionText}>Upload</Text>
         </Pressable>
         {onManualEntry && (
-          <Pressable style={styles.errorActionBtnFilled} onPress={onManualEntry}>
+          <Pressable style={({ pressed }) => [styles.errorActionBtnFilled, pressed && { opacity: 0.85 }]} onPress={onManualEntry}>
             <Text style={styles.errorActionFilledText}>Manual</Text>
           </Pressable>
         )}
@@ -202,19 +202,31 @@ export function ScannerResultActions({
 }: ScannerResultActionsProps) {
   return (
     <View style={styles.resultActionsContainer}>
-      <Pressable style={styles.primaryActionBtn} onPress={onScanAgain} testID={scanAgainTestID}>
+      <Pressable
+        style={({ pressed }) => [styles.primaryActionBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+        onPress={onScanAgain}
+        testID={scanAgainTestID}
+      >
         <RefreshCw size={16} color="#FFFFFF" />
         <Text style={styles.primaryActionText}>{scanAgainLabel}</Text>
       </Pressable>
       {showTryDifferent && onTryDifferent && (
-        <Pressable style={styles.secondaryActionBtn} onPress={onTryDifferent} testID={tryDifferentTestID}>
+        <Pressable
+          style={({ pressed }) => [styles.secondaryActionBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+          onPress={onTryDifferent}
+          testID={tryDifferentTestID}
+        >
           <ImageIcon size={16} color={ScannerColors.text} />
           <Text style={styles.secondaryActionText}>Try Different Photo</Text>
         </Pressable>
       )}
       {onDelete && (
-        <Pressable style={styles.deleteActionBtn} onPress={onDelete} testID={deleteTestID}>
-          <Trash2 size={14} color="#FF453A" />
+        <Pressable
+          style={({ pressed }) => [styles.deleteActionBtn, pressed && { opacity: 0.7 }]}
+          onPress={onDelete}
+          testID={deleteTestID}
+        >
+          <Trash2 size={14} color="#EF4444" />
           <Text style={styles.deleteActionText}>Delete This Scan</Text>
         </Pressable>
       )}
@@ -253,7 +265,7 @@ export function getConfidenceInfo(confidence: number) {
 export function ConfidenceBadge({ confidence }: ConfidenceDisplayProps) {
   const { label, color } = getConfidenceInfo(confidence);
   return (
-    <View style={styles.confidenceBadge}>
+    <View style={[styles.confidenceBadge, { backgroundColor: color + '12' }]}>
       <View style={[styles.confidenceDot, { backgroundColor: color }]} />
       <Text style={[styles.confidenceText, { color }]}>
         {Math.round(confidence * 100)}% — {label}
@@ -270,21 +282,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: ScannerSpacing.xl,
     paddingBottom: ScannerSpacing.md,
     backgroundColor: ScannerColors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: ScannerColors.divider,
   },
   closeBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: ScannerColors.card,
+    backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   topTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
+    fontSize: 17,
+    fontWeight: '600' as const,
     color: ScannerColors.text,
+    letterSpacing: -0.2,
   },
 
   actionRow: {
@@ -301,6 +314,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: ScannerRadius.xl,
     backgroundColor: ScannerColors.accent,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   actionBtnPrimaryText: {
     fontSize: 15,
@@ -315,9 +333,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 16,
     borderRadius: ScannerRadius.xl,
-    backgroundColor: ScannerColors.card,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: ScannerColors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   actionBtnSecondaryText: {
     fontSize: 15,
@@ -346,7 +369,7 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: ScannerColors.cardBorder,
+    backgroundColor: '#E5E5EA',
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 8,
@@ -399,7 +422,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingVertical: 10,
     borderRadius: ScannerRadius.md,
-    backgroundColor: ScannerColors.card,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: ScannerColors.cardBorder,
   },
@@ -435,6 +458,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: ScannerRadius.xl,
     backgroundColor: ScannerColors.accent,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   primaryActionText: {
     fontSize: 15,
@@ -448,7 +476,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: ScannerRadius.xl,
-    backgroundColor: ScannerColors.card,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: ScannerColors.cardBorder,
   },
@@ -468,19 +496,16 @@ const styles = StyleSheet.create({
   deleteActionText: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#FF453A',
+    color: '#EF4444',
   },
 
   confidenceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: ScannerColors.card,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: ScannerRadius.sm,
-    borderWidth: 1,
-    borderColor: ScannerColors.cardBorder,
   },
   confidenceDot: {
     width: 6,

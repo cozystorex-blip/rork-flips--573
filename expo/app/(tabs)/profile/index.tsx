@@ -259,9 +259,10 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700' as const,
     color: '#1C1C1E',
+    letterSpacing: -0.3,
   },
   memberSince: {
     fontSize: 14,
@@ -272,10 +273,15 @@ const styles = StyleSheet.create({
   statsCard: {
     flexDirection: 'row',
     backgroundColor: '#16A34A',
-    borderRadius: 14,
-    paddingVertical: 18,
+    borderRadius: 16,
+    paddingVertical: 20,
     paddingHorizontal: 12,
     marginBottom: 24,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
   },
   statItem: {
     flex: 1,
@@ -310,13 +316,13 @@ const styles = StyleSheet.create({
   },
   menuCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   menuItem: {
     flexDirection: 'row',

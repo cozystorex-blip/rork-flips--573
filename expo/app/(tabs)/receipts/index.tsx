@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -321,13 +321,13 @@ const styles = StyleSheet.create({
   },
   receiptList: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   receiptCard: {
     flexDirection: 'row',

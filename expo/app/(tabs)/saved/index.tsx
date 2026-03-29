@@ -276,7 +276,7 @@ export default function SavedScreen() {
                   style={({ pressed }) => [
                     styles.gridCard,
                     { width: cardWidth },
-                    pressed && { opacity: 0.85 },
+                    pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
                   ]}
                   testID={`saved-card-${item.id}`}
                 >
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   screenTitle: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -481,13 +481,13 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
     marginBottom: 0,
   },
   gridImageWrap: {

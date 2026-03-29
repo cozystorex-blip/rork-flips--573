@@ -853,7 +853,7 @@ const st = StyleSheet.create({
   referenceImagePlaceholderSmall: { width: '100%', height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder, justifyContent: 'center', alignItems: 'center', gap: 8 },
   referenceImageLoadingText: { fontSize: 11, color: ScannerColors.textMuted, fontWeight: '500' as const, textAlign: 'center' as const },
   referenceImageBadge: { position: 'absolute' as const, bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
-  referenceImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#93C5FD' },
+  referenceImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#BFDBFE' },
 
   resultHeader: { marginBottom: ScannerSpacing.md },
   resultItemName: { fontSize: 22, fontWeight: '800' as const, color: ScannerColors.text, letterSpacing: -0.5, marginBottom: 8 },
@@ -861,10 +861,10 @@ const st = StyleSheet.create({
   typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: ScannerRadius.sm },
   typeBadgeText: { fontSize: 12, fontWeight: '600' as const },
 
-  summaryCard: { backgroundColor: ScannerColors.card, borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.cardBorder },
-  summaryText: { fontSize: 14, color: ScannerColors.textSecondary, lineHeight: 20 },
+  summaryCard: { backgroundColor: '#F0FDF4', borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: '#BBF7D0' },
+  summaryText: { fontSize: 14, color: '#166534', lineHeight: 20 },
 
-  detailsSection: { backgroundColor: ScannerColors.surface, borderRadius: ScannerRadius.xxl, padding: ScannerSpacing.lg, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.divider },
+  detailsSection: { backgroundColor: '#FFFFFF', borderRadius: ScannerRadius.xxl, padding: ScannerSpacing.lg, marginBottom: ScannerSpacing.lg, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
 
   lowConfidenceCard: { backgroundColor: ScannerColors.warningBg, borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.md, borderWidth: 1, borderColor: ScannerColors.warningBorder },
   lowConfidenceTitle: { fontSize: 13, fontWeight: '700' as const, color: ScannerColors.warning, marginBottom: 4 },
@@ -886,13 +886,13 @@ const st = StyleSheet.create({
   upgradeHistoryCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ScannerSpacing.lg, paddingVertical: 14, backgroundColor: ScannerColors.amberBg, gap: 12 },
   upgradeHistoryIcon: { width: 36, height: 36, borderRadius: ScannerRadius.md, backgroundColor: ScannerColors.amberBg, justifyContent: 'center', alignItems: 'center' },
   upgradeHistoryInfo: { flex: 1 },
-  upgradeHistoryTitle: { fontSize: 13, fontWeight: '600' as const, color: '#FFD60A' },
+  upgradeHistoryTitle: { fontSize: 13, fontWeight: '600' as const, color: '#92400E' },
   upgradeHistorySubtext: { fontSize: 11, fontWeight: '400' as const, color: ScannerColors.amber, marginTop: 1 },
   limitNotice: { paddingHorizontal: ScannerSpacing.lg, paddingVertical: 10, alignItems: 'center' },
   limitNoticeText: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.textMuted },
 
   modalOverlay: { flex: 1, backgroundColor: ScannerColors.overlay, justifyContent: 'center', alignItems: 'center', padding: ScannerSpacing.xxl },
-  upgradeModal: { backgroundColor: '#1C1C1E', borderRadius: ScannerRadius.xxl + 8, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: ScannerColors.cardBorder },
+  upgradeModal: { backgroundColor: '#FFFFFF', borderRadius: ScannerRadius.xxl + 8, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 },
   upgradeModalIcon: { width: 64, height: 64, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.amberBg, justifyContent: 'center', alignItems: 'center', marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.amberBorder },
   upgradeModalTitle: { fontSize: 20, fontWeight: '800' as const, color: ScannerColors.text, letterSpacing: -0.5, marginBottom: 8 },
   upgradeModalDesc: { fontSize: 14, color: ScannerColors.textSecondary, textAlign: 'center' as const, lineHeight: 20, marginBottom: ScannerSpacing.xl },

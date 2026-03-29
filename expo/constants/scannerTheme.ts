@@ -1,37 +1,37 @@
 export const ScannerColors = {
-  bg: '#0A0A0A',
-  surface: '#111111',
-  card: '#1A1A1A',
-  cardBorder: '#2A2A2A',
-  cardElevated: '#222222',
+  bg: '#F2F2F7',
+  surface: '#FFFFFF',
+  card: '#FFFFFF',
+  cardBorder: '#E5E5EA',
+  cardElevated: '#FFFFFF',
 
-  text: '#F5F5F7',
-  textSecondary: '#AEAEB2',
-  textMuted: '#636366',
-  textDim: '#48484A',
+  text: '#1C1C1E',
+  textSecondary: '#636366',
+  textMuted: '#8E8E93',
+  textDim: '#AEAEB2',
 
-  accent: '#3B82F6',
-  accentSoft: '#3B82F618',
-  accentBorder: '#3B82F630',
+  accent: '#16A34A',
+  accentSoft: '#16A34A14',
+  accentBorder: '#16A34A28',
 
   success: '#16A34A',
-  successBg: '#16A34A18',
-  successBorder: '#16A34A30',
+  successBg: '#F0FDF4',
+  successBorder: '#BBF7D0',
 
   warning: '#F97316',
-  warningBg: '#F9731618',
-  warningBorder: '#F9731630',
+  warningBg: '#FFF7ED',
+  warningBorder: '#FDBA74',
 
   amber: '#D97706',
-  amberBg: '#D9770618',
-  amberBorder: '#D9770630',
+  amberBg: '#FFFBEB',
+  amberBorder: '#FDE68A',
 
   error: '#EF4444',
-  errorBg: '#EF444418',
-  errorBorder: '#EF444430',
+  errorBg: '#FEF2F2',
+  errorBorder: '#FECACA',
 
-  divider: '#2A2A2A',
-  overlay: 'rgba(0,0,0,0.7)',
+  divider: '#E5E5EA',
+  overlay: 'rgba(0,0,0,0.45)',
 } as const;
 
 export const ScannerSpacing = {
@@ -122,16 +122,16 @@ export const ScannerTypography = {
 export const ScannerShadow = {
   card: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 2,
   },
   elevated: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 4,
   },
 } as const;
