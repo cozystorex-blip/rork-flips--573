@@ -457,13 +457,11 @@ export default function DealsScreen() {
   const dealKeyExtractor = useCallback((item: VerifiedDealRow) => item.id, []);
 
   const renderDealItem = useCallback(({ item, index }: { item: VerifiedDealRow; index: number }) => {
-    const adElement = index > 0 && index % 6 === 0
-      ? <AdMobBanner key={`admob-${index}`} />
-      : null;
+    const showAd = index === 2 || (index > 2 && (index - 2) % 5 === 0);
 
     return (
       <>
-        {adElement}
+        {showAd && <AdMobBanner key={`admob-${index}`} />}
         <DealCard
           deal={item}
           timeAgo={getDealDisplayTime(item)}
@@ -474,7 +472,13 @@ export default function DealsScreen() {
     );
   }, [dealTrustMap, openDealDetail]);
 
-  const listFooter = useMemo(() => <View style={{ height: 20 }} />, []);
+  const listHeader = useMemo(() => <AdMobBanner key="admob-top" />, []);
+  const listFooter = useMemo(() => (
+    <View>
+      <AdMobBanner key="admob-bottom" />
+      <View style={{ height: 20 }} />
+    </View>
+  ), []);
 
   return (
     <View style={styles.container}>
@@ -547,6 +551,7 @@ export default function DealsScreen() {
           windowSize={7}
           updateCellsBatchingPeriod={50}
           getItemLayout={undefined}
+          ListHeaderComponent={listHeader}
           ListFooterComponent={listFooter}
           refreshControl={
             <RefreshControl

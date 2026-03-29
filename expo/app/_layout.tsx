@@ -1,12 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremium } from '@/contexts/PremiumContext';
 import AppProviders from '@/components/providers/AppProviders';
 import { initializeAds } from '@/services/adService';
 import ProfileErrorBoundary from '@/components/ProfileErrorBoundary';
+import SubscriptionPaywall from '@/components/SubscriptionPaywall';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -46,6 +49,47 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, isLoading, segments, router]);
 
   return <>{children}</>;
+}
+
+function PaywallGate({ children }: { children: React.ReactNode }) {
+  const { isPremium, isLoading } = usePremium();
+  const { isAuthenticated } = useAuth();
+  const [paywallVisible, setPaywallVisible] = useState(false);
+  const hasShownRef = React.useRef(false);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !isPremium && !hasShownRef.current) {
+      console.log('[PaywallGate] Showing subscription paywall on app open');
+      const timer = setTimeout(() => {
+        setPaywallVisible(true);
+        hasShownRef.current = true;
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, isPremium]);
+
+  useEffect(() => {
+    const handleAppState = (state: AppStateStatus) => {
+      if (state === 'active' && isAuthenticated && !isPremium && !isLoading) {
+        console.log('[PaywallGate] App foregrounded, showing paywall');
+        setPaywallVisible(true);
+      }
+    };
+    const sub = AppState.addEventListener('change', handleAppState);
+    return () => sub.remove();
+  }, [isAuthenticated, isPremium, isLoading]);
+
+  const handleClosePaywall = useCallback(() => {
+    console.log('[PaywallGate] Paywall dismissed');
+    setPaywallVisible(false);
+  }, []);
+
+  return (
+    <>
+      {children}
+      <SubscriptionPaywall visible={paywallVisible} onClose={handleClosePaywall} />
+    </>
+  );
 }
 
 function RootLayoutNav() {
@@ -144,7 +188,9 @@ export default function RootLayout() {
         <AppProviders>
           <ProfileErrorBoundary>
             <AuthGate>
-              <RootLayoutNav />
+              <PaywallGate>
+                <RootLayoutNav />
+              </PaywallGate>
             </AuthGate>
           </ProfileErrorBoundary>
         </AppProviders>
