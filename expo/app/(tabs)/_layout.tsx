@@ -170,8 +170,8 @@ export default function TabLayout() {
         name="(home)"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Home size={size} color={color} strokeWidth={1.8} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Home size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} fill={focused ? color : 'transparent'} />
           ),
         }}
       />
@@ -179,8 +179,8 @@ export default function TabLayout() {
         name="saved"
         options={{
           title: "Saved",
-          tabBarIcon: ({ color, size }) => (
-            <Heart size={size} color={color} strokeWidth={1.8} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Heart size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} fill={focused ? color : 'transparent'} />
           ),
         }}
       />
@@ -188,8 +188,8 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} strokeWidth={1.8} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <User size={size} color={color} strokeWidth={focused ? 2.4 : 1.8} fill={focused ? color : 'transparent'} />
           ),
         }}
       />

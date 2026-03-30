@@ -1734,7 +1734,9 @@ function applyIkeaBrandDetection(classification: z.infer<typeof classificationSc
   const hasArticleNumber = articleNumberPattern.test(combined);
   const ikeaMatchCount = ikeaSignals.filter(s => combined.includes(s)).length;
 
-  const isIkeaLikely = hasArticleNumber || ikeaMatchCount >= 2 || (scanMode && scanMode !== 'room_scene');
+  const IKEA_SPECIFIC_MODES: IkeaScanMode[] = ['box_label', 'product_tag', 'manual', 'assembled'];
+  const isIkeaScanMode = scanMode != null && IKEA_SPECIFIC_MODES.includes(scanMode);
+  const isIkeaLikely = hasArticleNumber || ikeaMatchCount >= 2 || isIkeaScanMode;
 
   if (isIkeaLikely && fixed.item_type !== 'furniture' && fixed.item_type !== 'receipt' && fixed.item_type !== 'document') {
     console.log('[SmartScan] IKEA brand detection: routing to furniture. signals:', ikeaMatchCount, 'articleNum:', hasArticleNumber, 'scanMode:', scanMode);
