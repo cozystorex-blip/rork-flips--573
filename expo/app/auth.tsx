@@ -69,8 +69,6 @@ export default function AuthScreen() {
         const result = await signUp(email.trim(), password);
         if (!result.success) {
           Alert.alert('Sign Up Failed', result.error ?? 'Unknown error');
-        } else {
-          Alert.alert('Check Your Email', 'We sent you a confirmation link. You can also try signing in directly.');
         }
       } else {
         const result = await signIn(email.trim(), password);

@@ -32,7 +32,6 @@ import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/services/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { saveLocalDeal } from '@/services/localDealsService';
@@ -166,7 +165,7 @@ Suggest a find_tag_guess if appropriate: hidden_gem, worth_it, budget_pick, tren
   }
 }
 
-async function uploadDealPhoto(uri: string, userId: string | null): Promise<string | null> {
+async function uploadDealPhoto(uri: string, _userId: string | null): Promise<string | null> {
   try {
     console.log('[PostDeal] Compressing image before upload...');
     const manipulated = await ImageManipulator.manipulateAsync(
@@ -175,42 +174,8 @@ async function uploadDealPhoto(uri: string, userId: string | null): Promise<stri
       { compress: 0.82, format: ImageManipulator.SaveFormat.JPEG }
     );
 
-    const userPrefix = userId ?? 'anon';
-    const fileName = `deals/${userPrefix}/deal_${Date.now()}.jpg`;
-
-    let fileData: Uint8Array | Blob;
-
-    if (Platform.OS === 'web') {
-      const resp = await fetch(manipulated.uri);
-      fileData = await resp.blob();
-    } else {
-      const b64 = await FileSystem.readAsStringAsync(manipulated.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      const binaryString = atob(b64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      fileData = bytes;
-    }
-
-    console.log('[PostDeal] Uploading to Supabase storage...');
-    const { error: uploadError } = await supabase.storage
-      .from('deal_photos')
-      .upload(fileName, fileData, {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.log('[PostDeal] Storage upload error:', uploadError.message);
-      return uri;
-    }
-
-    const { data: urlData } = supabase.storage.from('deal_photos').getPublicUrl(fileName);
-    console.log('[PostDeal] Photo uploaded:', urlData.publicUrl);
-    return urlData.publicUrl;
+    console.log('[PostDeal] Keeping photo locally:', manipulated.uri);
+    return manipulated.uri;
   } catch (err) {
     console.log('[PostDeal] Photo upload failed, using local URI:', err);
     return uri;
@@ -419,48 +384,7 @@ export default function PostDealScreen() {
         moderation_status: 'pending',
       };
 
-      let savedToSupabase = false;
-
-      try {
-        const insertPayload: Record<string, unknown> = {
-          store_name: storeName,
-          title: dealTitle.trim(),
-          source_type: 'user',
-          is_active: true,
-          category: categoryValue,
-          moderation_status: 'pending',
-        };
-
-        if (Number.isFinite(parsedPrice) && parsedPrice !== null && parsedPrice > 0) insertPayload.price = parsedPrice;
-        if (Number.isFinite(parsedOriginalPrice) && parsedOriginalPrice !== null && parsedOriginalPrice > 0) insertPayload.original_price = parsedOriginalPrice;
-        if (Number.isFinite(computedSavingsVal) && computedSavingsVal !== null && computedSavingsVal > 0) insertPayload.savings_amount = computedSavingsVal;
-        if (computedSavingsPercent !== null) insertPayload.savings_percent = computedSavingsPercent;
-        if (photoUrl) insertPayload.photo_url = photoUrl;
-        if (userId) insertPayload.user_id = userId;
-
-        console.log('[PostDeal] Inserting deal to Supabase:', JSON.stringify(insertPayload));
-
-        const { data: insertData, error: insertError } = await supabase
-          .from('deals')
-          .insert([insertPayload])
-          .select();
-
-        if (insertError) {
-          console.log('[PostDeal] Supabase insert error:', JSON.stringify(insertError));
-        } else {
-          savedToSupabase = true;
-          if (insertData && insertData[0]) {
-            localDeal.id = insertData[0].id;
-          }
-          console.log('[PostDeal] Supabase success:', JSON.stringify(insertData));
-        }
-      } catch (supaErr) {
-        console.log('[PostDeal] Supabase save failed, using local storage:', supaErr);
-      }
-
-      if (!savedToSupabase) {
-        console.log('[PostDeal] Saving deal locally as fallback');
-      }
+      console.log('[PostDeal] Saving deal locally');
       await saveLocalDeal(localDeal);
       console.log('[PostDeal] Deal saved locally:', localDeal.id);
 

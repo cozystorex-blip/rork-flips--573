@@ -2,7 +2,6 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { CategoryType } from '@/types';
 
@@ -48,53 +47,6 @@ async function saveLocalProfile(profile: MyProfile): Promise<void> {
   }
 }
 
-async function ensureProfileRow(userId: string): Promise<MyProfile | null> {
-  if (!isSupabaseConfigured) return null;
-
-  try {
-    console.log('[ProfileContext] Attempting to auto-create profile row for:', userId);
-    const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert(
-        {
-          id: userId,
-          display_name: 'User',
-          bio: '',
-          avatar_url: '',
-          style_tag: 'budget',
-          updated_at: now,
-        },
-        { onConflict: 'id', ignoreDuplicates: true }
-      )
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      console.log('[ProfileContext] Auto-create profile error:', error.message, error.code);
-      return null;
-    }
-
-    if (data) {
-      console.log('[ProfileContext] Profile row ensured:', data.display_name);
-      return data as MyProfile;
-    }
-
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (existing) return existing as MyProfile;
-
-    return null;
-  } catch (e) {
-    console.log('[ProfileContext] ensureProfileRow threw:', e instanceof Error ? e.message : e);
-    return null;
-  }
-}
-
 export const [ProfileProvider, useProfile] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { userId, isAuthenticated } = useAuth();
@@ -104,40 +56,12 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
     queryKey: ['my_profile', userId],
     queryFn: async (): Promise<MyProfile> => {
       const safeUserId = userId ?? 'anonymous';
-      console.log('[ProfileContext] Fetching profile for:', safeUserId, 'supabase configured:', isSupabaseConfigured);
-
-      if (isSupabaseConfigured && userId) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (error) {
-            console.log('[ProfileContext] Supabase fetch error:', error.message, error.code, error.details);
-          } else if (data) {
-            console.log('[ProfileContext] Profile loaded from Supabase:', data.display_name);
-            const p = data as MyProfile;
-            void saveLocalProfile(p);
-            return p;
-          } else {
-            console.log('[ProfileContext] No profile row found, attempting auto-create for:', userId);
-            const created = await ensureProfileRow(userId);
-            if (created) {
-              void saveLocalProfile(created);
-              return created;
-            }
-          }
-        } catch (e) {
-          console.log('[ProfileContext] Supabase fetch threw:', e instanceof Error ? e.message : e);
-        }
-      }
+      console.log('[ProfileContext] Loading profile for:', safeUserId);
 
       try {
         const local = await loadLocalProfile();
         if (local && local.id === safeUserId) {
-          console.log('[ProfileContext] Using local fallback profile');
+          console.log('[ProfileContext] Loaded local profile:', local.display_name);
           return local;
         }
       } catch (e) {
@@ -145,11 +69,12 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
       }
 
       console.log('[ProfileContext] No profile found, returning default for:', safeUserId);
-      return makeDefaultProfile(safeUserId);
+      const defaultProfile = makeDefaultProfile(safeUserId);
+      await saveLocalProfile(defaultProfile);
+      return defaultProfile;
     },
     enabled: !!userId && isAuthenticated,
     retry: 1,
-    retryDelay: 2000,
     staleTime: 30000,
     gcTime: 300000,
   });
@@ -169,69 +94,25 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
     }
   }, [userId]);
 
-
   const { mutateAsync: mutateProfile } = useMutation({
     mutationFn: async (p: Partial<Omit<MyProfile, 'id' | 'created_at'>>) => {
       if (!userId) throw new Error('Please sign in to save your profile.');
 
       const now = new Date().toISOString();
-      const displayName = (p.display_name ?? '').trim() || 'User';
-      const bio = (p.bio ?? '').trim();
-      const avatarUrl = (p.avatar_url ?? '').trim();
-      const styleTag = p.style_tag ?? 'budget';
+      const current = profile ?? makeDefaultProfile(userId);
 
-      console.log('[ProfileContext] Saving profile for user:', userId);
-
-      const payload = {
+      const savedProfile: MyProfile = {
         id: userId,
-        display_name: displayName,
-        bio,
-        avatar_url: avatarUrl,
-        style_tag: styleTag,
+        display_name: p.display_name !== undefined ? (p.display_name.trim() || 'User') : current.display_name,
+        bio: p.bio !== undefined ? p.bio.trim() : current.bio,
+        avatar_url: p.avatar_url !== undefined ? p.avatar_url.trim() : current.avatar_url,
+        style_tag: p.style_tag ?? current.style_tag,
+        created_at: current.created_at,
         updated_at: now,
       };
 
-      let savedProfile: MyProfile | null = null;
-
-      if (isSupabaseConfigured) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .upsert(payload, { onConflict: 'id' })
-            .select()
-            .single();
-
-          if (error) {
-            console.log('[ProfileContext] Supabase save error:', JSON.stringify({
-              message: error.message,
-              code: error.code,
-              details: error.details,
-              hint: error.hint,
-            }));
-          } else {
-            console.log('[ProfileContext] Profile saved to Supabase successfully');
-            savedProfile = data as MyProfile;
-          }
-        } catch (e) {
-          console.log('[ProfileContext] Supabase save threw:', e instanceof Error ? e.message : e);
-        }
-      }
-
-      if (!savedProfile) {
-        savedProfile = {
-          id: userId,
-          display_name: displayName,
-          bio,
-          avatar_url: avatarUrl,
-          style_tag: styleTag,
-          created_at: profile?.created_at ?? now,
-          updated_at: now,
-        };
-        console.log('[ProfileContext] Using local profile as fallback');
-      }
-
+      console.log('[ProfileContext] Saving profile locally for user:', userId);
       await saveLocalProfile(savedProfile);
-
       return savedProfile;
     },
     onSuccess: (data) => {

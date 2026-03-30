@@ -2,12 +2,12 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
-import { supabase } from '@/services/supabase';
 import { STORE_BRANDS, BRAND_CATEGORY_MAP } from '@/services/dealSources';
 import type { StoreBrandSource, NormalizedDeal } from '@/types';
 
 const SYNC_INTERVAL_MS = 60 * 60 * 1000;
 const SYNC_KEY = 'deals_last_sync';
+const DEALS_STORAGE_KEY = 'ingested_deals';
 const MAX_DEALS_PER_BRAND = 6;
 const STALE_THRESHOLD_HOURS = 48;
 const EXPIRED_CLEANUP_HOURS = 72;
@@ -108,34 +108,7 @@ async function parseDealsFromContent(
 Store: ${brand.name}
 Default category: ${defaultCategory}
 
-Extract deals for ALL product types found on the page, including but not limited to:
-
-Hardware & Home Improvement:
-- Power tools (drills, saws, sanders, grinders, impact drivers)
-- Hand tools (wrenches, screwdrivers, pliers, hammers, tool sets)
-- Storage and organization (bins, shelving, workbenches, tool chests)
-- Paint and paint supplies
-- Lighting and electrical accessories
-- Plumbing supplies and fixtures
-- Fasteners and hardware
-- Ladders and scaffolding
-- Lawn and garden equipment
-- Safety gear (gloves, glasses, ear protection)
-- Building materials (lumber, drywall, concrete)
-- Home repair and improvement products
-- Outdoor equipment (pressure washers, generators)
-- Smart home devices and accessories
-
-Grocery & Food:
-- Fresh produce (fruits, vegetables)
-- Meat and seafood (chicken, beef, salmon, pork)
-- Dairy and eggs (milk, cheese, yogurt, eggs)
-- Bread and bakery items
-- Pantry staples (olive oil, pasta, rice, canned goods, spices, seasonings)
-- Frozen foods
-- Snacks and beverages
-- Organic and natural products
-- Bulk food items
+Extract deals for ALL product types found on the page.
 
 Strict rules:
 - ONLY extract products where the EXACT price or EXACT savings amount is clearly written in the content
@@ -146,14 +119,10 @@ Strict rules:
 - Calculate savings_amount only if BOTH current and original prices are explicitly clear
 - Calculate savings_percent only if you can derive it from explicit data
 - Category should be one of: Deals, Budget, Healthy, Bulk
-- For tools, power tools, and hot deals use "Deals"
-- For bulk/warehouse items and building materials use "Bulk"
-- For budget/value grocery and hardware items use "Budget"
-- For organic, natural, or health-focused food products use "Healthy"
 - Default to "${defaultCategory}" if unclear
 - image_url should be null unless a clear product image URL is found in the content
 - valid_until should be an ISO date string if an expiration date is explicitly mentioned, otherwise null
-- short_description should be a brief 1-sentence factual description of the deal — no marketing language
+- short_description should be a brief 1-sentence factual description of the deal
 - Return FEWER high-confidence deals rather than many uncertain ones
 - Return an empty array if no real deals can be confidently extracted
 - Maximum 6 deals — only the most clearly stated ones
@@ -232,7 +201,7 @@ function deduplicateDeals(deals: NormalizedDeal[]): NormalizedDeal[] {
 
     if (!existing) {
       seen.set(key, deal);
-    } else if (deal.price !== null && (existing.price === null || deal.last_verified > existing.last_verified)) {
+    } else if (deal.price !== null && (existing.price === null || (deal.last_verified ?? '') > (existing.last_verified ?? ''))) {
       seen.set(key, deal);
     }
   }
@@ -240,142 +209,44 @@ function deduplicateDeals(deals: NormalizedDeal[]): NormalizedDeal[] {
   return Array.from(seen.values());
 }
 
-async function upsertDealsToSupabase(deals: NormalizedDeal[]): Promise<number> {
+async function saveDealsLocally(deals: NormalizedDeal[]): Promise<number> {
   if (deals.length === 0) return 0;
-
-  let insertedCount = 0;
-
-  for (const deal of deals) {
-    try {
-      const payload: Record<string, unknown> = {
-        store_name: deal.store_name,
-        title: deal.title,
-        category: deal.category,
-        source_type: deal.source_type,
-        is_active: deal.is_active,
-      };
-
-      if (deal.description) payload.description = deal.description;
-      if (deal.price !== null) payload.price = deal.price;
-      if (deal.savings_amount !== null) payload.savings_amount = deal.savings_amount;
-      if (deal.photo_url) payload.photo_url = deal.photo_url;
-
-      try {
-        payload.source_url = deal.source_url;
-        payload.original_price = deal.original_price;
-        payload.last_verified = deal.last_verified;
-        payload.is_verified = deal.is_verified;
-        payload.brand_slug = deal.brand_slug;
-        payload.deal_expires_at = deal.deal_expires_at;
-        payload.savings_percent = deal.savings_percent;
-      } catch {
-        console.log('[DealIngestion] Extended columns not available, using base columns only');
-      }
-
-      const { data: existingRows } = await supabase
-        .from('deals')
-        .select('id')
-        .eq('store_name', deal.store_name)
-        .eq('title', deal.title)
-        .eq('source_type', 'store_brand')
-        .limit(1);
-
-      if (existingRows && existingRows.length > 0) {
-        const { error: updateError } = await supabase
-          .from('deals')
-          .update(payload)
-          .eq('id', existingRows[0].id);
-
-        if (updateError) {
-          const basePayload: Record<string, unknown> = {
-            store_name: deal.store_name,
-            title: deal.title,
-            category: deal.category,
-            source_type: deal.source_type,
-            is_active: deal.is_active,
-          };
-          if (deal.description) basePayload.description = deal.description;
-          if (deal.price !== null) basePayload.price = deal.price;
-          if (deal.savings_amount !== null) basePayload.savings_amount = deal.savings_amount;
-          if (deal.photo_url) basePayload.photo_url = deal.photo_url;
-
-          await supabase
-            .from('deals')
-            .update(basePayload)
-            .eq('id', existingRows[0].id);
-        }
-        insertedCount++;
-      } else {
-        const { error: insertError } = await supabase
-          .from('deals')
-          .insert([payload]);
-
-        if (insertError) {
-          console.log('[DealIngestion] Insert with extended cols failed, trying base:', insertError.message);
-          const basePayload: Record<string, unknown> = {
-            store_name: deal.store_name,
-            title: deal.title,
-            category: deal.category,
-            source_type: deal.source_type,
-            is_active: deal.is_active,
-          };
-          if (deal.description) basePayload.description = deal.description;
-          if (deal.price !== null) basePayload.price = deal.price;
-          if (deal.savings_amount !== null) basePayload.savings_amount = deal.savings_amount;
-          if (deal.photo_url) basePayload.photo_url = deal.photo_url;
-
-          const { error: baseError } = await supabase
-            .from('deals')
-            .insert([basePayload]);
-
-          if (baseError) {
-            console.log('[DealIngestion] Base insert also failed:', baseError.message);
-            continue;
-          }
-        }
-        insertedCount++;
-      }
-    } catch (err) {
-      console.log('[DealIngestion] Upsert error for deal:', deal.title, err instanceof Error ? err.message : 'Unknown');
-    }
+  try {
+    const raw = await AsyncStorage.getItem(DEALS_STORAGE_KEY);
+    const existing: NormalizedDeal[] = raw ? JSON.parse(raw) : [];
+    const existingKeys = new Set(existing.map((d) => `${d.store_name}::${d.title}`.toLowerCase()));
+    const newDeals = deals.filter((d) => !existingKeys.has(`${d.store_name}::${d.title}`.toLowerCase()));
+    const merged = [...newDeals, ...existing].slice(0, 200);
+    await AsyncStorage.setItem(DEALS_STORAGE_KEY, JSON.stringify(merged));
+    console.log('[DealIngestion] Saved', newDeals.length, 'new deals locally, total:', merged.length);
+    return newDeals.length;
+  } catch (e) {
+    console.log('[DealIngestion] Local save error:', e);
+    return 0;
   }
-
-  console.log('[DealIngestion] Upserted', insertedCount, '/', deals.length, 'deals');
-  return insertedCount;
 }
 
 async function deactivateStaleDeals(): Promise<void> {
   try {
-    const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_HOURS * 3600000).toISOString();
-    const expiredCleanup = new Date(Date.now() - EXPIRED_CLEANUP_HOURS * 3600000).toISOString();
-
-    const { count: staleCount } = await supabase
-      .from('deals')
-      .update({ is_active: false })
-      .eq('source_type', 'store_brand')
-      .eq('is_active', true)
-      .lt('created_at', staleThreshold);
-
-    console.log('[DealIngestion] Deactivated', staleCount ?? 'unknown', 'stale deals older than', STALE_THRESHOLD_HOURS, 'hours');
-
-    const nowIso = new Date().toISOString();
-    const { count: expiredCount } = await supabase
-      .from('deals')
-      .update({ is_active: false })
-      .eq('is_active', true)
-      .not('deal_expires_at', 'is', null)
-      .lt('deal_expires_at', nowIso);
-
-    console.log('[DealIngestion] Deactivated', expiredCount ?? 'unknown', 'expired deals past their expiry date');
-
-    const { count: oldExpired } = await supabase
-      .from('deals')
-      .update({ is_active: false })
-      .eq('source_type', 'user')
-      .eq('is_active', true)
-      .lt('created_at', expiredCleanup);
-
-    console.log('[DealIngestion] Deactivated', oldExpired ?? 'unknown', 'old community deals past', EXPIRED_CLEANUP_HOURS, 'hours');
+    const raw = await AsyncStorage.getItem(DEALS_STORAGE_KEY);
+    if (!raw) return;
+    const deals: NormalizedDeal[] = JSON.parse(raw);
+    const now = Date.now();
+    const filtered = deals.filter((d) => {
+      if (d.deal_expires_at) {
+        const expiryTime = new Date(d.deal_expires_at).getTime();
+        if (expiryTime < now) return false;
+      }
+      const createdTime = d.last_verified ? new Date(d.last_verified).getTime() : now;
+      const hoursOld = (now - createdTime) / 3600000;
+      if (d.source_type === 'store_brand' && hoursOld > STALE_THRESHOLD_HOURS) return false;
+      if (d.source_type === 'user' && hoursOld > EXPIRED_CLEANUP_HOURS) return false;
+      return true;
+    });
+    if (filtered.length !== deals.length) {
+      await AsyncStorage.setItem(DEALS_STORAGE_KEY, JSON.stringify(filtered));
+      console.log('[DealIngestion] Cleaned up', deals.length - filtered.length, 'stale deals');
+    }
   } catch (err) {
     console.log('[DealIngestion] Stale cleanup error:', err instanceof Error ? err.message : 'Unknown');
   }
@@ -514,7 +385,7 @@ export async function syncStoreBrandDeals(
   let brandsProcessed = 0;
 
   if (Platform.OS === 'web') {
-    console.log('[DealIngestion] Web platform - fetching from Supabase cache only');
+    console.log('[DealIngestion] Web platform - using cached deals only');
     onProgress?.('Loading cached deals...');
     await AsyncStorage.setItem(SYNC_KEY, Date.now().toString());
     return { totalDeals: 0, brandsProcessed: 0, errors: ['Web platform: using cached deals only'] };
@@ -550,7 +421,7 @@ export async function syncStoreBrandDeals(
   console.log('[DealIngestion] After dedup:', deduplicated.length, 'unique deals');
 
   onProgress?.('Saving verified deals...');
-  const totalInserted = await upsertDealsToSupabase(deduplicated);
+  const totalInserted = await saveDealsLocally(deduplicated);
 
   await deactivateStaleDeals();
 
@@ -588,7 +459,7 @@ export async function syncSingleBrand(
       const deals = await parseDealsFromContent(brand, content, feedUrl);
       if (deals.length > 0) {
         onProgress?.('Saving deals...');
-        await upsertDealsToSupabase(deduplicateDeals(deals));
+        await saveDealsLocally(deduplicateDeals(deals));
         return deals;
       }
     }
