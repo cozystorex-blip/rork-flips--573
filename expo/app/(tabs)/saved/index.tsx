@@ -196,9 +196,6 @@ export default function SavedScreen() {
           </View>
         ) : (
           <View>
-            <View style={styles.countRow}>
-              <Text style={styles.countLabel}>{filteredItems.length} items saved</Text>
-            </View>
 
             <View style={styles.grid}>
               {filteredItems.map((item) => (
@@ -208,7 +205,7 @@ export default function SavedScreen() {
                   style={({ pressed }) => [
                     styles.gridCard,
                     { width: cardWidth },
-                    pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
                   ]}
                   testID={`saved-card-${item.id}`}
                 >
@@ -354,18 +351,14 @@ const styles = StyleSheet.create({
     gap: GRID_GAP,
   },
   gridCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
   },
   gridImageWrap: {
     backgroundColor: '#F2F2F7',
     overflow: 'hidden',
+    borderRadius: 16,
   },
   gridImage: {
     backgroundColor: '#F2F2F7',
