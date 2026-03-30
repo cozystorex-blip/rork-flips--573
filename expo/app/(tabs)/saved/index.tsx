@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
-  TextInput,
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +15,6 @@ import {
   Package,
   Heart,
   Camera,
-  Search,
   ChevronDown,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -86,7 +84,7 @@ export default function SavedScreen() {
   const { savedDeals, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
-  const [searchText, setSearchText] = useState('');
+
 
 
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
@@ -126,14 +124,7 @@ export default function SavedScreen() {
     );
   }, [scanEntries, savedDeals]);
 
-  const filteredItems = useMemo(() => {
-    let items = unifiedItems;
-    if (searchText.trim()) {
-      const q = searchText.toLowerCase();
-      items = items.filter(i => i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q));
-    }
-    return items;
-  }, [unifiedItems, searchText]);
+  const filteredItems = unifiedItems;
 
   const handleCardPress = useCallback((item: UnifiedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -171,17 +162,7 @@ export default function SavedScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.bubbleSearchBar}>
-          <Search size={18} color="#8E8E93" strokeWidth={1.8} />
-          <TextInput
-            style={styles.bubbleSearchInput}
-            placeholder="Search saved items..."
-            placeholderTextColor="#AEAEB2"
-            value={searchText}
-            onChangeText={setSearchText}
-            returnKeyType="search"
-          />
-        </View>
+        <Text style={styles.screenTitle}>Saved</Text>
       </View>
 
       <ScrollView
@@ -285,37 +266,17 @@ const styles = StyleSheet.create({
   screenHeader: {
     paddingHorizontal: H_PAD,
     paddingBottom: 10,
-    backgroundColor: 'transparent',
-    position: 'absolute' as const,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    backgroundColor: '#F2F2F7',
   },
-  bubbleSearchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    height: 50,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
-  },
-  bubbleSearchInput: {
-    flex: 1,
-    fontSize: 16,
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
     color: '#1C1C1E',
-    height: 50,
+    letterSpacing: -0.4,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
-    paddingTop: 72,
+    paddingTop: 8,
   },
   countRow: {
     flexDirection: 'row',

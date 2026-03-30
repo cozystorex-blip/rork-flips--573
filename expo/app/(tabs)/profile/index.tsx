@@ -17,6 +17,7 @@ import {
   Music,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,7 +30,7 @@ const SONG_ARTIST = 'Pixabay Music';
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
-  const { profile } = useProfile();
+  const { profile, saveProfile } = useProfile();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -101,6 +102,30 @@ export default function ProfileScreen() {
     ? profile.display_name
     : user?.email?.split('@')[0] || 'Flip User';
 
+  const handlePickImage = useCallback(async () => {
+    void Haptics.selectionAsync();
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your photo library to change your profile picture.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]?.uri) {
+        console.log('[Profile] New avatar picked:', result.assets[0].uri);
+        await saveProfile({ avatar_url: result.assets[0].uri });
+      }
+    } catch (err) {
+      console.log('[Profile] Image picker error:', err);
+      Alert.alert('Error', 'Could not change profile picture. Please try again.');
+    }
+  }, [saveProfile]);
+
   const handleSignOut = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
@@ -149,7 +174,7 @@ export default function ProfileScreen() {
             <Pressable
               style={styles.cameraBtn}
               hitSlop={6}
-              onPress={() => { void Haptics.selectionAsync(); }}
+              onPress={() => { void handlePickImage(); }}
             >
               <Camera size={14} color="#16A34A" strokeWidth={2} />
             </Pressable>
