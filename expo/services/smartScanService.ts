@@ -1650,41 +1650,65 @@ export function getLastProcessedBase64(): string | null {
   return lastProcessedBase64;
 }
 
-export type IkeaScanMode = 'box_label' | 'product_tag' | 'manual' | 'assembled' | 'room_scene' | null;
+export type IkeaScanMode = 'box_label' | 'product_tag' | 'manual' | 'assembled' | 'room_scene' | 'food_scan' | 'fashion_scan' | 'electronics_scan' | 'household_scan' | 'general_scan' | null;
 
-const IKEA_SCAN_MODE_HINTS: Record<string, string> = {
-  box_label: `SCAN MODE HINT: The user is scanning an IKEA flat-pack BOX LABEL or sticker. Prioritize:
-- Reading the article number (8-digit or 10-digit format like 302.758.75)
+const SCAN_MODE_HINTS: Record<string, string> = {
+  box_label: `SCAN MODE HINT: The user is scanning a PRODUCT BOX LABEL or sticker. Prioritize:
+- Reading any article numbers, model numbers, or product codes
 - Reading the product name from the label
-- Identifying package count (e.g. "2 of 3")
-- This is almost certainly furniture/IKEA — classify as "furniture" unless clearly wrong.
-- Set is_likely_ikea to true, label_detected to true.`,
-  product_tag: `SCAN MODE HINT: The user is scanning an IKEA PRODUCT TAG or shelf label. Prioritize:
-- Reading price, article number, product name from the tag
-- Identifying the IKEA product family
-- This is almost certainly furniture/IKEA — classify as "furniture" unless clearly wrong.
-- Set is_likely_ikea to true, label_detected to true.`,
-  manual: `SCAN MODE HINT: The user is scanning an IKEA INSTRUCTION MANUAL or assembly guide page. Prioritize:
-- Reading the article number from the manual cover
-- Identifying the product name/family from assembly diagrams
-- Recognizing IKEA's distinctive wordless cartoon instruction format
-- This is almost certainly furniture/IKEA — classify as "furniture" unless clearly wrong.
-- Set is_likely_ikea to true, manual_detected to true.`,
-  assembled: `SCAN MODE HINT: The user is scanning ASSEMBLED IKEA FURNITURE. Prioritize:
-- Identifying the IKEA product line from visual design signatures (KALLAX cubes, BILLY shelf spacing, MALM drawer fronts, etc.)
+- Identifying brand and packaging details
+- If IKEA: look for 8-digit or 10-digit article numbers like 302.758.75
+- Classify based on what the product actually is.`,
+  product_tag: `SCAN MODE HINT: The user is scanning a PRODUCT TAG or shelf label. Prioritize:
+- Reading price, product codes, product name from the tag
+- Identifying brand and product family
+- Classify based on what the product actually is.`,
+  manual: `SCAN MODE HINT: The user is scanning an INSTRUCTION MANUAL or product guide page. Prioritize:
+- Reading model numbers, product names, and brand from the manual
+- Identifying the product type from assembly diagrams or instructions
+- Classify as "furniture" if it's furniture assembly, otherwise classify correctly.`,
+  assembled: `SCAN MODE HINT: The user is scanning an ASSEMBLED piece of furniture or large item. Prioritize:
+- Identifying the product line, brand, and style from visual design
 - Noting material, color/finish, dimensions from visual inspection
-- Checking for any visible labels on the back or underside
-- This is likely furniture/IKEA — classify as "furniture" if it looks like furniture.`,
-  room_scene: `SCAN MODE HINT: The user is scanning a ROOM SCENE that may contain IKEA furniture. Prioritize:
-- Identifying the dominant piece of furniture in the scene
-- Checking if any items match known IKEA product lines
-- Focus on the most prominent furniture item, not the whole room
-- Classify as "furniture" if the dominant item is furniture.`,
+- Checking for any visible labels, brand marks, or distinguishing features
+- Classify as "furniture" if it is furniture.`,
+  room_scene: `SCAN MODE HINT: The user is scanning a ROOM SCENE. Prioritize:
+- Identifying the dominant item or product in the scene
+- Focus on the most prominent item, not the whole room
+- Classify based on what the dominant item actually is.`,
+  food_scan: `SCAN MODE HINT: The user is scanning a FOOD or GROCERY item. Prioritize:
+- Identifying the exact food item, dish, or packaged product
+- Reading any visible labels, nutrition facts, brand names, ingredients
+- If it is fresh/prepared food, classify as "food". If packaged with labels/barcodes, classify as "grocery".
+- Provide maximum detail: nutrition, recipes, ingredients, allergens, dietary info
+- Be the ultimate food expert — think chef + nutritionist + cookbook author.`,
+  fashion_scan: `SCAN MODE HINT: The user is scanning a FASHION item (clothing, shoes, accessories). Prioritize:
+- Identifying brand from ANY visual cue: logos, stitching, sole design, label placement, hardware
+- Identifying exact model/style if possible
+- Assessing condition, material, color, fit, style
+- Providing accurate resale values and best selling platforms
+- Classify as "fashion". Be the ultimate fashion expert — think StockX + personal stylist.`,
+  electronics_scan: `SCAN MODE HINT: The user is scanning an ELECTRONICS item. Prioritize:
+- Identifying brand, model, specifications from any visible text/labels
+- Assessing condition and generation/version
+- Providing accurate retail and resale pricing
+- Noting depreciation and best resale platforms
+- Classify as "electronics". Be the ultimate tech expert.`,
+  household_scan: `SCAN MODE HINT: The user is scanning a HOUSEHOLD item (kitchenware, tools, cleaning, decor, storage, bathroom, garden, small appliance). Prioritize:
+- Identifying the specific type of household item
+- Noting brand, material, condition, and practical use
+- Providing care tips, value assessment, and alternatives
+- Classify as "household". Be the ultimate home expert.`,
+  general_scan: `SCAN MODE HINT: The user is scanning a GENERAL item (toys, books, sports, collectibles, art, etc). Prioritize:
+- Identifying exactly what the item is
+- Noting brand, condition, rarity, and any identifying marks
+- Providing value and resale assessment
+- Classify as "general" unless it clearly fits a more specific category.`,
 };
 
-function getIkeaScanModePromptAddition(scanMode: IkeaScanMode): string {
-  if (!scanMode || !IKEA_SCAN_MODE_HINTS[scanMode]) return '';
-  return '\n\n' + IKEA_SCAN_MODE_HINTS[scanMode];
+function getScanModePromptAddition(scanMode: IkeaScanMode): string {
+  if (!scanMode || !SCAN_MODE_HINTS[scanMode]) return '';
+  return '\n\n' + SCAN_MODE_HINTS[scanMode];
 }
 
 function applyIkeaBrandDetection(classification: z.infer<typeof classificationSchema>, scanMode: IkeaScanMode): z.infer<typeof classificationSchema> {
@@ -1743,7 +1767,7 @@ export async function runSmartScan(imageUri: string, scanMode?: IkeaScanMode): P
   lastProcessedBase64 = processed.base64;
 
   console.log('[SmartScan] Step 1: Classifying...');
-  const classificationPromptWithHint = CLASSIFICATION_PROMPT + getIkeaScanModePromptAddition(scanMode ?? null);
+  const classificationPromptWithHint = CLASSIFICATION_PROMPT + getScanModePromptAddition(scanMode ?? null);
 
   let classification = await callWithRetry(
     () => generateObject({

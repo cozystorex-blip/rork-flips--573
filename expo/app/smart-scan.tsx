@@ -65,30 +65,50 @@ import {
 import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
 import ReferenceSection from '@/components/scan/ReferenceSection';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
+import { getScanHealthLabel } from '@/services/scanValidator';
 
 const SCAN_MODE_OPTIONS: { mode: IkeaScanMode; label: string; icon: string }[] = [
-  { mode: 'box_label', label: 'Box Label', icon: 'box' },
-  { mode: 'product_tag', label: 'Product Tag', icon: 'tag' },
-  { mode: 'manual', label: 'Manual', icon: 'book' },
-  { mode: 'assembled', label: 'Assembled', icon: 'armchair' },
-  { mode: 'room_scene', label: 'Room Scene', icon: 'home' },
+  { mode: 'food_scan', label: 'Food', icon: 'food' },
+  { mode: 'fashion_scan', label: 'Fashion', icon: 'fashion' },
+  { mode: 'electronics_scan', label: 'Electronics', icon: 'electronics' },
+  { mode: 'assembled', label: 'Furniture', icon: 'armchair' },
+  { mode: 'household_scan', label: 'Household', icon: 'household' },
+  { mode: 'general_scan', label: 'General', icon: 'general' },
+  { mode: 'box_label', label: 'Label', icon: 'box' },
+  { mode: 'product_tag', label: 'Tag', icon: 'tag' },
 ];
 
 function ScanModeIcon({ icon, size, color }: { icon: string; size: number; color: string }) {
   switch (icon) {
+    case 'food': return <Flame size={size} color={color} />;
+    case 'fashion': return <Shirt size={size} color={color} />;
+    case 'electronics': return <Smartphone size={size} color={color} />;
+    case 'armchair': return <Sofa size={size} color={color} />;
+    case 'household': return <Lamp size={size} color={color} />;
+    case 'general': return <Scan size={size} color={color} />;
     case 'box': return <Package size={size} color={color} />;
     case 'tag': return <Receipt size={size} color={color} />;
-    case 'book': return <ImageIcon size={size} color={color} />;
-    case 'armchair': return <Sofa size={size} color={color} />;
-    case 'home': return <Lamp size={size} color={color} />;
     default: return <Scan size={size} color={color} />;
   }
 }
 
+const SCAN_MODE_HINT_TEXT: Record<string, string> = {
+  food_scan: 'Point at food, ingredients, or packaged products',
+  fashion_scan: 'Point at clothing, shoes, bags, or accessories',
+  electronics_scan: 'Point at devices, gadgets, or tech products',
+  assembled: 'Capture the full assembled furniture piece',
+  household_scan: 'Point at kitchenware, tools, decor, or home items',
+  general_scan: 'Point at any item for identification',
+  box_label: 'Point at the product label or sticker',
+  product_tag: 'Point at the shelf tag or price label',
+  manual: 'Point at the instruction manual cover',
+  room_scene: 'Capture the room with the item visible',
+};
+
 function ScanModeChips({ activeMode, onSelect, disabled }: { activeMode: IkeaScanMode; onSelect: (mode: IkeaScanMode) => void; disabled: boolean }) {
   return (
     <View style={st.scanModeSection}>
-      <Text style={st.scanModeLabel}>IKEA Scan Mode</Text>
+      <Text style={st.scanModeLabel}>Scan Mode</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.scanModeRow}>
         {SCAN_MODE_OPTIONS.map((opt) => {
           const isActive = activeMode === opt.mode;
@@ -108,11 +128,7 @@ function ScanModeChips({ activeMode, onSelect, disabled }: { activeMode: IkeaSca
       </ScrollView>
       {activeMode && (
         <Text style={st.scanModeHint}>
-          {activeMode === 'box_label' ? 'Point at the sticker label on the box' :
-           activeMode === 'product_tag' ? 'Point at the shelf tag or price label' :
-           activeMode === 'manual' ? 'Point at the instruction manual cover' :
-           activeMode === 'assembled' ? 'Capture the full assembled item' :
-           'Capture the room with the IKEA item visible'}
+          {SCAN_MODE_HINT_TEXT[activeMode] ?? 'Point at any item to scan'}
         </Text>
       )}
     </View>
@@ -162,6 +178,7 @@ export default function SmartScanScreen() {
     viewingEntryId,
     pendingReceiptNav,
     scanMode,
+    lastValidation,
     handleCapture,
     resetScan,
     loadHistoryEntry,
@@ -307,7 +324,7 @@ export default function SmartScanScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScannerTopBar
-        title="IKEA Scanner"
+        title="Smart Scanner"
         onClose={() => router.back()}
         paddingTop={insets.top}
         testID="close-smart-scan"
@@ -549,6 +566,23 @@ export default function SmartScanScreen() {
               {resultSection}
             </View>
 
+            {lastValidation && (
+              <View style={st.validationBadge}>
+                <View style={[st.validationDot, { backgroundColor: getScanHealthLabel(lastValidation.score).color }]} />
+                <Text style={[st.validationText, { color: getScanHealthLabel(lastValidation.score).color }]}>
+                  Scan Quality: {getScanHealthLabel(lastValidation.score).label} ({lastValidation.score}%)
+                </Text>
+                <Text style={st.validationDetail}>
+                  {lastValidation.passedChecks}/{lastValidation.totalChecks} checks
+                </Text>
+                {lastValidation.errors.length > 0 && (
+                  <Text style={st.validationError}>
+                    {lastValidation.errors.length} issue{lastValidation.errors.length > 1 ? 's' : ''} found
+                  </Text>
+                )}
+              </View>
+            )}
+
             <ResaleInsightsSection result={result} />
 
             <ScannerResultActions
@@ -747,8 +781,14 @@ const st = StyleSheet.create({
   scanModeLabel: { fontSize: 11, fontWeight: '700' as const, color: ScannerColors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 8 },
   scanModeRow: { flexDirection: 'row' as const, gap: 8, paddingRight: ScannerSpacing.xl },
   scanModeChip: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: ScannerRadius.pill, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder },
-  scanModeChipActive: { backgroundColor: ScannerColors.ikeaBlue, borderColor: ScannerColors.ikeaBlue },
+  scanModeChipActive: { backgroundColor: ScannerColors.ikeaBlue ?? ScannerColors.accent, borderColor: ScannerColors.ikeaBlue ?? ScannerColors.accent },
   scanModeChipText: { fontSize: 12, fontWeight: '600' as const, color: ScannerColors.textSecondary },
   scanModeChipTextActive: { color: '#FFFFFF' },
-  scanModeHint: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.ikeaBlue, marginTop: 8, paddingLeft: 2 },
+  scanModeHint: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.ikeaBlue ?? ScannerColors.accent, marginTop: 8, paddingLeft: 2 },
+
+  validationBadge: { flexDirection: 'row' as const, alignItems: 'center' as const, flexWrap: 'wrap' as const, gap: 8, backgroundColor: ScannerColors.card, borderRadius: ScannerRadius.lg, padding: 12, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.cardBorder },
+  validationDot: { width: 8, height: 8, borderRadius: 4 },
+  validationText: { fontSize: 12, fontWeight: '700' as const },
+  validationDetail: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.textMuted },
+  validationError: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.error ?? '#DC2626' },
 });

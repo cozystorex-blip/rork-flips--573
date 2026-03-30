@@ -4,6 +4,8 @@ import { Platform, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { runSmartScan, generateReferenceImage, getLastProcessedBase64 } from '@/services/smartScanService';
+import { validateScanResult } from '@/services/scanValidator';
+import type { ScanValidationResult } from '@/services/scanValidator';
 import type { IkeaScanMode } from '@/services/smartScanService';
 import { persistScanImage } from '@/services/imagePersistence';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
@@ -108,6 +110,7 @@ export interface ScanProcessState {
   viewingEntryId: string | null;
   pendingReceiptNav: boolean;
   scanMode: IkeaScanMode;
+  lastValidation: ScanValidationResult | null;
 }
 
 const SCAN_TIMEOUT_MS = 60000;
@@ -122,6 +125,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [viewingEntryId, setViewingEntryId] = useState<string | null>(null);
   const [pendingReceiptNav, setPendingReceiptNav] = useState<boolean>(false);
   const [scanMode, setScanMode] = useState<IkeaScanMode>(null);
+  const [lastValidation, setLastValidation] = useState<ScanValidationResult | null>(null);
 
   const { addEntry } = useScanHistory();
   const scanAbortRef = useRef<boolean>(false);
@@ -219,6 +223,10 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         console.log('[ScanProcess] Image persistence failed, using captured URI:', e);
       }
 
+      const validation = validateScanResult(scanResult);
+      setLastValidation(validation);
+      console.log('[ScanProcess] Validation score:', validation.score, '% |', validation.passedChecks, '/', validation.totalChecks, 'checks passed');
+
       setResult(scanResult);
       setScannedImageUri(persistedUri);
       setViewingEntryId(entryId);
@@ -296,6 +304,8 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       }
 
       fallbackResult.scanned_image_uri = fallbackPersistedUri ?? undefined;
+      const fallbackValidation = validateScanResult(fallbackResult);
+      setLastValidation(fallbackValidation);
       setResult(fallbackResult);
       setScannedImageUri(fallbackPersistedUri);
       setScanPhase('done');
@@ -320,6 +330,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setScanPhase('idle');
     setGeneratingImage(false);
     setPendingReceiptNav(false);
+    setLastValidation(null);
     scanAbortRef.current = false;
     scanInProgressRef.current = false;
     clearScanTimeout();
@@ -354,6 +365,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     viewingEntryId,
     pendingReceiptNav,
     scanMode,
+    lastValidation,
     handleCapture,
     resetScan,
     loadHistoryEntry,
@@ -366,6 +378,6 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   }), [
     scanning, scanPhase, result, referenceImageUrl, scannedImageUri,
     generatingImage, viewingEntryId, pendingReceiptNav, scanMode,
-    handleCapture, resetScan, loadHistoryEntry, consumeReceiptNav,
+    lastValidation, handleCapture, resetScan, loadHistoryEntry, consumeReceiptNav,
   ]);
 });
