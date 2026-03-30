@@ -20,9 +20,9 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="smart-scan" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="receipt-detail" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="post-detail" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="smart-scan" options={{ headerShown: false }} />
+      <Stack.Screen name="receipt-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="post-detail" options={{ headerShown: false }} />
     </Stack>
   );
 }

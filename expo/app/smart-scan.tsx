@@ -449,7 +449,7 @@ export default function SmartScanScreen() {
 
   return (
     <View style={st.container}>
-      <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen options={{ headerShown: false }} />
 
       <ScannerTopBar
         title="Smart Scanner"

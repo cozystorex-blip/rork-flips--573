@@ -29,10 +29,12 @@ import {
   CheckCircle,
   Copy,
   LinkIcon,
+  ArrowLeft,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import Colors from '@/constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { computeDealTrust, type DealTrustInfo } from '@/services/dealIngestionService';
 import { classifySourceUrl } from '@/utils/sourceUrlQuality';
 import AdMobBanner from '@/components/ads/AdMobBanner';
@@ -141,6 +143,7 @@ function getExpiryLabel(expiresAt: string | undefined): { label: string; isExpir
 }
 
 export default function PostDetailScreen() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     imageUrl?: string;
     description?: string;
@@ -163,7 +166,7 @@ export default function PostDetailScreen() {
     brandSlug?: string;
     dealExpiresAt?: string;
   }>();
-  const _router = useRouter();
+  const router = useRouter();
 
   const imageUrl = params.imageUrl ?? '';
   const description = params.description ?? '';
@@ -284,15 +287,27 @@ export default function PostDetailScreen() {
   if (isDeal) {
     return (
       <View style={styles.container}>
-        <Stack.Screen
-          options={{
-            title: '',
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: '#FFFFFF' },
-            headerTintColor: '#1C1C1E',
-            headerShadowVisible: false,
-          }}
-        />
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.customHeader, { paddingTop: insets.top + 8 }]}>
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
+            style={({ pressed }) => [styles.customHeaderBtn, pressed && { opacity: 0.6 }]}
+            hitSlop={12}
+          >
+            <ArrowLeft size={22} color="#1C1C1E" strokeWidth={2} />
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <Pressable
+            onPress={handleShare}
+            style={({ pressed }) => [styles.customHeaderBtn, pressed && { opacity: 0.6 }]}
+            hitSlop={12}
+          >
+            <Share2 size={20} color="#1C1C1E" strokeWidth={1.8} />
+          </Pressable>
+        </View>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -636,15 +651,27 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          title: '',
-          headerBackTitle: 'Back',
-          headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTintColor: Colors.text,
-          headerShadowVisible: false,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.customHeader, { paddingTop: insets.top + 8 }]}>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }}
+          style={({ pressed }) => [styles.customHeaderBtn, pressed && { opacity: 0.6 }]}
+          hitSlop={12}
+        >
+          <ArrowLeft size={22} color="#1C1C1E" strokeWidth={2} />
+        </Pressable>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={handleShare}
+          style={({ pressed }) => [styles.customHeaderBtn, pressed && { opacity: 0.6 }]}
+          hitSlop={12}
+        >
+          <Share2 size={20} color="#1C1C1E" strokeWidth={1.8} />
+        </Pressable>
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -724,6 +751,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+  },
+  customHeader: {
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+  },
+  customHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     paddingBottom: 20,
