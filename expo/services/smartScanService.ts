@@ -1650,8 +1650,86 @@ export function getLastProcessedBase64(): string | null {
   return lastProcessedBase64;
 }
 
-export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
-  console.log('[SmartScan] Starting scan for:', imageUri.substring(0, 60));
+export type IkeaScanMode = 'box_label' | 'product_tag' | 'manual' | 'assembled' | 'room_scene' | null;
+
+const IKEA_SCAN_MODE_HINTS: Record<string, string> = {
+  box_label: `SCAN MODE HINT: The user is scanning an IKEA flat-pack BOX LABEL or sticker. Prioritize:
+- Reading the article number (8-digit or 10-digit format like 302.758.75)
+- Reading the product name from the label
+- Identifying package count (e.g. "2 of 3")
+- This is almost certainly furniture/IKEA — classify as "furniture" unless clearly wrong.
+- Set is_likely_ikea to true, label_detected to true.`,
+  product_tag: `SCAN MODE HINT: The user is scanning an IKEA PRODUCT TAG or shelf label. Prioritize:
+- Reading price, article number, product name from the tag
+- Identifying the IKEA product family
+- This is almost certainly furniture/IKEA — classify as "furniture" unless clearly wrong.
+- Set is_likely_ikea to true, label_detected to true.`,
+  manual: `SCAN MODE HINT: The user is scanning an IKEA INSTRUCTION MANUAL or assembly guide page. Prioritize:
+- Reading the article number from the manual cover
+- Identifying the product name/family from assembly diagrams
+- Recognizing IKEA's distinctive wordless cartoon instruction format
+- This is almost certainly furniture/IKEA — classify as "furniture" unless clearly wrong.
+- Set is_likely_ikea to true, manual_detected to true.`,
+  assembled: `SCAN MODE HINT: The user is scanning ASSEMBLED IKEA FURNITURE. Prioritize:
+- Identifying the IKEA product line from visual design signatures (KALLAX cubes, BILLY shelf spacing, MALM drawer fronts, etc.)
+- Noting material, color/finish, dimensions from visual inspection
+- Checking for any visible labels on the back or underside
+- This is likely furniture/IKEA — classify as "furniture" if it looks like furniture.`,
+  room_scene: `SCAN MODE HINT: The user is scanning a ROOM SCENE that may contain IKEA furniture. Prioritize:
+- Identifying the dominant piece of furniture in the scene
+- Checking if any items match known IKEA product lines
+- Focus on the most prominent furniture item, not the whole room
+- Classify as "furniture" if the dominant item is furniture.`,
+};
+
+function getIkeaScanModePromptAddition(scanMode: IkeaScanMode): string {
+  if (!scanMode || !IKEA_SCAN_MODE_HINTS[scanMode]) return '';
+  return '\n\n' + IKEA_SCAN_MODE_HINTS[scanMode];
+}
+
+function applyIkeaBrandDetection(classification: z.infer<typeof classificationSchema>, scanMode: IkeaScanMode): z.infer<typeof classificationSchema> {
+  const fixed = { ...classification };
+  const combined = (
+    (fixed.item_name ?? '') + ' ' +
+    (fixed.category ?? '') + ' ' +
+    (fixed.visual_cues ?? []).join(' ') + ' ' +
+    (fixed.short_summary ?? '') + ' ' +
+    (fixed.image_description ?? '')
+  ).toLowerCase();
+
+  const ikeaSignals = [
+    'ikea', 'kallax', 'billy', 'malm', 'lack', 'hemnes', 'besta', 'bestå',
+    'pax', 'alex', 'detolf', 'poäng', 'poang', 'ektorp', 'linnmon', 'micke',
+    'fjalkinge', 'fjälkinge', 'expedit', 'stuva', 'trofast', 'brimnes',
+    'nordli', 'kullen', 'tarva', 'rast', 'ivar', 'eket', 'havsta',
+    'article number', 'art.no', 'flat-pack', 'flat pack', 'cam lock',
+    'assembly instruction', 'hex key included',
+  ];
+
+  const articleNumberPattern = /\b\d{3}\.\d{3}\.\d{2}\b/;
+  const hasArticleNumber = articleNumberPattern.test(combined);
+  const ikeaMatchCount = ikeaSignals.filter(s => combined.includes(s)).length;
+
+  const isIkeaLikely = hasArticleNumber || ikeaMatchCount >= 2 || (scanMode && scanMode !== 'room_scene');
+
+  if (isIkeaLikely && fixed.item_type !== 'furniture' && fixed.item_type !== 'receipt' && fixed.item_type !== 'document') {
+    console.log('[SmartScan] IKEA brand detection: routing to furniture. signals:', ikeaMatchCount, 'articleNum:', hasArticleNumber, 'scanMode:', scanMode);
+    fixed.item_type = 'furniture';
+    fixed.category = 'IKEA / Furniture';
+    if (hasArticleNumber) {
+      fixed.confidence = Math.max(fixed.confidence, 0.8);
+    } else if (ikeaMatchCount >= 2) {
+      fixed.confidence = Math.max(fixed.confidence, 0.7);
+    } else {
+      fixed.confidence = Math.max(fixed.confidence, 0.6);
+    }
+  }
+
+  return fixed;
+}
+
+export async function runSmartScan(imageUri: string, scanMode?: IkeaScanMode): Promise<SmartScanResult> {
+  console.log('[SmartScan] Starting scan for:', imageUri.substring(0, 60), 'mode:', scanMode ?? 'auto');
 
   lastProcessedBase64 = null;
   let processed;
@@ -1665,13 +1743,15 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
   lastProcessedBase64 = processed.base64;
 
   console.log('[SmartScan] Step 1: Classifying...');
+  const classificationPromptWithHint = CLASSIFICATION_PROMPT + getIkeaScanModePromptAddition(scanMode ?? null);
+
   let classification = await callWithRetry(
     () => generateObject({
       messages: [{
         role: 'user',
         content: [
           { type: 'image', image: `data:image/jpeg;base64,${processed.base64}` },
-          { type: 'text', text: CLASSIFICATION_PROMPT },
+          { type: 'text', text: classificationPromptWithHint },
         ],
       }],
       schema: classificationSchema,
@@ -1705,6 +1785,7 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
   }
 
   classification = recoverUnknown(classification);
+  classification = applyIkeaBrandDetection(classification, scanMode ?? null);
   classification = fixItemType(classification);
   classification = crossValidateClassification(classification);
 
@@ -1717,7 +1798,7 @@ export async function runSmartScan(imageUri: string): Promise<SmartScanResult> {
 
   const fullPrompt = `${detailPrompt}
 
-The item has been identified as: ${classification.item_name} (${classification.category}).
+The item has been identified as: ${classification.item_name} (${classification.category}).${scanMode ? `\nScan mode hint: User selected "${scanMode.replace(/_/g, ' ')}" mode — use this context for better accuracy.` : ''}
 Visual description: ${classification.image_description || 'N/A'}.
 Visual cues observed: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
 item_type MUST be "${classification.item_type}". Do NOT change it. is_receipt must be false.

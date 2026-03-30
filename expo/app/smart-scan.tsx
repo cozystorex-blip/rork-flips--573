@@ -38,6 +38,7 @@ import {
 import * as Haptics from 'expo-haptics';
 
 import type { SmartScanItemType } from '@/services/smartScanService';
+import type { IkeaScanMode } from '@/services/smartScanService';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { usePremium } from '@/contexts/PremiumContext';
 import { useScanProcess, PHASE_MESSAGES } from '@/contexts/ScanProcessContext';
@@ -64,6 +65,59 @@ import {
 import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
 import ReferenceSection from '@/components/scan/ReferenceSection';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
+
+const SCAN_MODE_OPTIONS: { mode: IkeaScanMode; label: string; icon: string }[] = [
+  { mode: 'box_label', label: 'Box Label', icon: 'box' },
+  { mode: 'product_tag', label: 'Product Tag', icon: 'tag' },
+  { mode: 'manual', label: 'Manual', icon: 'book' },
+  { mode: 'assembled', label: 'Assembled', icon: 'armchair' },
+  { mode: 'room_scene', label: 'Room Scene', icon: 'home' },
+];
+
+function ScanModeIcon({ icon, size, color }: { icon: string; size: number; color: string }) {
+  switch (icon) {
+    case 'box': return <Package size={size} color={color} />;
+    case 'tag': return <Receipt size={size} color={color} />;
+    case 'book': return <ImageIcon size={size} color={color} />;
+    case 'armchair': return <Sofa size={size} color={color} />;
+    case 'home': return <Lamp size={size} color={color} />;
+    default: return <Scan size={size} color={color} />;
+  }
+}
+
+function ScanModeChips({ activeMode, onSelect, disabled }: { activeMode: IkeaScanMode; onSelect: (mode: IkeaScanMode) => void; disabled: boolean }) {
+  return (
+    <View style={st.scanModeSection}>
+      <Text style={st.scanModeLabel}>IKEA Scan Mode</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.scanModeRow}>
+        {SCAN_MODE_OPTIONS.map((opt) => {
+          const isActive = activeMode === opt.mode;
+          return (
+            <Pressable
+              key={opt.mode}
+              style={[st.scanModeChip, isActive && st.scanModeChipActive]}
+              onPress={() => onSelect(opt.mode)}
+              disabled={disabled}
+              testID={`scan-mode-${opt.mode}`}
+            >
+              <ScanModeIcon icon={opt.icon} size={13} color={isActive ? '#FFFFFF' : ScannerColors.textSecondary} />
+              <Text style={[st.scanModeChipText, isActive && st.scanModeChipTextActive]}>{opt.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      {activeMode && (
+        <Text style={st.scanModeHint}>
+          {activeMode === 'box_label' ? 'Point at the sticker label on the box' :
+           activeMode === 'product_tag' ? 'Point at the shelf tag or price label' :
+           activeMode === 'manual' ? 'Point at the instruction manual cover' :
+           activeMode === 'assembled' ? 'Capture the full assembled item' :
+           'Capture the room with the IKEA item visible'}
+        </Text>
+      )}
+    </View>
+  );
+}
 
 export const TYPE_CONFIG: Record<SmartScanItemType, { label: string; color: string; bg: string; Icon: React.ComponentType<{ size: number; color: string }> }> = {
   food: { label: 'Food Item', color: '#2D8C3C', bg: '#2D8C3C14', Icon: Flame },
@@ -107,10 +161,12 @@ export default function SmartScanScreen() {
     generatingImage,
     viewingEntryId,
     pendingReceiptNav,
+    scanMode,
     handleCapture,
     resetScan,
     loadHistoryEntry,
     consumeReceiptNav,
+    setScanMode,
   } = useScanProcess();
 
   const [showReferenceSection, setShowReferenceSection] = useState<boolean>(false);
@@ -265,11 +321,20 @@ export default function SmartScanScreen() {
         {!result && (
           <>
             <ScannerActionButtons
-              onCamera={() => void handleCapture('camera')}
-              onGallery={() => void handleCapture('gallery')}
+              onCamera={() => void handleCapture('camera', scanMode)}
+              onGallery={() => void handleCapture('gallery', scanMode)}
               scanning={scanning}
               cameraTestID="smart-scan-camera"
               galleryTestID="smart-scan-gallery"
+            />
+
+            <ScanModeChips
+              activeMode={scanMode}
+              onSelect={(mode) => {
+                void Haptics.selectionAsync();
+                setScanMode(mode === scanMode ? null : mode);
+              }}
+              disabled={scanning}
             />
 
             {scanning && (
@@ -677,4 +742,13 @@ const st = StyleSheet.create({
   unverifiedTitleText: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.amber },
   verificationSummaryRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, marginTop: 8 },
   verificationSummaryText: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.textMuted },
+
+  scanModeSection: { marginBottom: ScannerSpacing.lg },
+  scanModeLabel: { fontSize: 11, fontWeight: '700' as const, color: ScannerColors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 8 },
+  scanModeRow: { flexDirection: 'row' as const, gap: 8, paddingRight: ScannerSpacing.xl },
+  scanModeChip: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: ScannerRadius.pill, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder },
+  scanModeChipActive: { backgroundColor: ScannerColors.ikeaBlue, borderColor: ScannerColors.ikeaBlue },
+  scanModeChipText: { fontSize: 12, fontWeight: '600' as const, color: ScannerColors.textSecondary },
+  scanModeChipTextActive: { color: '#FFFFFF' },
+  scanModeHint: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.ikeaBlue, marginTop: 8, paddingLeft: 2 },
 });

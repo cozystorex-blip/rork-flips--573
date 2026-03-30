@@ -4,6 +4,7 @@ import { Platform, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { runSmartScan, generateReferenceImage, getLastProcessedBase64 } from '@/services/smartScanService';
+import type { IkeaScanMode } from '@/services/smartScanService';
 import { persistScanImage } from '@/services/imagePersistence';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import type { SmartScanResult } from '@/services/smartScanService';
@@ -106,6 +107,7 @@ export interface ScanProcessState {
   generatingImage: boolean;
   viewingEntryId: string | null;
   pendingReceiptNav: boolean;
+  scanMode: IkeaScanMode;
 }
 
 const SCAN_TIMEOUT_MS = 60000;
@@ -119,6 +121,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [generatingImage, setGeneratingImage] = useState<boolean>(false);
   const [viewingEntryId, setViewingEntryId] = useState<string | null>(null);
   const [pendingReceiptNav, setPendingReceiptNav] = useState<boolean>(false);
+  const [scanMode, setScanMode] = useState<IkeaScanMode>(null);
 
   const { addEntry } = useScanHistory();
   const scanAbortRef = useRef<boolean>(false);
@@ -132,7 +135,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     }
   }, []);
 
-  const handleCapture = useCallback(async (mode: 'camera' | 'gallery') => {
+  const handleCapture = useCallback(async (mode: 'camera' | 'gallery', ikeaScanMode?: IkeaScanMode) => {
     if (scanInProgressRef.current) {
       console.log('[ScanProcess] Scan already in progress, ignoring duplicate call');
       return;
@@ -182,7 +185,9 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
 
       setScanPhase('analyzing');
 
-      const scanResult = await runSmartScan(capturedUri);
+      const activeScanMode = ikeaScanMode ?? scanMode;
+      console.log('[ScanProcess] Using scan mode:', activeScanMode ?? 'auto');
+      const scanResult = await runSmartScan(capturedUri, activeScanMode);
 
       clearScanTimeout();
 
@@ -305,7 +310,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       scanInProgressRef.current = false;
       clearScanTimeout();
     }
-  }, [addEntry, clearScanTimeout]);
+  }, [addEntry, clearScanTimeout, scanMode]);
 
   const resetScan = useCallback(() => {
     setResult(null);
@@ -348,17 +353,19 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     generatingImage,
     viewingEntryId,
     pendingReceiptNav,
+    scanMode,
     handleCapture,
     resetScan,
     loadHistoryEntry,
     consumeReceiptNav,
+    setScanMode,
     setResult,
     setReferenceImageUrl,
     setScannedImageUri,
     setViewingEntryId,
   }), [
     scanning, scanPhase, result, referenceImageUrl, scannedImageUri,
-    generatingImage, viewingEntryId, pendingReceiptNav,
+    generatingImage, viewingEntryId, pendingReceiptNav, scanMode,
     handleCapture, resetScan, loadHistoryEntry, consumeReceiptNav,
   ]);
 });
