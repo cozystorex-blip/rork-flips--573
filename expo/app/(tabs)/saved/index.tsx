@@ -161,7 +161,7 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.screenHeader, { paddingTop: insets.top + 28 }]}>
         <Text style={styles.screenTitle}>Saved</Text>
       </View>
 
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   screenHeader: {
     paddingHorizontal: H_PAD,
-    paddingBottom: 10,
+    paddingBottom: 14,
     backgroundColor: '#F2F2F7',
   },
   screenTitle: {
