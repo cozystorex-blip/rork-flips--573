@@ -218,7 +218,7 @@ export default function HomeScreen() {
           {allScans.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Scanned Items</Text>
+                <Text style={styles.sectionTitle}>Scanned</Text>
                 <Pressable
                   onPress={() => {
                     void Haptics.selectionAsync();

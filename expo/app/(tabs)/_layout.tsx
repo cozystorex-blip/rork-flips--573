@@ -175,7 +175,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saved"
         options={{
-          title: "Saved",
+          title: "",
           tabBarIcon: ({ color, size }) => (
             <Heart size={size} color={color} strokeWidth={1.8} />
           ),

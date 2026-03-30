@@ -162,7 +162,7 @@ export default function SavedScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.screenHeader, { paddingTop: insets.top + 28 }]}>
-        <Text style={styles.screenTitle}>Saved</Text>
+        <Text style={styles.screenTitle}>{''}</Text>
       </View>
 
       <ScrollView
