@@ -108,7 +108,7 @@ export default function ProfileScreen() {
         <View style={styles.videoSection}>
           <View style={styles.videoCard}>
             <Video
-              source={{ uri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4' }}
+              source={{ uri: 'https://assets.mixkit.co/videos/607/607-720.mp4' }}
               style={styles.video}
               resizeMode={ResizeMode.COVER}
               shouldPlay
