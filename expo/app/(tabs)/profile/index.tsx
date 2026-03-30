@@ -9,6 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import {
   Settings,
   ShoppingBag,
@@ -19,7 +20,7 @@ import {
   Share2,
   LogOut,
   ChevronRight,
-  User,
+  Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,8 +50,6 @@ function MenuItem({ icon, label, onPress, color, showChevron = true }: MenuItemP
     </Pressable>
   );
 }
-
-
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -105,9 +104,9 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.heroBackground, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.heroTopRow}>
-          <View style={{ flex: 1 }} />
+      <View style={styles.greenFull}>
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          <Text style={styles.topBarTitle}>Profile</Text>
           <Pressable
             style={styles.settingsBtn}
             hitSlop={8}
@@ -117,33 +116,49 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.heroProfile}>
-          <View style={styles.avatar}>
-            {profile?.avatar_url ? (
-              <Text style={styles.avatarText}>
-                {displayName.charAt(0).toUpperCase()}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarOuter}>
+            <View style={styles.avatar}>
+              {profile?.avatar_url ? (
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <Text style={styles.avatarInitial}>
+                  {displayName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <Pressable
+              style={styles.cameraBtn}
+              hitSlop={6}
+              onPress={() => { void Haptics.selectionAsync(); }}
+            >
+              <Camera size={14} color="#16A34A" strokeWidth={2} />
+            </Pressable>
+          </View>
+
+          <Text style={styles.nameText}>{displayName}</Text>
+          <Text style={styles.memberText}>Member since {memberSince}</Text>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statPill}>
+              <Text style={styles.statPillValue}>
+                ${totalSavings > 0 ? totalSavings.toLocaleString() : '0'}
               </Text>
-            ) : (
-              <User size={34} color="#FFFFFF" strokeWidth={1.5} />
-            )}
+              <Text style={styles.statPillLabel}>Saved</Text>
+            </View>
+            <View style={styles.statPill}>
+              <Text style={styles.statPillValue}>{scanEntries.length}</Text>
+              <Text style={styles.statPillLabel}>Scanned</Text>
+            </View>
+            <View style={styles.statPill}>
+              <Text style={styles.statPillValue}>{savedDeals.length}</Text>
+              <Text style={styles.statPillLabel}>Deals</Text>
+            </View>
           </View>
-          <Text style={styles.heroName}>{displayName}</Text>
-          <Text style={styles.heroMember}>Member since {memberSince}</Text>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statCell}>
-            <Text style={styles.statValue}>
-              ${totalSavings > 0 ? totalSavings.toLocaleString() : '0'}
-            </Text>
-            <Text style={styles.statLabel}>Total Saved</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCell}>
-            <Text style={styles.statValue}>{scanEntries.length}</Text>
-            <Text style={styles.statLabel}>Items Scanned</Text>
-          </View>
-
         </View>
       </View>
 
@@ -227,23 +242,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  heroBackground: {
+  greenFull: {
     backgroundColor: '#16A34A',
-    paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 8,
+    paddingBottom: 28,
   },
-  heroTopRow: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
   settingsBtn: {
     width: 38,
@@ -253,66 +267,87 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  heroProfile: {
+  profileSection: {
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  avatarOuter: {
+    position: 'relative',
+    marginBottom: 14,
   },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: 'rgba(255,255,255,0.22)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)',
-    marginBottom: 10,
+    borderWidth: 3.5,
+    borderColor: 'rgba(255,255,255,0.5)',
+    overflow: 'hidden',
   },
-  avatarText: {
-    fontSize: 30,
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+  },
+  avatarInitial: {
+    fontSize: 36,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
-  heroName: {
-    fontSize: 22,
+  cameraBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  nameText: {
+    fontSize: 24,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
-  heroMember: {
+  memberText: {
     fontSize: 13,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 3,
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
-    marginHorizontal: 20,
+    gap: 10,
+    width: '100%',
+  },
+  statPill: {
+    flex: 1,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  statCell: {
-    flex: 1,
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  statValue: {
+  statPillValue: {
     fontSize: 20,
     fontWeight: '800' as const,
     color: '#FFFFFF',
     letterSpacing: -0.3,
   },
-  statLabel: {
+  statPillLabel: {
     fontSize: 11,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.75)',
-    marginTop: 3,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginVertical: 2,
+    marginTop: 2,
   },
   scrollView: {
     flex: 1,

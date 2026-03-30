@@ -17,7 +17,6 @@ import {
   Heart,
   Camera,
   Search,
-  Bell,
   ChevronDown,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -26,13 +25,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import type { SmartScanResult } from '@/services/smartScanService';
-
-const FILTER_CHIPS = [
-  { key: 'all', label: 'All Items' },
-  { key: 'prices', label: 'Prices Dropped' },
-  { key: 'deals', label: 'Deals' },
-  { key: 'receipts', label: 'Receipts' },
-] as const;
 
 const GRID_GAP = 12;
 const H_PAD = 16;
@@ -95,7 +87,7 @@ export default function SavedScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+
 
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
     const scanItems: UnifiedItem[] = scanEntries.map((e) => {
@@ -136,17 +128,12 @@ export default function SavedScreen() {
 
   const filteredItems = useMemo(() => {
     let items = unifiedItems;
-    if (activeFilter === 'deals') {
-      items = items.filter(i => i.type === 'deal');
-    } else if (activeFilter === 'prices') {
-      items = items.filter(i => i.badge !== null);
-    }
     if (searchText.trim()) {
       const q = searchText.toLowerCase();
       items = items.filter(i => i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q));
     }
     return items;
-  }, [unifiedItems, activeFilter, searchText]);
+  }, [unifiedItems, searchText]);
 
   const handleCardPress = useCallback((item: UnifiedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -183,18 +170,11 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeader, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.screenTitle}>Saved</Text>
-          <Pressable style={styles.notifBtn} hitSlop={8}>
-            <Bell size={20} color="#1C1C1E" strokeWidth={1.5} />
-          </Pressable>
-        </View>
-
-        <View style={styles.searchBar}>
-          <Search size={16} color="#8E8E93" strokeWidth={1.5} />
+      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.bubbleSearchBar}>
+          <Search size={18} color="#8E8E93" strokeWidth={1.8} />
           <TextInput
-            style={styles.searchInput}
+            style={styles.bubbleSearchInput}
             placeholder="Search saved items..."
             placeholderTextColor="#AEAEB2"
             value={searchText}
@@ -202,30 +182,6 @@ export default function SavedScreen() {
             returnKeyType="search"
           />
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          {FILTER_CHIPS.map((chip) => {
-            const isActive = activeFilter === chip.key;
-            return (
-              <Pressable
-                key={chip.key}
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  setActiveFilter(chip.key);
-                }}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-              >
-                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-                  {chip.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
       </View>
 
       <ScrollView
@@ -328,70 +284,28 @@ const styles = StyleSheet.create({
   },
   screenHeader: {
     paddingHorizontal: H_PAD,
-    paddingBottom: 12,
+    paddingBottom: 14,
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
   },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  screenTitle: {
-    fontSize: 30,
-    fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.8,
-  },
-  notifBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F2F2F7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchBar: {
+  bubbleSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 40,
-    gap: 8,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1C1C1E',
-    height: 40,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterChip: {
+    borderRadius: 22,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    height: 44,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  filterChipActive: {
-    backgroundColor: '#1C1C1E',
-    borderColor: '#1C1C1E',
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#636366',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
+  bubbleSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1C1C1E',
+    height: 44,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
