@@ -6,7 +6,6 @@ import {
   Pressable,
   Alert,
   Animated,
-  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -14,23 +13,16 @@ import {
   Settings,
   LogOut,
   Camera,
-  Heart,
-  ChevronRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { useScanHistory } from '@/contexts/ScanHistoryContext';
-import { useSavedItems } from '@/contexts/SavedItemsContext';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile } = useProfile();
-  const { entries: scanEntries } = useScanHistory();
-  const { savedDeals } = useSavedItems();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -52,8 +44,6 @@ export default function ProfileScreen() {
     ? profile.display_name
     : user?.email?.split('@')[0] || 'Flip User';
 
-  const totalSaved = scanEntries.length + savedDeals.length;
-
   const handleSignOut = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
@@ -70,31 +60,9 @@ export default function ProfileScreen() {
     );
   };
 
-  const menuItems = useMemo(() => [
-    {
-      id: 'saved',
-      label: 'Saved Items',
-      icon: Heart,
-      detail: `${totalSaved}`,
-      onPress: () => {
-        void Haptics.selectionAsync();
-        router.push('/(tabs)/saved');
-      },
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      detail: null,
-      onPress: () => {
-        void Haptics.selectionAsync();
-      },
-    },
-  ], [totalSaved, router]);
-
   return (
     <View style={styles.root}>
-      <View style={[styles.greenHeader, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.greenFull, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}>
         <View style={styles.topBar}>
           <Text style={styles.topBarTitle}>Profile</Text>
           <Pressable
@@ -106,7 +74,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.profileIdentity}>
+        <View style={styles.profileSection}>
           <View style={styles.avatarOuter}>
             <View style={styles.avatar}>
               {profile?.avatar_url ? (
@@ -126,7 +94,7 @@ export default function ProfileScreen() {
               hitSlop={6}
               onPress={() => { void Haptics.selectionAsync(); }}
             >
-              <Camera size={13} color="#16A34A" strokeWidth={2} />
+              <Camera size={14} color="#16A34A" strokeWidth={2} />
             </Pressable>
           </View>
 
@@ -136,64 +104,37 @@ export default function ProfileScreen() {
             <Text style={styles.emailText}>{user.email}</Text>
           )}
         </View>
-      </View>
 
-      <Animated.View style={[styles.contentSheet, { opacity: fadeAnim }]}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.sheetContent}
-        >
-          <View style={styles.menuGroup}>
-            {menuItems.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={item.onPress}
-                  style={({ pressed }) => [
-                    styles.menuRow,
-                    index < menuItems.length - 1 && styles.menuRowBorder,
-                    pressed && { backgroundColor: '#F8F8FA' },
-                  ]}
-                >
-                  <View style={styles.menuIconWrap}>
-                    <Icon size={18} color="#16A34A" strokeWidth={1.6} />
-                  </View>
-                  <Text style={styles.menuLabel}>{item.label}</Text>
-                  <View style={styles.menuRight}>
-                    {item.detail && (
-                      <Text style={styles.menuDetail}>{item.detail}</Text>
-                    )}
-                    <ChevronRight size={16} color="#C7C7CC" strokeWidth={1.5} />
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {isAuthenticated && (
-            <View style={styles.menuGroup}>
-              <Pressable
-                onPress={handleSignOut}
-                style={({ pressed }) => [
-                  styles.menuRow,
-                  pressed && { backgroundColor: '#FEF2F2' },
-                ]}
-              >
-                <View style={[styles.menuIconWrap, { backgroundColor: '#FEF2F2' }]}>
-                  <LogOut size={18} color="#EF4444" strokeWidth={1.6} />
-                </View>
-                <Text style={[styles.menuLabel, { color: '#EF4444' }]}>Sign Out</Text>
-                <View style={styles.menuRight}>
-                  <ChevronRight size={16} color="#C7C7CC" strokeWidth={1.5} />
-                </View>
-              </Pressable>
+        <View style={styles.videoSection}>
+          <View style={styles.videoCard}>
+            <Video
+              source={{ uri: 'https://assets.mixkit.co/videos/607/607-720.mp4' }}
+              style={styles.video}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay
+              isLooping
+              isMuted
+            />
+            <View style={styles.videoOverlay}>
+              <Text style={styles.videoLabel}>Featured</Text>
             </View>
-          )}
+          </View>
+        </View>
 
-          <Text style={styles.versionText}>Flip v1.10.13.2</Text>
-        </ScrollView>
-      </Animated.View>
+        <View style={styles.spacer} />
+
+        <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
+          {isAuthenticated && (
+            <Pressable
+              onPress={handleSignOut}
+              style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+            >
+              <LogOut size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.8} />
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </Pressable>
+          )}
+        </Animated.View>
+      </View>
     </View>
   );
 }
@@ -201,18 +142,18 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
-  },
-  greenHeader: {
     backgroundColor: '#16A34A',
-    paddingBottom: 32,
+  },
+  greenFull: {
+    flex: 1,
+    backgroundColor: '#16A34A',
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   topBarTitle: {
     fontSize: 18,
@@ -221,140 +162,122 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileIdentity: {
+  profileSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
   },
   avatarOuter: {
     position: 'relative',
-    marginBottom: 14,
+    marginBottom: 18,
   },
   avatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: 'rgba(255,255,255,0.22)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.45)',
+    borderWidth: 3.5,
+    borderColor: 'rgba(255,255,255,0.5)',
     overflow: 'hidden',
   },
   avatarImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
   },
   avatarInitial: {
-    fontSize: 40,
+    fontSize: 52,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   cameraBtn: {
     position: 'absolute',
-    bottom: -2,
-    right: -4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: 0,
+    right: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
   nameText: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '700' as const,
     color: '#FFFFFF',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   memberText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.6)',
-    marginTop: 3,
-  },
-  emailText: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.45)',
     marginTop: 4,
   },
-  contentSheet: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-    marginTop: -16,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  sheetContent: {
-    paddingTop: 24,
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  menuGroup: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  menuRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
-  },
-  menuIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuLabel: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500' as const,
-    color: '#1C1C1E',
-  },
-  menuRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  menuDetail: {
+  emailText: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: '#8E8E93',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 6,
   },
-  versionText: {
-    textAlign: 'center',
+  videoSection: {
+    paddingHorizontal: 24,
+    marginTop: 28,
+  },
+  videoCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  video: {
+    width: '100%' as const,
+    height: 200,
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  videoLabel: {
     fontSize: 12,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    marginTop: 8,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  spacer: {
+    flex: 1,
+  },
+  bottomArea: {
+    paddingBottom: 10,
+  },
+  signOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  signOutText: {
+    fontSize: 16,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.7)',
   },
 });
