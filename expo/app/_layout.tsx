@@ -3,15 +3,12 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { AuthProvider } from "@/contexts/AuthContext";
 import { PremiumProvider } from "@/contexts/PremiumContext";
-import { ExpenseProvider } from "@/contexts/ExpenseContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 import { ScanHistoryProvider } from "@/contexts/ScanHistoryContext";
 import { ScanProcessProvider } from "@/contexts/ScanProcessContext";
 import { SavedItemsProvider } from "@/contexts/SavedItemsContext";
-import { ProfileProvider } from "@/contexts/ProfileContext";
-import { BlocksProvider } from "@/contexts/BlocksContext";
-import { BusinessProvider } from "@/contexts/BusinessContext";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -21,9 +18,7 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="smart-scan" options={{ headerShown: false }} />
-      <Stack.Screen name="receipt-detail" options={{ headerShown: false }} />
-      <Stack.Screen name="post-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="smart-scan" options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }
@@ -36,25 +31,19 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <AuthProvider>
-          <PremiumProvider>
-            <ExpenseProvider>
+        <PremiumProvider>
+          <AuthProvider>
+            <ProfileProvider>
               <ScanHistoryProvider>
-                <ScanProcessProvider>
                 <SavedItemsProvider>
-                  <ProfileProvider>
-                    <BlocksProvider>
-                      <BusinessProvider>
-                        <RootLayoutNav />
-                      </BusinessProvider>
-                    </BlocksProvider>
-                  </ProfileProvider>
+                  <ScanProcessProvider>
+                    <RootLayoutNav />
+                  </ScanProcessProvider>
                 </SavedItemsProvider>
-                </ScanProcessProvider>
               </ScanHistoryProvider>
-            </ExpenseProvider>
-          </PremiumProvider>
-        </AuthProvider>
+            </ProfileProvider>
+          </AuthProvider>
+        </PremiumProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

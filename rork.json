@@ -10,6 +10,11 @@
       "name": "Flip",
       "path": "expo",
       "framework": "react-native"
+    },
+    {
+      "name": "Flips",
+      "path": "expo",
+      "framework": "react-native"
     }
   ]
 }

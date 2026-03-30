@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Flip",
+    "name": "Flips",
     "slug": "xrbl9oijjxu6ij41g3klq",
-    "version": "1.10.13.2",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rork-app",
@@ -34,6 +34,7 @@
           "origin": "https://rork.com/"
         }
       ],
+      "expo-font",
       "expo-web-browser"
     ],
     "experiments": {
