@@ -7,6 +7,7 @@ import { BusinessProvider } from '@/contexts/BusinessContext';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { ScanHistoryProvider } from '@/contexts/ScanHistoryContext';
 import { SavedItemsProvider } from '@/contexts/SavedItemsContext';
+import { OnlinePeopleProvider } from '@/contexts/OnlinePeopleContext';
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -22,7 +23,9 @@ export default function AppProviders({ children }: AppProvidersProps) {
                 <PremiumProvider>
                   <ScanHistoryProvider>
                     <SavedItemsProvider>
+                      <OnlinePeopleProvider>
                         {children}
+                      </OnlinePeopleProvider>
                     </SavedItemsProvider>
                   </ScanHistoryProvider>
                 </PremiumProvider>
