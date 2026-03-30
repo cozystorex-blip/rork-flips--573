@@ -4,8 +4,9 @@ import React, { useCallback } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 
-const SCAN_WIDTH = 72;
-const SCAN_HEIGHT = 40;
+const SCAN_WIDTH = 64;
+const SCAN_HEIGHT = 36;
+const TAB_BAR_HEIGHT = 50;
 
 function ScanTabButton() {
   const router = useRouter();
@@ -16,16 +17,17 @@ function ScanTabButton() {
   }, [router]);
 
   return (
-    <View style={scanStyles.wrapper}>
+    <View style={scanStyles.outerWrapper}>
+      <View style={scanStyles.bgFill} />
       <Pressable
         onPress={handlePress}
         style={({ pressed }) => [
           scanStyles.touchArea,
-          pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+          pressed && { opacity: 0.9, transform: [{ scale: 0.95 }] },
         ]}
         testID="tab-scan-button"
       >
-        <View style={scanStyles.halfCircle}>
+        <View style={scanStyles.dome}>
           <View style={scanStyles.scannerIcon}>
             <View style={scanStyles.cornerTL} />
             <View style={scanStyles.cornerTR} />
@@ -40,40 +42,46 @@ function ScanTabButton() {
 }
 
 const scanStyles = StyleSheet.create({
-  wrapper: {
-    position: "relative",
-    top: -SCAN_HEIGHT + 2,
-    justifyContent: "center",
-    alignItems: "center",
-    width: SCAN_WIDTH,
-    height: SCAN_HEIGHT + 10,
-  },
-  touchArea: {
-    width: SCAN_WIDTH,
-    height: SCAN_HEIGHT + 10,
+  outerWrapper: {
+    width: SCAN_WIDTH + 16,
+    height: TAB_BAR_HEIGHT + SCAN_HEIGHT,
     alignItems: "center",
     justifyContent: "flex-end",
+    marginTop: -SCAN_HEIGHT,
   },
-  halfCircle: {
+  bgFill: {
+    position: "absolute",
+    bottom: 0,
+    width: SCAN_WIDTH + 16,
+    height: TAB_BAR_HEIGHT,
+    backgroundColor: "#FFFFFF",
+  },
+  touchArea: {
+    width: SCAN_WIDTH + 16,
+    height: TAB_BAR_HEIGHT + SCAN_HEIGHT,
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  dome: {
     width: SCAN_WIDTH,
-    height: SCAN_HEIGHT,
+    height: SCAN_HEIGHT + TAB_BAR_HEIGHT / 2,
     borderTopLeftRadius: SCAN_WIDTH / 2,
     borderTopRightRadius: SCAN_WIDTH / 2,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     backgroundColor: "#16A34A",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#0D7A2F",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
   },
   scannerIcon: {
-    width: 24,
-    height: 20,
-    marginTop: 4,
+    width: 22,
+    height: 18,
+    marginTop: -4,
     position: "relative",
   },
   cornerTL: {
