@@ -13,10 +13,9 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Plus, BadgeCheck, User, ImageIcon, Layers, SquarePen, DoorOpen, Grid3X3, X, Tag, Heart, Share2, ChevronDown } from 'lucide-react-native';
-import { BlockTagLeft, CategoryLabels, CategoryType, UserProfileBlock } from '@/types';
+import { Plus, BadgeCheck, Layers, SquarePen, DoorOpen, Grid3X3, X, Tag, Heart, Share2, ChevronDown, ImageIcon } from 'lucide-react-native';
+import { CategoryLabels, UserProfileBlock } from '@/types';
 import Colors, { CategoryColors } from '@/constants/colors';
 import CategoryIcon from '@/components/CategoryIcon';
 
@@ -26,8 +25,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
-import { supabase, isSupabaseConfigured } from '@/services/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 import AdBlockTile from '@/components/ads/AdBlockTile';
@@ -36,9 +33,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const AD_BLOCK_GAP = 2;
 const AD_BLOCK_COLUMNS = 3;
 const AD_BLOCK_SIZE = (SCREEN_WIDTH - 40 - AD_BLOCK_GAP * (AD_BLOCK_COLUMNS - 1)) / AD_BLOCK_COLUMNS;
-const FOLLOWED_STORAGE_KEY = 'followed_creators';
 const DRAWER_HEIGHT = SCREEN_HEIGHT * 0.72;
-const _PLACEHOLDER_IMG = '';
 
 function getBlockImageUri(url?: string): string {
   if (!url || !url.trim()) return '';
@@ -46,16 +41,6 @@ function getBlockImageUri(url?: string): string {
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   if (trimmed.startsWith('file://') || trimmed.startsWith('/') || trimmed.startsWith('data:')) return trimmed;
   return '';
-}
-
-interface OtherUserProfile {
-  user_id: string;
-  display_name: string;
-  bio: string;
-  avatar_url: string;
-  style: string;
-  weekly_spend: number | null;
-  logs_count: number | null;
 }
 
 interface PreviewPost {
@@ -377,7 +362,7 @@ const drawerStyles = StyleSheet.create({
 });
 
 export default function ProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: _id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const profileCtx = useProfile();
   const profile_safe = profileCtx ?? { profile: null, hasProfile: false, isLoading: false, isError: false, refetch: () => Promise.resolve({} as any), userId: null, saveProfile: async () => {} };
@@ -389,11 +374,12 @@ export default function ProfileScreen() {
   const { totalCount: scanCount } = useScanHistory();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [followedCount, setFollowedCount] = useState(0);
   const [previewPost, setPreviewPost] = useState<PreviewPost | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [photosExpanded, setPhotosExpanded] = useState(true);
   const photosRotateAnim = useRef(new Animated.Value(1)).current;
+
+  const profileUserId = userId ?? '';
 
   const togglePhotos = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -410,21 +396,6 @@ export default function ProfileScreen() {
   }, [photosExpanded, photosRotateAnim]);
 
   useEffect(() => {
-    void AsyncStorage.getItem(FOLLOWED_STORAGE_KEY).then((raw) => {
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            setFollowedCount(parsed.length);
-          }
-        } catch {
-          // ignore
-        }
-      }
-    });
-  }, []);
-
-  useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
@@ -432,102 +403,7 @@ export default function ProfileScreen() {
     }).start();
   }, [fadeAnim]);
 
-  const isMe = id === 'me' || id === userId;
-  const profileUserId = isMe ? (userId ?? '') : (id ?? '');
-
-  const otherProfileQuery = useQuery({
-    queryKey: ['other_profile', profileUserId],
-    queryFn: async (): Promise<OtherUserProfile | null> => {
-      if (!profileUserId) return null;
-      console.log('[ProfileScreen] Fetching other user profile:', profileUserId);
-
-      if (!isSupabaseConfigured) {
-        console.log('[ProfileScreen] Supabase not configured, skipping remote fetch');
-        return null;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles_peoples')
-          .select('*')
-          .eq('user_id', profileUserId)
-          .maybeSingle();
-
-        if (!error && data) {
-          console.log('[ProfileScreen] Profile found by user_id:', data.display_name);
-          return data as OtherUserProfile;
-        }
-
-        console.log('[ProfileScreen] Not found by user_id, trying id column:', profileUserId);
-        const { data: data2, error: error2 } = await supabase
-          .from('profiles_peoples')
-          .select('*')
-          .eq('id', profileUserId)
-          .maybeSingle();
-
-        if (!error2 && data2) {
-          console.log('[ProfileScreen] Profile found by id:', data2.display_name);
-          return data2 as OtherUserProfile;
-        }
-
-        console.log('[ProfileScreen] No Supabase profile found for:', profileUserId);
-        return null;
-      } catch (e) {
-        console.log('[ProfileScreen] Query error, falling back:', e);
-        return null;
-      }
-    },
-    enabled: !isMe && !!profileUserId,
-    retry: 1,
-  });
-
-  const otherProfile = otherProfileQuery.data ?? null;
-
-  const myBlocks = useUserBlocks(profileUserId);
-
-  const otherBlocksQuery = useQuery({
-    queryKey: ['user_blocks', profileUserId],
-    queryFn: async () => {
-      if (!profileUserId) return [];
-      console.log('[ProfileScreen] Fetching blocks from Supabase for other user:', profileUserId);
-      try {
-        const { data, error } = await supabase
-          .from('blocks')
-          .select('*')
-          .eq('user_id', profileUserId)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.log('[ProfileScreen] Other user blocks fetch error:', error.message);
-          return [];
-        }
-        console.log('[ProfileScreen] Other user blocks loaded:', data?.length ?? 0);
-        const typeToTag: Record<string, BlockTagLeft> = {
-          deal: 'DEAL', tip: 'TIP', store: 'STORE', list: 'LIST', recipe: 'RECIPE', bulk_purchase: 'BULK',
-        };
-        return (data ?? []).map((sb: Record<string, unknown>): UserProfileBlock => ({
-          id: sb.id as string,
-          userId: sb.user_id as string,
-          title: (sb.title as string) ?? '',
-          description: (sb.description as string) ?? '',
-          headerImageUrl: (sb.header_image_url as string) ?? '',
-          tagLeft: typeToTag[(sb.block_type as string)] ?? 'TIP',
-          badgeRight: sb.show_new_badge ? 'NEW' : null,
-          actionLabel: (sb.action_label as string) ?? '',
-          actionType: 'none',
-          placeId: (sb.place_id as string) ?? undefined,
-          url: (sb.url as string) ?? undefined,
-          createdAt: (sb.created_at as string) ?? '',
-        }));
-      } catch (e) {
-        console.log('[ProfileScreen] Other user blocks query threw:', e);
-        return [];
-      }
-    },
-    enabled: !isMe && !!profileUserId,
-  });
-
-  const userBlocks = isMe ? myBlocks : (otherBlocksQuery.data ?? []);
+  const userBlocks = useUserBlocks(profileUserId);
   const userClaims = getClaimsForUser(profileUserId);
   const hasVerifiedBusiness = userClaims.some((c) => c.isVerified);
 
@@ -586,7 +462,7 @@ export default function ProfileScreen() {
     headerShadowVisible: false,
   }), []);
 
-  if (isMe && profileLoading && !myProfile) {
+  if (profileLoading && !myProfile) {
     return (
       <View style={styles.emptyContainer}>
         <Stack.Screen options={profileHeaderOptions} />
@@ -596,7 +472,7 @@ export default function ProfileScreen() {
     );
   }
 
-  if (isMe && profileError && !myProfile) {
+  if (profileError && !myProfile) {
     return (
       <View style={styles.emptyContainer}>
         <Stack.Screen options={profileHeaderOptions} />
@@ -625,18 +501,10 @@ export default function ProfileScreen() {
     );
   }
 
-  if (isMe && !hasProfile && !profileLoading) {
+  if (!hasProfile && !profileLoading) {
     return (
       <View style={styles.emptyContainer}>
-        <Stack.Screen
-          options={{
-            title: 'Profile',
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: Colors.background },
-            headerTintColor: Colors.text,
-            headerShadowVisible: false,
-          }}
-        />
+        <Stack.Screen options={profileHeaderOptions} />
         <Text style={styles.emptyText}>Set up your profile</Text>
         <Pressable
           style={styles.createBtn}
@@ -652,179 +520,6 @@ export default function ProfileScreen() {
           <DoorOpen size={18} color="#FF3B30" strokeWidth={1.8} />
           <Text style={styles.signOutBtnText}>Sign Out</Text>
         </Pressable>
-      </View>
-    );
-  }
-
-  if (!isMe) {
-    if (otherProfileQuery.isLoading) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Stack.Screen options={profileHeaderOptions} />
-          <ActivityIndicator size="large" color="#1A1A1A" />
-        </View>
-      );
-    }
-
-    if (!otherProfile) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Stack.Screen options={profileHeaderOptions} />
-          <Text style={styles.emptyText}>Profile not available</Text>
-        </View>
-      );
-    }
-
-    const styleMap: Record<string, CategoryType> = {
-      budget: 'budget', healthy: 'healthy', bulk: 'bulk', deals: 'deals',
-    };
-    const otherCatColor = CategoryColors[styleMap[otherProfile.style] ?? 'budget'] ?? '#9CA3AF';
-    const otherStyleTag = styleMap[otherProfile.style] ?? 'budget';
-    const otherBlocks = userBlocks;
-
-    return (
-      <View style={styles.container}>
-        <Stack.Screen
-          options={{
-            title: otherProfile.display_name,
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: Colors.background },
-            headerTintColor: Colors.text,
-            headerShadowVisible: false,
-          }}
-        />
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Animated.View style={[styles.profileHeader, { opacity: fadeAnim }]}>
-            {otherProfile.avatar_url ? (
-              <Image
-                source={{ uri: otherProfile.avatar_url }}
-                style={styles.avatar}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: otherCatColor + '20' }]}>
-                <User size={36} color={otherCatColor} />
-              </View>
-            )}
-            <View style={styles.nameRow}>
-              <Text style={styles.name}>{otherProfile.display_name}</Text>
-              {hasVerifiedBusiness && (
-                <BadgeCheck size={18} color="#2563EB" />
-              )}
-            </View>
-            <View style={[styles.styleTag, { backgroundColor: otherCatColor + '14' }]}>
-              <CategoryIcon category={otherStyleTag} size={14} color={otherCatColor} />
-              <Text style={[styles.styleTagText, { color: otherCatColor }]}>
-                {CategoryLabels[otherStyleTag] ?? otherProfile.style}
-              </Text>
-            </View>
-            {otherProfile.bio ? (
-              <Text style={styles.bio}>{otherProfile.bio}</Text>
-            ) : null}
-          </Animated.View>
-
-          <Animated.View style={[styles.statsContainer, { opacity: fadeAnim }]}>
-            <View style={styles.statsInner}>
-              <View style={styles.statBlock}>
-                <Text style={styles.statBlockValue}>{otherBlocks.length}</Text>
-                <Text style={styles.statBlockLabel}>Posts</Text>
-              </View>
-              <View style={styles.statDivider} />
-
-              <View style={styles.statBlock}>
-                <Text style={styles.statBlockValue}>0</Text>
-                <Text style={styles.statBlockLabel}>Saved</Text>
-              </View>
-            </View>
-          </Animated.View>
-
-          <AdMobBanner />
-
-          <Animated.View style={[styles.photosSection, { opacity: fadeAnim }]}>
-            <View style={styles.photosSectionHeaderRow}>
-              <Pressable
-                onPress={togglePhotos}
-                style={({ pressed }) => [
-                  styles.photosSectionHeader,
-                  { flex: 1 },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <View style={styles.photoTabActive}>
-                  <Grid3X3 size={15} color="#1A1A1A" />
-                  <Text style={styles.photoTabTextActive}>Photos</Text>
-                  {otherBlocks.length > 0 && (
-                    <View style={styles.photosCountBadge}>
-                      <Text style={styles.photosCountText}>{otherBlocks.length}</Text>
-                    </View>
-                  )}
-                </View>
-                <Animated.View style={{ transform: [{ rotate: photosRotateAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
-                  <ChevronDown size={18} color="#86868B" strokeWidth={2.2} />
-                </Animated.View>
-              </Pressable>
-            </View>
-            {photosExpanded && (
-              otherBlocksQuery.isLoading ? (
-                <View style={styles.emptyPostsContainer}>
-                  <ActivityIndicator size="small" color="#8E8E93" />
-                </View>
-              ) : otherBlocks.length > 0 ? (
-                <View style={styles.adBlocksGrid}>
-                  {otherBlocks.map((block, idx) => (
-                    <React.Fragment key={block.id}>
-                      {idx === 3 && (
-                        <AdBlockTile size={AD_BLOCK_SIZE} index={0} />
-                      )}
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.adBlockCard,
-                          pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
-                        ]}
-                        onPress={() => openPostPreview(block, otherProfile.display_name)}
-                        testID={`ad-block-${block.id}`}
-                      >
-                        {getBlockImageUri(block.headerImageUrl) ? (
-                          <Image
-                            source={{ uri: getBlockImageUri(block.headerImageUrl) }}
-                            style={styles.adBlockImage}
-                            contentFit="cover"
-                            recyclingKey={block.id}
-                          />
-                        ) : (
-                          <View style={[styles.adBlockImage, styles.adBlockImagePlaceholder]}>
-                            <ImageIcon size={20} color="#AEAEB2" />
-                          </View>
-                        )}
-                      </Pressable>
-                    </React.Fragment>
-                  ))}
-                  {otherBlocks.length > 0 && otherBlocks.length <= 3 && (
-                    <AdBlockTile size={AD_BLOCK_SIZE} index={2} />
-                  )}
-                </View>
-              ) : (
-                <View style={styles.emptyPostsContainer}>
-                  <View style={styles.emptyPostsIcon}>
-                    <ImageIcon size={26} color="#8E8E93" />
-                  </View>
-                  <Text style={styles.emptyPostsText}>No photos yet</Text>
-                </View>
-              )
-            )}
-          </Animated.View>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
-
-        <PostPreviewDrawer
-          visible={previewVisible}
-          post={previewPost}
-          onClose={closePreview}
-        />
       </View>
     );
   }
@@ -946,11 +641,6 @@ export default function ProfileScreen() {
             <View style={styles.statBlock}>
               <Text style={styles.statBlockValue}>{userBlocks.length}</Text>
               <Text style={styles.statBlockLabel}>Posts</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBlock}>
-              <Text style={styles.statBlockValue}>{followedCount}</Text>
-              <Text style={styles.statBlockLabel}>Following</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBlock}>
@@ -1377,19 +1067,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 40,
     gap: 6,
-  },
-  emptyPostsIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F0F0F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyPostsText: {
-    fontSize: 14,
-    color: '#86868B',
-    fontWeight: '600' as const,
   },
   loadingHint: {
     fontSize: 13,

@@ -18,13 +18,6 @@ export interface MyProfile {
 
 const PROFILE_STORAGE_KEY = 'local_profile';
 
-const STYLE_TAG_TO_STYLE: Record<string, string> = {
-  budget: 'budget',
-  healthy: 'healthy',
-  bulk: 'bulk',
-  deals: 'deals',
-};
-
 function makeDefaultProfile(userId: string): MyProfile {
   return {
     id: userId,
@@ -176,39 +169,6 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
     }
   }, [userId]);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !userId || !profile) return;
-    if (!(profile.display_name ?? '').trim() || profile.display_name === 'User') return;
-    const ensureDiscoverable = async () => {
-      try {
-        const { data: existing } = await supabase
-          .from('profiles_peoples')
-          .select('user_id')
-          .eq('user_id', userId)
-          .maybeSingle();
-        if (!existing) {
-          console.log('[ProfileContext] Auto-creating profiles_peoples entry for:', userId);
-          const styleVal = STYLE_TAG_TO_STYLE[profile.style_tag] ?? profile.style_tag;
-          await supabase
-            .from('profiles_peoples')
-            .upsert({
-              user_id: userId,
-              display_name: profile.display_name,
-              bio: profile.bio ?? '',
-              avatar_url: profile.avatar_url ?? '',
-              style: styleVal,
-              weekly_spend: 0,
-              logs_count: 0,
-            }, { onConflict: 'user_id' });
-          console.log('[ProfileContext] profiles_peoples auto-created');
-          void queryClient.invalidateQueries({ queryKey: ['discover_profiles'] });
-        }
-      } catch (e) {
-        console.log('[ProfileContext] Auto-create profiles_peoples failed (non-fatal):', e);
-      }
-    };
-    void ensureDiscoverable();
-  }, [userId, profile, queryClient]);
 
   const { mutateAsync: mutateProfile } = useMutation({
     mutationFn: async (p: Partial<Omit<MyProfile, 'id' | 'created_at'>>) => {
@@ -232,7 +192,6 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
       };
 
       let savedProfile: MyProfile | null = null;
-      let supabaseSaved = false;
 
       if (isSupabaseConfigured) {
         try {
@@ -252,7 +211,6 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
           } else {
             console.log('[ProfileContext] Profile saved to Supabase successfully');
             savedProfile = data as MyProfile;
-            supabaseSaved = true;
           }
         } catch (e) {
           console.log('[ProfileContext] Supabase save threw:', e instanceof Error ? e.message : e);
@@ -273,33 +231,6 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
       }
 
       await saveLocalProfile(savedProfile);
-
-      if (supabaseSaved && isSupabaseConfigured) {
-        const styleVal = STYLE_TAG_TO_STYLE[styleTag] ?? styleTag;
-        try {
-          const { error: ppError } = await supabase
-            .from('profiles_peoples')
-            .upsert({
-              user_id: userId,
-              display_name: displayName,
-              bio,
-              avatar_url: avatarUrl,
-              style: styleVal,
-              weekly_spend: 0,
-              logs_count: 0,
-            }, { onConflict: 'user_id' })
-            .select();
-
-          if (ppError) {
-            console.log('[ProfileContext] profiles_peoples sync error:', ppError.message);
-          } else {
-            console.log('[ProfileContext] profiles_peoples synced');
-            void queryClient.invalidateQueries({ queryKey: ['discover_profiles'] });
-          }
-        } catch (syncErr) {
-          console.log('[ProfileContext] profiles_peoples sync failed (non-fatal):', syncErr);
-        }
-      }
 
       return savedProfile;
     },
