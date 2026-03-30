@@ -360,6 +360,15 @@ export default function ProfileScreen() {
                 )}
               </Pressable>
             </Animated.View>
+
+            <View style={styles.runnerContainer}>
+              <Image
+                source={{ uri: 'https://media.giphy.com/media/3o7budMRwZvNGJ3pyE/giphy.gif' }}
+                style={styles.runnerGif}
+                contentFit="contain"
+                testID="old-guy-running-gif"
+              />
+            </View>
           </View>
         </View>
 
@@ -523,6 +532,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700' as const,
     color: '#FFFFFF',
+  },
+  runnerContainer: {
+    marginTop: 16,
+    alignItems: 'center',
+    width: 160,
+    height: 120,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  runnerGif: {
+    width: 160,
+    height: 120,
+    borderRadius: 16,
   },
   whiteContent: {
     flex: 1,
