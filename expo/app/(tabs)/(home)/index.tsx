@@ -16,12 +16,10 @@ import {
   Flame,
   DollarSign,
   Scan,
-  ChevronRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import ScanFrameIcon from '@/components/ScanFrameIcon';
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
@@ -145,11 +143,6 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const handleScanPress = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/smart-scan');
-  }, [router]);
-
   const handleReceiptPress = useCallback((expenseId: string) => {
     void Haptics.selectionAsync();
     router.push({ pathname: '/receipt-detail', params: { expenseId } });
@@ -187,22 +180,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <Pressable
-            onPress={handleScanPress}
-            style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
-            testID="home-scan-card"
-          >
-            <View style={styles.scanCardContent}>
-              <View style={styles.scanCardIconWrap}>
-                <ScanFrameIcon size={30} color="#FFFFFF" strokeWidth={2.5} />
-              </View>
-              <View style={styles.scanCardTextWrap}>
-                <Text style={styles.scanCardTitle}>Scan Item</Text>
-                <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color="rgba(255,255,255,0.6)" strokeWidth={2} />
-          </Pressable>
 
           {recentScans.length > 0 && (
             <View style={styles.section}>
