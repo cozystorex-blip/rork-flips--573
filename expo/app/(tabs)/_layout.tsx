@@ -180,6 +180,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="saved"
+        options={{
+          title: "Saved",
+          tabBarIcon: ({ color, size }) => (
+            <Heart size={size} color={color} strokeWidth={1.8} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="scan"
         options={{
           title: "",
@@ -189,15 +198,6 @@ export default function TabLayout() {
           tabPress: (e) => {
             e.preventDefault();
           },
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: "Saved",
-          tabBarIcon: ({ color, size }) => (
-            <Heart size={size} color={color} strokeWidth={1.8} />
-          ),
         }}
       />
       <Tabs.Screen
