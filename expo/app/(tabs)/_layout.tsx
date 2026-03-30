@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from "expo-router";
-import { Home, Heart, Receipt, User } from "lucide-react-native";
+import { Home, Heart, User } from "lucide-react-native";
 import React, { useCallback } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -188,15 +188,7 @@ export default function TabLayout() {
           },
         }}
       />
-      <Tabs.Screen
-        name="receipts"
-        options={{
-          title: "Receipts",
-          tabBarIcon: ({ color, size }) => (
-            <Receipt size={size} color={color} strokeWidth={1.8} />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="profile"
         options={{

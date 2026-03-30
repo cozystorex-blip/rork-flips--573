@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,29 +8,23 @@ import {
   Platform,
   UIManager,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Package,
   Bell,
   Flame,
-  DollarSign,
   Scan,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
-import { useSavedItems } from '@/contexts/SavedItemsContext';
+import { generateBrandLogo, getCachedBrandLogo } from '@/services/brandLogoService';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function getScanPrice(entry: ScanHistoryEntry): string | null {
@@ -63,12 +57,103 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
   return null;
 }
 
+function getBrandFromEntry(entry: ScanHistoryEntry): string {
+  const r = entry.result;
+  const details = r.fashion_details ?? r.electronics_details ?? r.food_details ?? r.grocery_details ?? r.household_details ?? r.furniture_details;
+  if (details && typeof details === 'object') {
+    const d = details as Record<string, unknown>;
+    if (d.brand && typeof d.brand === 'string') return d.brand;
+    if (d.manufacturer && typeof d.manufacturer === 'string') return d.manufacturer;
+  }
+  return r.item_name || 'Item';
+}
+
+interface BrandLogoIconProps {
+  entry: ScanHistoryEntry;
+  size: number;
+}
+
+function BrandLogoIcon({ entry, size }: BrandLogoIconProps) {
+  const brandName = getBrandFromEntry(entry);
+  const itemName = entry.result.item_name || 'Item';
+  const [logoUri, setLogoUri] = useState<string | null>(() => getCachedBrandLogo(itemName, brandName));
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (logoUri || failed) return;
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const uri = await generateBrandLogo(itemName, brandName);
+        if (!cancelled) {
+          if (uri) setLogoUri(uri);
+          else setFailed(true);
+        }
+      } catch {
+        if (!cancelled) setFailed(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [itemName, brandName, logoUri, failed]);
+
+  if (logoUri) {
+    return (
+      <View style={[logoStyles.container, { width: size, height: size }]}>
+        <Image
+          source={{ uri: logoUri }}
+          style={{ width: size, height: size }}
+          contentFit="cover"
+          transition={300}
+        />
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={[logoStyles.fallback, { width: size, height: size }]}>
+        <ActivityIndicator size="small" color="#16A34A" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[logoStyles.fallback, { width: size, height: size }]}>
+      <Text style={logoStyles.fallbackText}>
+        {(brandName || itemName || 'S').charAt(0).toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+const logoStyles = StyleSheet.create({
+  container: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F2F2F7',
+  },
+  fallback: {
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fallbackText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+});
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { expenses } = useExpenses();
   const { entries: scanEntries } = useScanHistory();
-  const { savedDeals } = useSavedItems();
 
   const streakDays = useMemo(() => {
     if (scanEntries.length === 0) return 0;
@@ -84,28 +169,10 @@ export default function HomeScreen() {
     return streak;
   }, [scanEntries]);
 
-  const recentScans = useMemo(() => {
+  const allScans = useMemo(() => {
     return [...scanEntries]
-      .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())
-      .slice(0, 6);
+      .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
   }, [scanEntries]);
-
-  const recentReceipts = useMemo(() => {
-    return expenses
-      .filter((e) => e.amount > 0)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 3);
-  }, [expenses]);
-
-  const itemsScannedCount = scanEntries.length;
-
-  const totalSavings = useMemo(() => {
-    let total = 0;
-    savedDeals.forEach(d => {
-      if (d.savingsAmount) total += d.savingsAmount;
-    });
-    return total;
-  }, [savedDeals]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
@@ -116,11 +183,6 @@ export default function HomeScreen() {
       Animated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, slideAnim]);
-
-  const handleReceiptPress = useCallback((expenseId: string) => {
-    void Haptics.selectionAsync();
-    router.push({ pathname: '/receipt-detail', params: { expenseId } });
-  }, [router]);
 
   const handleScanItemPress = useCallback((entry: ScanHistoryEntry) => {
     void Haptics.selectionAsync();
@@ -155,10 +217,10 @@ export default function HomeScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          {recentScans.length > 0 && (
+          {allScans.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Recent Scans</Text>
+                <Text style={styles.sectionTitle}>Scanned Items</Text>
                 <Pressable
                   onPress={() => {
                     void Haptics.selectionAsync();
@@ -172,7 +234,7 @@ export default function HomeScreen() {
               </View>
 
               <View style={styles.gridContainer}>
-                {recentScans.map((entry, index) => {
+                {allScans.map((entry, index) => {
                   const price = getScanPrice(entry);
                   const badge = getScanBadge(entry);
                   const isLarge = index === 0 || index === 3;
@@ -201,6 +263,12 @@ export default function HomeScreen() {
                         )}
                       </View>
                       <View style={styles.gridItemInfo}>
+                        <View style={styles.gridItemHeader}>
+                          <BrandLogoIcon entry={entry} size={28} />
+                          <Text style={styles.gridItemBrand} numberOfLines={1}>
+                            {getBrandFromEntry(entry)}
+                          </Text>
+                        </View>
                         <Text style={styles.gridItemName} numberOfLines={1}>
                           {entry.result.item_name || 'Scanned Item'}
                         </Text>
@@ -218,86 +286,13 @@ export default function HomeScreen() {
                 })}
               </View>
             </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Scan size={32} color="#C7C7CC" strokeWidth={1.3} />
+              <Text style={styles.emptyTitle}>No scanned items yet</Text>
+              <Text style={styles.emptySubtext}>Tap the scan button to start scanning products</Text>
+            </View>
           )}
-
-          <View style={styles.statsRow}>
-            <View style={[styles.statCard, styles.statCardSavings]}>
-              <View style={styles.statIconWrap}>
-                <DollarSign size={14} color="#16A34A" strokeWidth={2.2} />
-              </View>
-              <Text style={styles.statLabel}>Total Saved</Text>
-              <Text style={styles.statValue}>${totalSavings > 0 ? totalSavings.toFixed(0) : '0'}</Text>
-              <Text style={styles.statPeriod}>This month</Text>
-            </View>
-            <View style={[styles.statCard, styles.statCardScanned]}>
-              <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                <Scan size={14} color="#3B82F6" strokeWidth={2.2} />
-              </View>
-              <Text style={styles.statLabel}>Items Scanned</Text>
-              <Text style={styles.statValue}>{itemsScannedCount}</Text>
-              <Text style={styles.statPeriod}>This week</Text>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Recent Receipts</Text>
-              {recentReceipts.length > 0 && (
-                <Pressable
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    router.push('/(tabs)/receipts' as any);
-                  }}
-                  hitSlop={8}
-                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={styles.seeAllText}>See All</Text>
-                </Pressable>
-              )}
-            </View>
-
-            {recentReceipts.length > 0 ? (
-              <View style={styles.listCard}>
-                {recentReceipts.map((exp, index) => {
-                  const itemCount = exp.receiptItemsPreview
-                    ? exp.receiptItemsPreview.split(',').length
-                    : 0;
-                  return (
-                    <Pressable
-                      key={exp.id}
-                      onPress={() => handleReceiptPress(exp.id)}
-                      style={({ pressed }) => [
-                        styles.receiptRow,
-                        pressed && styles.scanRowPressed,
-                        index < recentReceipts.length - 1 && styles.scanRowBorder,
-                      ]}
-                    >
-                      <View style={styles.receiptIconWrap}>
-                        <Text style={styles.receiptStoreIcon}>
-                          {(exp.merchant || exp.title || 'S').charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={styles.scanInfo}>
-                        <Text style={styles.scanItemTitle} numberOfLines={1}>
-                          {exp.merchant || exp.title}
-                        </Text>
-                        <Text style={styles.scanItemSub}>
-                          {itemCount > 0 ? `${itemCount} items · ` : ''}{formatDate(exp.createdAt)}
-                        </Text>
-                      </View>
-                      <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Package size={24} color="#C7C7CC" strokeWidth={1.3} />
-                <Text style={styles.emptyTitle}>No receipts yet</Text>
-                <Text style={styles.emptySubtext}>Scan a receipt to start tracking</Text>
-              </View>
-            )}
-          </View>
 
           <View style={{ height: 32 }} />
         </Animated.View>
@@ -358,51 +353,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
   },
-  scanCard: {
-    backgroundColor: '#16A34A',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    elevation: 6,
-  },
-  scanCardPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  scanCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  scanCardIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanCardTextWrap: {
-    gap: 2,
-  },
-  scanCardTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-  },
-  scanCardSub: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.7)',
-  },
   section: {
     marginBottom: 20,
   },
@@ -422,67 +372,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#16A34A',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  statCardSavings: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#16A34A',
-  },
-  statCardScanned: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#3B82F6',
-  },
-  statIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-    marginBottom: 2,
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.5,
-  },
-  statPeriod: {
-    fontSize: 11,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    marginTop: 2,
-  },
-  listCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   gridContainer: {
     flexDirection: 'row',
@@ -533,6 +422,20 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 3,
   },
+  gridItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  gridItemBrand: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    flex: 1,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.4,
+  },
   gridItemName: {
     fontSize: 14,
     fontWeight: '600' as const,
@@ -556,59 +459,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700' as const,
   },
-  scanRowPressed: {
-    backgroundColor: '#F8F8FA',
-  },
-  scanRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
-  },
-  scanInfo: {
-    flex: 1,
-  },
-  scanItemTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-  },
-  scanItemSub: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  receiptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 12,
-  },
-  receiptIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  receiptStoreIcon: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#16A34A',
-  },
-  receiptAmount: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-  },
   emptyState: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    paddingVertical: 28,
+    paddingVertical: 48,
     paddingHorizontal: 20,
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    marginTop: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -616,12 +474,12 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600' as const,
     color: '#1C1C1E',
   },
   emptySubtext: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '400' as const,
     color: '#8E8E93',
     textAlign: 'center' as const,
