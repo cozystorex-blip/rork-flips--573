@@ -52,15 +52,6 @@ function getDetailsRecord(r: SmartScanResult): Record<string, unknown> | null {
   return null;
 }
 
-function getBrandFromResult(r: SmartScanResult): string {
-  const details = getDetailsRecord(r);
-  if (details) {
-    if (details.brand && typeof details.brand === 'string') return details.brand;
-    if (details.manufacturer && typeof details.manufacturer === 'string') return details.manufacturer;
-  }
-  return r.category || r.item_type || 'Item';
-}
-
 function getScanPrice(entry: ScanHistoryEntry): string | null {
   const details = getDetailsRecord(entry.result);
   if (!details) return null;
@@ -245,27 +236,6 @@ export default function SavedScreen() {
                       </View>
                     )}
                   </View>
-                  <View style={styles.gridCardBody}>
-                    {item.type === 'scan' && (
-                      <Text style={styles.gridCardBrand} numberOfLines={1}>
-                        {getBrandFromResult((item.raw as ScanHistoryEntry).result)}
-                      </Text>
-                    )}
-                    {item.type === 'deal' && (
-                      <Text style={styles.gridCardBrand} numberOfLines={1}>
-                        {item.source}
-                      </Text>
-                    )}
-                    <Text style={styles.gridCardTitle} numberOfLines={2}>{item.title}</Text>
-                    {item.price && (
-                      <Text style={styles.gridCardPrice}>{item.price}</Text>
-                    )}
-                    {item.badge && (
-                      <View style={[styles.gridBadge, { backgroundColor: item.badgeColor + '18' }]}>
-                        <Text style={[styles.gridBadgeText, { color: item.badgeColor }]}>{item.badge}</Text>
-                      </View>
-                    )}
-                  </View>
                 </Pressable>
               ))}
             </View>
@@ -389,44 +359,12 @@ const styles = StyleSheet.create({
   },
   gridImage: {
     backgroundColor: '#F2F2F7',
+    borderRadius: 16,
   },
   gridImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
   },
-  gridCardBody: {
-    padding: 10,
-    gap: 3,
-  },
-  gridCardBrand: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.4,
-  },
-  gridCardTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    lineHeight: 18,
-  },
-  gridCardPrice: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    marginTop: 2,
-  },
-  gridBadge: {
-    alignSelf: 'flex-start' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  gridBadgeText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-  },
+
 });
