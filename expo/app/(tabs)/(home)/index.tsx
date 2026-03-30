@@ -133,13 +133,11 @@ function BrandLogoIcon({ entry, size }: BrandLogoIconProps) {
 
 const logoStyles = StyleSheet.create({
   container: {
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#F2F2F7',
   },
   fallback: {
-    borderRadius: 12,
-    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
