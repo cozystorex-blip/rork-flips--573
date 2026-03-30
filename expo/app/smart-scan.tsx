@@ -125,8 +125,8 @@ export default function SmartScanScreen() {
   const progressWidth = useRef(new Animated.Value(0)).current;
   const resultFade = useRef(new Animated.Value(0)).current;
 
-  const historyEntryIdRef = useRef(params.historyEntryId);
   const hasNavigatedRef = useRef(false);
+  const historyLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!hasAutoLaunched.current && !result && !scanning && !params.historyEntryId && !viewingEntryId) {
@@ -148,36 +148,39 @@ export default function SmartScanScreen() {
   }, [pendingReceiptNav, consumeReceiptNav, router]);
 
   useEffect(() => {
-    if (historyEntryIdRef.current && !result) {
-      if (viewingEntryId === historyEntryIdRef.current) {
-        console.log('[SmartScan] Entry already loaded by caller, skipping lookup');
-        resultFade.setValue(1);
-        historyEntryIdRef.current = undefined;
+    if (historyLoadedRef.current) return;
+
+    const targetId = params.historyEntryId;
+    if (!targetId) return;
+
+    if (viewingEntryId === targetId && result) {
+      console.log('[SmartScan] Entry already loaded by caller, showing result');
+      resultFade.setValue(1);
+      historyLoadedRef.current = true;
+      return;
+    }
+
+    if (entries.length === 0) return;
+
+    const entry = entries.find((e) => e.id === targetId);
+    if (entry) {
+      console.log('[SmartScan] Loading history entry from lookup:', entry.result.item_name);
+      if (entry.result.item_type === 'receipt') {
+        historyLoadedRef.current = true;
+        if (!hasNavigatedRef.current) {
+          hasNavigatedRef.current = true;
+          router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
+        }
         return;
       }
-
-      if (entries.length > 0) {
-        const entry = entries.find((e) => e.id === historyEntryIdRef.current);
-        if (entry) {
-          console.log('[SmartScan] Loading history entry from lookup:', entry.result.item_name);
-          if (entry.result.item_type === 'receipt') {
-            historyEntryIdRef.current = undefined;
-            if (!hasNavigatedRef.current) {
-              hasNavigatedRef.current = true;
-              router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
-            }
-            return;
-          }
-          loadHistoryEntry({ result: entry.result, imageUri: entry.imageUri, id: entry.id });
-          resultFade.setValue(1);
-          historyEntryIdRef.current = undefined;
-        } else {
-          console.log('[SmartScan] Entry not found in history:', historyEntryIdRef.current);
-          historyEntryIdRef.current = undefined;
-        }
-      }
+      loadHistoryEntry({ result: entry.result, imageUri: entry.imageUri, id: entry.id });
+      resultFade.setValue(1);
+      historyLoadedRef.current = true;
+    } else {
+      console.log('[SmartScan] Entry not found in history:', targetId);
+      historyLoadedRef.current = true;
     }
-  }, [entries, result, resultFade, router, loadHistoryEntry, viewingEntryId]);
+  }, [entries, result, resultFade, router, loadHistoryEntry, viewingEntryId, params.historyEntryId]);
 
   useEffect(() => {
     if (scanning) {

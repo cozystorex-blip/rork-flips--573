@@ -12,34 +12,49 @@ async function ensureDir(): Promise<void> {
   }
 }
 
+const MAX_PERSIST_RETRIES = 2;
+
 export async function persistScanImage(tempUri: string): Promise<string> {
   if (Platform.OS === 'web') {
     console.log('[ImagePersistence] Web platform — using original URI');
     return tempUri;
   }
 
-  try {
-    await ensureDir();
+  for (let attempt = 1; attempt <= MAX_PERSIST_RETRIES; attempt++) {
+    try {
+      await ensureDir();
 
-    const ext = tempUri.split('.').pop()?.split('?')[0] ?? 'jpg';
-    const filename = `scan_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const destUri = `${SCAN_IMAGES_DIR}${filename}`;
+      const ext = tempUri.split('.').pop()?.split('?')[0] ?? 'jpg';
+      const filename = `scan_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const destUri = `${SCAN_IMAGES_DIR}${filename}`;
 
-    console.log('[ImagePersistence] Copying image to persistent storage:', destUri);
-    await FileSystem.copyAsync({ from: tempUri, to: destUri });
+      console.log(`[ImagePersistence] Copying image attempt ${attempt}/${MAX_PERSIST_RETRIES}:`, destUri);
+      await FileSystem.copyAsync({ from: tempUri, to: destUri });
 
-    const check = await FileSystem.getInfoAsync(destUri);
-    if (!check.exists) {
-      console.log('[ImagePersistence] Copy verification failed, falling back to original URI');
-      return tempUri;
+      const check = await FileSystem.getInfoAsync(destUri);
+      if (!check.exists) {
+        console.log('[ImagePersistence] Copy verification failed on attempt', attempt);
+        if (attempt < MAX_PERSIST_RETRIES) {
+          await new Promise(r => setTimeout(r, 300));
+          continue;
+        }
+        console.log('[ImagePersistence] All attempts failed verification, using original URI');
+        return tempUri;
+      }
+
+      console.log('[ImagePersistence] Image persisted successfully:', destUri);
+      return destUri;
+    } catch (error) {
+      console.log(`[ImagePersistence] Attempt ${attempt} failed:`, error);
+      if (attempt < MAX_PERSIST_RETRIES) {
+        await new Promise(r => setTimeout(r, 300));
+        continue;
+      }
     }
-
-    console.log('[ImagePersistence] Image persisted successfully:', destUri);
-    return destUri;
-  } catch (error) {
-    console.log('[ImagePersistence] Failed to persist image, using original URI:', error);
-    return tempUri;
   }
+
+  console.log('[ImagePersistence] All persist attempts failed, using original URI');
+  return tempUri;
 }
 
 export async function deleteScanImage(uri: string): Promise<void> {

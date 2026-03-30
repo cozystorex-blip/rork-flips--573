@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
+import { useScanProcess } from '@/contexts/ScanProcessContext';
 import { generateBrandLogo, getCachedBrandLogo } from '@/services/brandLogoService';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -182,10 +183,18 @@ export default function HomeScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  const { loadHistoryEntry } = useScanProcess();
+
   const handleScanItemPress = useCallback((entry: ScanHistoryEntry) => {
     void Haptics.selectionAsync();
+    console.log('[Home] Opening scan entry:', entry.id, entry.result.item_name);
+    loadHistoryEntry({
+      result: entry.result,
+      imageUri: entry.imageUri,
+      id: entry.id,
+    });
     router.push({ pathname: '/smart-scan', params: { historyEntryId: entry.id } });
-  }, [router]);
+  }, [router, loadHistoryEntry]);
 
   return (
     <View style={styles.container}>

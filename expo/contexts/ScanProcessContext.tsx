@@ -108,6 +108,8 @@ export interface ScanProcessState {
   pendingReceiptNav: boolean;
 }
 
+const SCAN_TIMEOUT_MS = 60000;
+
 export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [scanning, setScanning] = useState<boolean>(false);
   const [scanPhase, setScanPhase] = useState<ScanPhase>('idle');
@@ -120,8 +122,23 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
 
   const { addEntry } = useScanHistory();
   const scanAbortRef = useRef<boolean>(false);
+  const scanInProgressRef = useRef<boolean>(false);
+  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearScanTimeout = useCallback(() => {
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
+  }, []);
 
   const handleCapture = useCallback(async (mode: 'camera' | 'gallery') => {
+    if (scanInProgressRef.current) {
+      console.log('[ScanProcess] Scan already in progress, ignoring duplicate call');
+      return;
+    }
+
+    scanInProgressRef.current = true;
     setResult(null);
     setReferenceImageUrl(null);
     setScannedImageUri(null);
@@ -129,6 +146,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setViewingEntryId(null);
     setPendingReceiptNav(false);
     scanAbortRef.current = false;
+    clearScanTimeout();
 
     let capturedUri: string | null = null;
 
@@ -143,6 +161,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
 
       if (!pickerResult || pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
         console.log('[ScanProcess] User cancelled image selection');
+        scanInProgressRef.current = false;
         return;
       }
 
@@ -154,12 +173,25 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       setScanning(true);
       setScanPhase('preprocessing');
 
+      scanTimeoutRef.current = setTimeout(() => {
+        if (scanInProgressRef.current) {
+          console.log('[ScanProcess] Scan timed out after', SCAN_TIMEOUT_MS, 'ms');
+          scanAbortRef.current = true;
+        }
+      }, SCAN_TIMEOUT_MS);
+
       setScanPhase('analyzing');
 
       const scanResult = await runSmartScan(capturedUri);
 
+      clearScanTimeout();
+
       if (scanAbortRef.current) {
-        console.log('[ScanProcess] Scan was aborted');
+        console.log('[ScanProcess] Scan was aborted or timed out');
+        scanInProgressRef.current = false;
+        setScanning(false);
+        setScanPhase('idle');
+        Alert.alert('Scan Timeout', 'The scan took too long. Please try again with a clearer photo.');
         return;
       }
 
@@ -168,6 +200,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setScanning(false);
         setPendingReceiptNav(true);
+        scanInProgressRef.current = false;
         return;
       }
 
@@ -211,6 +244,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       console.log('[ScanProcess] Scan saved with ID:', entryId, 'name:', scanResult.item_name);
 
     } catch (error: unknown) {
+      clearScanTimeout();
       const msg = error instanceof Error ? error.message : 'Unknown error';
       console.log('[ScanProcess] Error:', msg);
 
@@ -268,8 +302,10 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       console.log('[ScanProcess] Fallback scan saved with ID:', fallbackId);
     } finally {
       setScanning(false);
+      scanInProgressRef.current = false;
+      clearScanTimeout();
     }
-  }, [addEntry]);
+  }, [addEntry, clearScanTimeout]);
 
   const resetScan = useCallback(() => {
     setResult(null);
@@ -280,7 +316,9 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setGeneratingImage(false);
     setPendingReceiptNav(false);
     scanAbortRef.current = false;
-  }, []);
+    scanInProgressRef.current = false;
+    clearScanTimeout();
+  }, [clearScanTimeout]);
 
   const loadHistoryEntry = useCallback((entry: {
     result: SmartScanResult;
