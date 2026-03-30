@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,17 +13,29 @@ import {
   Settings,
   LogOut,
   Camera,
+  Play,
+  Pause,
+  Music,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { Video, ResizeMode } from 'expo-av';
+import { Audio } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
+
+const SONG_URL = 'https://cdn.pixabay.com/audio/2024/11/29/audio_437228a595.mp3';
+const SONG_TITLE = 'Smooth Vibes';
+const SONG_ARTIST = 'Pixabay Music';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile } = useProfile();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const [position, setPosition] = useState<number>(0);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -32,6 +44,56 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        console.log('[Profile] Unloading sound on unmount');
+        void sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
+  const onPlaybackStatusUpdate = useCallback((status: any) => {
+    if (status.isLoaded) {
+      setIsPlaying(status.isPlaying);
+      setDuration(status.durationMillis ?? 0);
+      setPosition(status.positionMillis ?? 0);
+      const prog = status.durationMillis ? status.positionMillis / status.durationMillis : 0;
+      setProgress(prog);
+    }
+  }, []);
+
+  const handlePlayPause = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      if (sound) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+        } else {
+          await sound.playAsync();
+        }
+      } else {
+        console.log('[Profile] Loading song...');
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: SONG_URL },
+          { shouldPlay: true, isLooping: true },
+          onPlaybackStatusUpdate
+        );
+        setSound(newSound);
+      }
+    } catch (err) {
+      console.log('[Profile] Audio error:', err);
+    }
+  }, [sound, isPlaying, onPlaybackStatusUpdate]);
+
+  const formatTime = useCallback((ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  }, []);
 
   const memberSince = useMemo(() => {
     if (profile?.created_at) {
@@ -105,18 +167,35 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <View style={styles.videoSection}>
-          <View style={styles.videoCard}>
-            <Video
-              source={{ uri: 'https://assets.mixkit.co/videos/607/607-720.mp4' }}
-              style={styles.video}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay
-              isLooping
-              isMuted
-            />
-            <View style={styles.videoOverlay}>
-              <Text style={styles.videoLabel}>Featured</Text>
+        <View style={styles.musicSection}>
+          <View style={styles.musicCard}>
+            <View style={styles.musicTop}>
+              <View style={styles.musicIconWrap}>
+                <Music size={22} color="#16A34A" strokeWidth={2} />
+              </View>
+              <View style={styles.musicInfo}>
+                <Text style={styles.musicTitle} numberOfLines={1}>{SONG_TITLE}</Text>
+                <Text style={styles.musicArtist} numberOfLines={1}>{SONG_ARTIST}</Text>
+              </View>
+              <Pressable
+                onPress={() => { void handlePlayPause(); }}
+                style={({ pressed }) => [styles.playBtn, pressed && { transform: [{ scale: 0.92 }] }]}
+              >
+                {isPlaying ? (
+                  <Pause size={18} color="#FFFFFF" strokeWidth={2.5} />
+                ) : (
+                  <Play size={18} color="#FFFFFF" strokeWidth={2.5} style={{ marginLeft: 2 }} />
+                )}
+              </Pressable>
+            </View>
+            <View style={styles.progressArea}>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${Math.min(progress * 100, 100)}%` as any }]} />
+              </View>
+              <View style={styles.timeRow}>
+                <Text style={styles.timeText}>{formatTime(position)}</Text>
+                <Text style={styles.timeText}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -232,35 +311,76 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     marginTop: 6,
   },
-  videoSection: {
+  musicSection: {
     paddingHorizontal: 24,
     marginTop: 28,
   },
-  videoCard: {
+  musicCard: {
     borderRadius: 18,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.15)',
+    padding: 16,
   },
-  video: {
-    width: '100%' as const,
-    height: 200,
+  musicTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  videoOverlay: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+  musicIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  videoLabel: {
-    fontSize: 12,
-    fontWeight: '600' as const,
+  musicInfo: {
+    flex: 1,
+  },
+  musicTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
-    letterSpacing: 0.3,
+    letterSpacing: -0.2,
+  },
+  musicArtist: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: 2,
+  },
+  playBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressArea: {
+    marginTop: 16,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  timeText: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.45)',
   },
   spacer: {
     flex: 1,
