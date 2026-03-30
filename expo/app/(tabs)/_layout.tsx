@@ -33,6 +33,7 @@ function ScanTabButton() {
           <View style={scanStyles.scanLine} />
         </View>
       </Pressable>
+      <View style={scanStyles.dashLine} />
     </View>
   );
 }
@@ -117,6 +118,14 @@ const scanStyles = StyleSheet.create({
     height: 2,
     backgroundColor: "#FFFFFF",
     borderRadius: 1,
+  },
+  dashLine: {
+    width: 28,
+    height: 0,
+    borderTopWidth: 2,
+    borderStyle: "dashed" as const,
+    borderColor: "#16A34A",
+    marginTop: 5,
   },
 });
 
