@@ -33,22 +33,6 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function formatTimeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  if (isNaN(then)) return '';
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'Yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 function getScanPrice(entry: ScanHistoryEntry): string | null {
   const r = entry.result;
   const details = r.fashion_details ?? r.electronics_details ?? r.food_details ?? r.grocery_details ?? r.household_details ?? r.furniture_details;
@@ -79,16 +63,6 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
   return null;
 }
 
-function getScanSubtitle(entry: ScanHistoryEntry): string {
-  const r = entry.result;
-  const category = r.category || '';
-  const itemType = r.item_type || '';
-  const parts: string[] = [];
-  if (category) parts.push(category);
-  if (itemType && itemType !== category) parts.push(itemType);
-  return parts.join(' · ');
-}
-
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -113,7 +87,7 @@ export default function HomeScreen() {
   const recentScans = useMemo(() => {
     return [...scanEntries]
       .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())
-      .slice(0, 3);
+      .slice(0, 6);
   }, [scanEntries]);
 
   const recentReceipts = useMemo(() => {
@@ -197,51 +171,48 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
 
-              <View style={styles.listCard}>
+              <View style={styles.gridContainer}>
                 {recentScans.map((entry, index) => {
                   const price = getScanPrice(entry);
                   const badge = getScanBadge(entry);
-                  const subtitle = getScanSubtitle(entry);
+                  const isLarge = index === 0 || index === 3;
                   return (
                     <Pressable
                       key={entry.id}
                       onPress={() => handleScanItemPress(entry)}
                       style={({ pressed }) => [
-                        styles.scanRow,
-                        pressed && styles.scanRowPressed,
-                        index < recentScans.length - 1 && styles.scanRowBorder,
+                        styles.gridItem,
+                        isLarge ? styles.gridItemLarge : styles.gridItemSmall,
+                        pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
                       ]}
                     >
-                      <View style={styles.scanImageWrap}>
+                      <View style={[styles.gridImageWrap, isLarge ? styles.gridImageLarge : styles.gridImageSmall]}>
                         {entry.imageUri ? (
                           <Image
                             source={{ uri: entry.imageUri }}
-                            style={styles.scanImage}
+                            style={StyleSheet.absoluteFill}
                             contentFit="cover"
                             cachePolicy="memory-disk"
                           />
                         ) : (
-                          <View style={styles.scanImagePlaceholder}>
-                            <Package size={18} color="#C7C7CC" strokeWidth={1.5} />
+                          <View style={styles.gridImagePlaceholder}>
+                            <Package size={28} color="#C7C7CC" strokeWidth={1.3} />
                           </View>
                         )}
                       </View>
-                      <View style={styles.scanInfo}>
-                        <Text style={styles.scanItemTitle} numberOfLines={1}>
+                      <View style={styles.gridItemInfo}>
+                        <Text style={styles.gridItemName} numberOfLines={1}>
                           {entry.result.item_name || 'Scanned Item'}
                         </Text>
-                        <Text style={styles.scanItemSub} numberOfLines={1}>
-                          {subtitle}{subtitle ? ' · ' : ''}{formatTimeAgo(entry.scannedAt)}
-                        </Text>
+                        {price && (
+                          <Text style={styles.gridItemPrice}>{price}</Text>
+                        )}
                         {badge && (
-                          <View style={[styles.scanBadgePill, { backgroundColor: badge.color + '18' }]}>
-                            <Text style={[styles.scanBadgeText, { color: badge.color }]}>{badge.label}</Text>
+                          <View style={[styles.gridBadgePill, { backgroundColor: badge.color + '15' }]}>
+                            <Text style={[styles.gridBadgeLabel, { color: badge.color }]}>{badge.label}</Text>
                           </View>
                         )}
                       </View>
-                      {price && (
-                        <Text style={styles.scanPrice}>{price}</Text>
-                      )}
                     </Pressable>
                   );
                 })}
@@ -513,12 +484,77 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  scanRow: {
+  gridContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  gridItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    overflow: 'hidden' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  gridItemLarge: {
+    width: '100%' as unknown as number,
+    flexDirection: 'row' as const,
+  },
+  gridItemSmall: {
+    width: '47.5%' as unknown as number,
+    flexBasis: '47.5%' as unknown as number,
+    flexGrow: 1,
+  },
+  gridImageWrap: {
+    backgroundColor: '#F2F2F7',
+    overflow: 'hidden' as const,
+  },
+  gridImageLarge: {
+    width: 110,
+    height: 110,
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
+  },
+  gridImageSmall: {
+    width: '100%' as unknown as number,
+    height: 120,
+  },
+  gridImagePlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#F2F2F7',
+  },
+  gridItemInfo: {
+    flex: 1,
+    padding: 10,
+    gap: 3,
+  },
+  gridItemName: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.1,
+  },
+  gridItemPrice: {
+    fontSize: 15,
+    fontWeight: '800' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  gridBadgePill: {
+    alignSelf: 'flex-start' as const,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 2,
+  },
+  gridBadgeLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
   },
   scanRowPressed: {
     backgroundColor: '#F8F8FA',
@@ -526,24 +562,6 @@ const styles = StyleSheet.create({
   scanRowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
-  },
-  scanImageWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    overflow: 'hidden' as const,
-    backgroundColor: '#F2F2F7',
-  },
-  scanImage: {
-    width: 48,
-    height: 48,
-  },
-  scanImagePlaceholder: {
-    width: 48,
-    height: 48,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#F2F2F7',
   },
   scanInfo: {
     flex: 1,
@@ -558,22 +576,6 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
     color: '#8E8E93',
     marginTop: 2,
-  },
-  scanBadgePill: {
-    alignSelf: 'flex-start' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  scanBadgeText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-  },
-  scanPrice: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
   },
   receiptRow: {
     flexDirection: 'row',
