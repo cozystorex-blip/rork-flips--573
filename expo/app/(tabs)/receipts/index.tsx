@@ -7,12 +7,15 @@ import {
   Animated,
   Pressable,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { Search, Receipt, TrendingUp } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useExpenses } from '@/contexts/ExpenseContext';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { generateStoreImage, getCachedStoreImage } from '@/services/storeImageService';
 
 const TIME_FILTERS = [
   { key: 'all' as const, label: 'All' },
@@ -55,6 +58,96 @@ function getReceiptBadge(amount: number, _itemCount: number): { label: string; c
   if (savings > 15) return { label: `+$${savings} saved`, color: '#16A34A' };
   return null;
 }
+
+interface StoreImageIconProps {
+  merchantName: string;
+  fallbackInfo: { color: string; initial: string; bgColor: string };
+}
+
+function StoreImageIcon({ merchantName, fallbackInfo }: StoreImageIconProps) {
+  const [imageUri, setImageUri] = useState<string | null>(() => getCachedStoreImage(merchantName));
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (imageUri || failed || !merchantName.trim()) return;
+
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const uri = await generateStoreImage(merchantName);
+        if (!cancelled) {
+          if (uri) {
+            setImageUri(uri);
+          } else {
+            setFailed(true);
+          }
+        }
+      } catch {
+        if (!cancelled) setFailed(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [merchantName, imageUri, failed]);
+
+  if (imageUri) {
+    return (
+      <View style={storeIconStyles.container}>
+        <Image
+          source={{ uri: imageUri }}
+          style={storeIconStyles.image}
+          contentFit="cover"
+          transition={300}
+        />
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={[storeIconStyles.fallback, { backgroundColor: fallbackInfo.bgColor }]}>
+        <ActivityIndicator size="small" color={fallbackInfo.color} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[storeIconStyles.fallback, { backgroundColor: fallbackInfo.bgColor }]}>
+      <Text style={[storeIconStyles.fallbackText, { color: fallbackInfo.color }]}>
+        {fallbackInfo.initial}
+      </Text>
+    </View>
+  );
+}
+
+const storeIconStyles = StyleSheet.create({
+  container: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F2F2F7',
+  },
+  image: {
+    width: 48,
+    height: 48,
+  },
+  fallback: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fallbackText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+  },
+});
 
 export default function ReceiptsScreen() {
   const insets = useSafeAreaInsets();
@@ -168,6 +261,7 @@ export default function ReceiptsScreen() {
             <View style={styles.receiptList}>
               {filteredExpenses.map((exp, index) => {
                 const storeInfo = getStoreInfo(exp.merchant || exp.title || '');
+                const merchantName = exp.merchant || exp.title || '';
                 const itemCount = exp.receiptItemsPreview
                   ? exp.receiptItemsPreview.split(',').length
                   : 0;
@@ -185,11 +279,10 @@ export default function ReceiptsScreen() {
                       router.push({ pathname: '/receipt-detail', params: { expenseId: exp.id } });
                     }}
                   >
-                    <View style={[styles.receiptIcon, { backgroundColor: storeInfo.bgColor }]}>
-                      <Text style={[styles.receiptIconText, { color: storeInfo.color }]}>
-                        {storeInfo.initial}
-                      </Text>
-                    </View>
+                    <StoreImageIcon
+                      merchantName={merchantName}
+                      fallbackInfo={storeInfo}
+                    />
                     <View style={styles.receiptInfo}>
                       <View style={styles.receiptTopRow}>
                         <Text style={styles.receiptMerchant} numberOfLines={1}>
@@ -348,17 +441,6 @@ const styles = StyleSheet.create({
   receiptCardBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
-  },
-  receiptIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  receiptIconText: {
-    fontSize: 18,
-    fontWeight: '700' as const,
   },
   receiptInfo: {
     flex: 1,
