@@ -18,7 +18,6 @@ import {
   Camera,
   Users,
   ChevronRight,
-  Zap,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -34,11 +33,13 @@ import {
   openAppSettings,
 } from '@/services/uploadService';
 
-const OnlinePersonCard = React.memo(function OnlinePersonCard({
+const UserListItem = React.memo(function UserListItem({
   user,
+  connected,
   onPress,
 }: {
   user: OnlineUser;
+  connected: boolean;
   onPress: () => void;
 }) {
   const initial = (user.display_name || '?').charAt(0).toUpperCase();
@@ -47,153 +48,42 @@ const OnlinePersonCard = React.memo(function OnlinePersonCard({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.personCard,
-        pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+        styles.personListItem,
+        pressed && { backgroundColor: '#F0F0F2' },
       ]}
-      testID={`person-${user.id}`}
+      testID={`person-list-${user.id}`}
     >
-      <View style={styles.personAvatarWrap}>
+      <View style={styles.personListAvatarWrap}>
         {user.avatar_url ? (
           <Image
             source={{ uri: user.avatar_url }}
-            style={styles.personAvatar}
+            style={styles.personListAvatar}
             contentFit="cover"
           />
         ) : (
-          <View style={styles.personAvatarPlaceholder}>
-            <Text style={styles.personInitial}>{initial}</Text>
+          <View style={styles.personListAvatarPlaceholder}>
+            <Text style={styles.personListInitial}>{initial}</Text>
           </View>
         )}
-        {user.is_online && <View style={styles.onlineDot} />}
+        {user.is_online && <View style={styles.listOnlineDot} />}
       </View>
-      <Text style={styles.personName} numberOfLines={1}>
-        {user.display_name}
-      </Text>
+      <View style={styles.personListInfo}>
+        <Text style={styles.personListName} numberOfLines={1}>{user.display_name}</Text>
+        {user.bio ? (
+          <Text style={styles.personListBio} numberOfLines={1}>{user.bio}</Text>
+        ) : (
+          <Text style={[styles.personListStatus, !user.is_online && { color: '#8E8E93' }]}>
+            {user.is_online ? 'Online' : 'Offline'}
+          </Text>
+        )}
+      </View>
+      {connected && (
+        <View style={styles.connectedBadge}>
+          <Text style={styles.connectedBadgeText}>Connected</Text>
+        </View>
+      )}
+      <ChevronRight size={16} color="#C7C7CC" />
     </Pressable>
-  );
-});
-
-const OnlinePeopleRow = React.memo(function OnlinePeopleRow({
-  people,
-  onPressPerson,
-}: {
-  people: OnlineUser[];
-  onPressPerson: (user: OnlineUser) => void;
-}) {
-  if (people.length === 0) return null;
-
-  return (
-    <View style={styles.onlineSection}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <View style={styles.onlineIndicator}>
-            <Zap size={12} color="#FFFFFF" fill="#FFFFFF" />
-          </View>
-          <Text style={styles.sectionTitle}>Online Now</Text>
-          <View style={styles.onlineCountBadge}>
-            <Text style={styles.onlineCountText}>{people.length}</Text>
-          </View>
-        </View>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.onlineScroll}
-      >
-        {people.map((person) => (
-          <OnlinePersonCard
-            key={person.id}
-            user={person}
-            onPress={() => onPressPerson(person)}
-          />
-        ))}
-      </ScrollView>
-    </View>
-  );
-});
-
-const AllPeopleList = React.memo(function AllPeopleList({
-  people,
-  isConnected,
-  onPressPerson,
-}: {
-  people: OnlineUser[];
-  isConnected: (id: string) => boolean;
-  onPressPerson: (user: OnlineUser) => void;
-}) {
-  if (people.length === 0) {
-    return (
-      <View style={styles.emptyPeopleSection}>
-        <View style={styles.emptyPeopleIcon}>
-          <Users size={24} color="#8E8E93" />
-        </View>
-        <Text style={styles.emptyPeopleTitle}>No one here yet</Text>
-        <Text style={styles.emptyPeopleSub}>
-          When other users join, they'll appear here
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.allPeopleSection}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Users size={16} color="#1C1C1E" strokeWidth={2} />
-          <Text style={styles.sectionTitle}>People</Text>
-          <View style={styles.peopleCountBadge}>
-            <Text style={styles.peopleCountText}>{people.length}</Text>
-          </View>
-        </View>
-      </View>
-      {people.map((person) => {
-        const connected = isConnected(person.id);
-        const initial = (person.display_name || '?').charAt(0).toUpperCase();
-
-        return (
-          <Pressable
-            key={person.id}
-            onPress={() => onPressPerson(person)}
-            style={({ pressed }) => [
-              styles.personListItem,
-              pressed && { backgroundColor: '#F0F0F2' },
-            ]}
-            testID={`person-list-${person.id}`}
-          >
-            <View style={styles.personListAvatarWrap}>
-              {person.avatar_url ? (
-                <Image
-                  source={{ uri: person.avatar_url }}
-                  style={styles.personListAvatar}
-                  contentFit="cover"
-                />
-              ) : (
-                <View style={styles.personListAvatarPlaceholder}>
-                  <Text style={styles.personListInitial}>{initial}</Text>
-                </View>
-              )}
-              {person.is_online && <View style={styles.listOnlineDot} />}
-            </View>
-            <View style={styles.personListInfo}>
-              <Text style={styles.personListName} numberOfLines={1}>{person.display_name}</Text>
-              {person.bio ? (
-                <Text style={styles.personListBio} numberOfLines={1}>{person.bio}</Text>
-              ) : (
-                <Text style={styles.personListStatus}>
-                  {person.is_online ? 'Online' : 'Offline'}
-                </Text>
-              )}
-            </View>
-            {connected && (
-              <View style={styles.connectedBadge}>
-                <Text style={styles.connectedBadgeText}>Connected</Text>
-              </View>
-            )}
-            <ChevronRight size={16} color="#C7C7CC" />
-          </Pressable>
-        );
-      })}
-    </View>
   );
 });
 
@@ -202,7 +92,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
-  const { people, onlinePeople, isConnected, getConnectionCount, isLoading: peopleLoading, refetch } = useOnlinePeople();
+  const { people, onlinePeople, isConnected, isLoading: peopleLoading, refetch } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
@@ -227,8 +117,6 @@ export default function ProfileScreen() {
   const displayName = profile?.display_name && profile.display_name !== 'User'
     ? profile.display_name
     : user?.email?.split('@')[0] || 'Flip User';
-
-  const connectionCount = getConnectionCount();
 
   const handlePickImage = useCallback(async () => {
     void Haptics.selectionAsync();
@@ -435,21 +323,10 @@ export default function ProfileScreen() {
               <Text style={styles.emailText}>{user.email}</Text>
             )}
 
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{connectionCount}</Text>
-                <Text style={styles.statLabel}>Connections</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{onlinePeople.length}</Text>
-                <Text style={styles.statLabel}>Online</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{people.length}</Text>
-                <Text style={styles.statLabel}>People</Text>
-              </View>
+            <View style={styles.onlineBadgeRow}>
+              <View style={styles.onlinePulse} />
+              <Text style={styles.onlineBadgeLabel}>{onlinePeople.length} Online</Text>
+              <Text style={styles.onlineBadgeSub}>· {people.length} total users</Text>
             </View>
           </View>
         </View>
@@ -460,18 +337,27 @@ export default function ProfileScreen() {
               <ActivityIndicator size="small" color="#16A34A" />
               <Text style={styles.loadingText}>Finding people...</Text>
             </View>
+          ) : people.length === 0 ? (
+            <View style={styles.emptyPeopleSection}>
+              <View style={styles.emptyPeopleIcon}>
+                <Users size={24} color="#8E8E93" />
+              </View>
+              <Text style={styles.emptyPeopleTitle}>No one here yet</Text>
+              <Text style={styles.emptyPeopleSub}>
+                When other users join, they'll appear here
+              </Text>
+            </View>
           ) : (
-            <>
-              <OnlinePeopleRow
-                people={onlinePeople}
-                onPressPerson={handlePressPerson}
-              />
-              <AllPeopleList
-                people={people}
-                isConnected={isConnected}
-                onPressPerson={handlePressPerson}
-              />
-            </>
+            <View style={styles.usersListSection}>
+              {people.map((person) => (
+                <UserListItem
+                  key={person.id}
+                  user={person}
+                  connected={isConnected(person.id)}
+                  onPress={() => handlePressPerson(person)}
+                />
+              ))}
+            </View>
           )}
 
           <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
@@ -583,37 +469,34 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     marginTop: 4,
   },
-  statsRow: {
+  onlineBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 18,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 8,
+    alignSelf: 'center',
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
+  onlinePulse: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#34C759',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800' as const,
+  onlineBadgeLabel: {
+    fontSize: 15,
+    fontWeight: '700' as const,
     color: '#FFFFFF',
-    letterSpacing: -0.4,
   },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: 'rgba(255,255,255,0.65)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.3,
-  },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  onlineBadgeSub: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.6)',
   },
   whiteContent: {
     flex: 1,
@@ -634,104 +517,8 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontWeight: '500' as const,
   },
-  onlineSection: {
+  usersListSection: {
     marginBottom: 16,
-  },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  onlineIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#16A34A',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  onlineCountBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  onlineCountText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#16A34A',
-  },
-  onlineScroll: {
-    paddingHorizontal: 20,
-    gap: 14,
-  },
-  personCard: {
-    alignItems: 'center',
-    width: 72,
-  },
-  personAvatarWrap: {
-    position: 'relative',
-    marginBottom: 6,
-  },
-  personAvatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#E5E5EA',
-  },
-  personAvatarPlaceholder: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#E0F2E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  personInitial: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    color: '#16A34A',
-  },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#34C759',
-    borderWidth: 2.5,
-    borderColor: '#F2F2F7',
-  },
-  personName: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    textAlign: 'center',
-  },
-  allPeopleSection: {
-    marginBottom: 16,
-  },
-  peopleCountBadge: {
-    backgroundColor: '#F0F0F2',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  peopleCountText: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#8E8E93',
   },
   personListItem: {
     flexDirection: 'row',
