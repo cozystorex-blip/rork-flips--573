@@ -9,6 +9,7 @@ import {
   UIManager,
   Animated,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -16,6 +17,10 @@ import {
   Bell,
   Flame,
   Scan,
+  Camera,
+  ImagePlus,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -26,6 +31,8 @@ import { generateBrandLogo, getCachedBrandLogo } from '@/services/brandLogoServi
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 function getScanPrice(entry: ScanHistoryEntry): string | null {
   const r = entry.result;
@@ -167,25 +174,53 @@ export default function HomeScreen() {
     return streak;
   }, [scanEntries]);
 
-  const allScans = useMemo(() => {
+  const recentScans = useMemo(() => {
     return [...scanEntries]
-      .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
+      .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())
+      .slice(0, 6);
   }, [scanEntries]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
+  const scannerSlide = useRef(new Animated.Value(30)).current;
+  const scannerFade = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+
+    Animated.parallel([
+      Animated.timing(scannerFade, { toValue: 1, duration: 500, delay: 200, useNativeDriver: true }),
+      Animated.timing(scannerSlide, { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.03, duration: 1800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [fadeAnim, slideAnim, scannerFade, scannerSlide, pulseAnim]);
 
   const handleScanItemPress = useCallback((entry: ScanHistoryEntry) => {
     void Haptics.selectionAsync();
     router.push({ pathname: '/smart-scan', params: { historyEntryId: entry.id } });
   }, [router]);
+
+  const handleScanCamera = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push('/smart-scan');
+  }, [router]);
+
+  const handleScanGallery = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/smart-scan');
+  }, [router]);
+
+  const scannerMinHeight = Math.min(SCREEN_HEIGHT * 0.38, 340);
 
   return (
     <View style={styles.container}>
@@ -214,8 +249,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-
-          {allScans.length > 0 ? (
+          {recentScans.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionTitle}>Scanned</Text>
@@ -225,28 +259,31 @@ export default function HomeScreen() {
                     router.push('/(tabs)/saved');
                   }}
                   hitSlop={8}
-                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+                  style={({ pressed }) => [styles.seeAllBtn, pressed && { opacity: 0.6 }]}
                 >
                   <Text style={styles.seeAllText}>See All</Text>
+                  <ChevronRight size={14} color="#16A34A" strokeWidth={2} />
                 </Pressable>
               </View>
 
-              <View style={styles.gridContainer}>
-                {allScans.map((entry, index) => {
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              >
+                {recentScans.map((entry) => {
                   const price = getScanPrice(entry);
                   const badge = getScanBadge(entry);
-                  const isLarge = index === 0 || index === 3;
                   return (
                     <Pressable
                       key={entry.id}
                       onPress={() => handleScanItemPress(entry)}
                       style={({ pressed }) => [
-                        styles.gridItem,
-                        isLarge ? styles.gridItemLarge : styles.gridItemSmall,
+                        styles.scanCard,
                         pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
                       ]}
                     >
-                      <View style={[styles.gridImageWrap, isLarge ? styles.gridImageLarge : styles.gridImageSmall]}>
+                      <View style={styles.scanCardImage}>
                         {entry.imageUri ? (
                           <Image
                             source={{ uri: entry.imageUri }}
@@ -255,45 +292,111 @@ export default function HomeScreen() {
                             cachePolicy="memory-disk"
                           />
                         ) : (
-                          <View style={styles.gridImagePlaceholder}>
-                            <Package size={28} color="#C7C7CC" strokeWidth={1.3} />
+                          <View style={styles.scanCardPlaceholder}>
+                            <Package size={22} color="#C7C7CC" strokeWidth={1.3} />
+                          </View>
+                        )}
+                        {badge && (
+                          <View style={[styles.scanCardBadge, { backgroundColor: badge.color }]}>
+                            <Text style={styles.scanCardBadgeText}>{badge.label}</Text>
                           </View>
                         )}
                       </View>
-                      <View style={styles.gridItemInfo}>
-                        <View style={styles.gridItemHeader}>
-                          <BrandLogoIcon entry={entry} size={28} />
-                          <Text style={styles.gridItemBrand} numberOfLines={1}>
+                      <View style={styles.scanCardInfo}>
+                        <View style={styles.scanCardHeader}>
+                          <BrandLogoIcon entry={entry} size={22} />
+                          <Text style={styles.scanCardBrand} numberOfLines={1}>
                             {getBrandFromEntry(entry)}
                           </Text>
                         </View>
-                        <Text style={styles.gridItemName} numberOfLines={1}>
+                        <Text style={styles.scanCardName} numberOfLines={1}>
                           {entry.result.item_name || 'Scanned Item'}
                         </Text>
                         {price && (
-                          <Text style={styles.gridItemPrice}>{price}</Text>
-                        )}
-                        {badge && (
-                          <View style={[styles.gridBadgePill, { backgroundColor: badge.color + '15' }]}>
-                            <Text style={[styles.gridBadgeLabel, { color: badge.color }]}>{badge.label}</Text>
-                          </View>
+                          <Text style={styles.scanCardPrice}>{price}</Text>
                         )}
                       </View>
                     </Pressable>
                   );
                 })}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <Scan size={32} color="#C7C7CC" strokeWidth={1.3} />
-              <Text style={styles.emptyTitle}>No scanned items yet</Text>
-              <Text style={styles.emptySubtext}>Tap the scan button to start scanning products</Text>
+              </ScrollView>
             </View>
           )}
-
-          <View style={{ height: 32 }} />
         </Animated.View>
+
+        <Animated.View style={[
+          styles.scannerPanel,
+          { minHeight: scannerMinHeight, opacity: scannerFade, transform: [{ translateY: scannerSlide }] },
+        ]}>
+          <View style={styles.scannerPanelHandle}>
+            <View style={styles.handleBar} />
+          </View>
+
+          <View style={styles.scannerContent}>
+            <Animated.View style={[styles.scannerIconArea, { transform: [{ scale: pulseAnim }] }]}>
+              <View style={styles.scannerIconOuter}>
+                <View style={styles.scannerIconInner}>
+                  <Scan size={32} color="#FFFFFF" strokeWidth={2} />
+                </View>
+              </View>
+            </Animated.View>
+
+            <Text style={styles.scannerTitle}>Scan Any Item</Text>
+            <Text style={styles.scannerSubtext}>
+              Point your camera at any product to get instant pricing, details, and smart insights
+            </Text>
+
+            <View style={styles.scannerActions}>
+              <Pressable
+                onPress={handleScanCamera}
+                style={({ pressed }) => [
+                  styles.scanMainBtn,
+                  pressed && { opacity: 0.92, transform: [{ scale: 0.97 }] },
+                ]}
+                testID="home-scan-camera"
+              >
+                <Camera size={20} color="#FFFFFF" strokeWidth={2} />
+                <Text style={styles.scanMainBtnText}>Open Scanner</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleScanGallery}
+                style={({ pressed }) => [
+                  styles.scanSecondaryBtn,
+                  pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+                ]}
+                testID="home-scan-gallery"
+              >
+                <ImagePlus size={18} color="#16A34A" strokeWidth={2} />
+                <Text style={styles.scanSecondaryBtnText}>From Gallery</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.scannerFeatures}>
+              <View style={styles.featurePill}>
+                <Sparkles size={11} color="#16A34A" strokeWidth={2} />
+                <Text style={styles.featurePillText}>AI-Powered</Text>
+              </View>
+              <View style={styles.featureDot} />
+              <View style={styles.featurePill}>
+                <Text style={styles.featurePillText}>Instant Results</Text>
+              </View>
+              <View style={styles.featureDot} />
+              <View style={styles.featurePill}>
+                <Text style={styles.featurePillText}>Any Product</Text>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+
+        {recentScans.length === 0 && (
+          <Animated.View style={[styles.emptyHint, { opacity: fadeAnim }]}>
+            <Scan size={24} color="#C7C7CC" strokeWidth={1.3} />
+            <Text style={styles.emptyHintText}>Your scanned items will appear here</Text>
+          </Animated.View>
+        )}
+
+        <View style={{ height: 24 }} />
       </ScrollView>
     </View>
   );
@@ -348,17 +451,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
-    paddingHorizontal: 16,
     paddingTop: 14,
+    paddingBottom: 8,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 8,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -366,17 +470,22 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     letterSpacing: -0.2,
   },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
   seeAllText: {
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#16A34A',
   },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  horizontalList: {
+    paddingHorizontal: 16,
     gap: 10,
   },
-  gridItem: {
+  scanCard: {
+    width: 150,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden' as const,
@@ -386,97 +495,202 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  gridItemLarge: {
-    width: '100%' as unknown as number,
-    flexDirection: 'row' as const,
-  },
-  gridItemSmall: {
-    width: '47.5%' as unknown as number,
-    flexBasis: '47.5%' as unknown as number,
-    flexGrow: 1,
-  },
-  gridImageWrap: {
+  scanCardImage: {
+    width: 150,
+    height: 120,
     backgroundColor: '#F2F2F7',
     overflow: 'hidden' as const,
   },
-  gridImageLarge: {
-    width: 110,
-    height: 110,
-    borderTopLeftRadius: 14,
-    borderBottomLeftRadius: 14,
-  },
-  gridImageSmall: {
-    width: '100%' as unknown as number,
-    height: 120,
-  },
-  gridImagePlaceholder: {
+  scanCardPlaceholder: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     backgroundColor: '#F2F2F7',
   },
-  gridItemInfo: {
-    flex: 1,
+  scanCardBadge: {
+    position: 'absolute' as const,
+    top: 8,
+    left: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  scanCardBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  scanCardInfo: {
     padding: 10,
     gap: 3,
   },
-  gridItemHeader: {
+  scanCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
+    gap: 5,
+    marginBottom: 1,
   },
-  gridItemBrand: {
-    fontSize: 11,
+  scanCardBrand: {
+    fontSize: 10,
     fontWeight: '600' as const,
     color: '#8E8E93',
     flex: 1,
     textTransform: 'uppercase' as const,
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
-  gridItemName: {
-    fontSize: 14,
+  scanCardName: {
+    fontSize: 13,
     fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.1,
   },
-  gridItemPrice: {
-    fontSize: 15,
+  scanCardPrice: {
+    fontSize: 14,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.3,
   },
-  gridBadgePill: {
-    alignSelf: 'flex-start' as const,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 2,
-  },
-  gridBadgeLabel: {
-    fontSize: 10,
-    fontWeight: '700' as const,
-  },
-  emptyState: {
+
+  scannerPanel: {
+    marginHorizontal: 16,
     backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    overflow: 'hidden' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
+    marginTop: 6,
+  },
+  scannerPanelHandle: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E5EA',
+  },
+  scannerContent: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    paddingTop: 12,
+  },
+  scannerIconArea: {
+    marginBottom: 16,
+  },
+  scannerIconOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#16A34A12',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scannerIconInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0D7A2F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  scannerTitle: {
+    fontSize: 22,
+    fontWeight: '800' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  scannerSubtext: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    maxWidth: 280,
+    marginBottom: 20,
+  },
+  scannerActions: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%' as const,
+    marginBottom: 16,
+  },
+  scanMainBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#16A34A',
+    paddingVertical: 15,
     borderRadius: 14,
-    paddingVertical: 48,
-    paddingHorizontal: 20,
+    shadowColor: '#0D7A2F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  scanMainBtnText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  scanSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#16A34A10',
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+  },
+  scanSecondaryBtnText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#16A34A',
+  },
+  scannerFeatures: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
+  featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  emptySubtext: {
+  featurePillText: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  featureDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#D1D1D6',
+  },
+  emptyHint: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  emptyHintText: {
     fontSize: 14,
     fontWeight: '400' as const,
     color: '#8E8E93',
