@@ -20,7 +20,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { useOnlineUsers, OnlineUser } from '@/contexts/OnlineUsersContext';
+import { useOnlineUsers, type OnlineUser } from '@/contexts/OnlineUsersContext';
 import {
   pickAndCropAvatar,
   uploadAvatarToSupabase,
@@ -261,12 +261,12 @@ export default function ProfileScreen() {
           <View style={styles.onlineHeader}>
             <View style={styles.onlineHeaderLeft}>
               <Users size={16} color="rgba(255,255,255,0.85)" strokeWidth={2} />
-              <Text style={styles.onlineTitle}>Online Now</Text>
+              <Text style={styles.onlineTitle}>Community</Text>
             </View>
             <View style={styles.onlineBadge}>
               <View style={styles.liveDot} />
               <Text style={styles.onlineCountText}>
-                {onlineCount} {onlineCount === 1 ? 'user' : 'users'}
+                {onlineCount} {onlineCount === 1 ? 'member' : 'members'}
               </Text>
             </View>
           </View>
@@ -283,7 +283,7 @@ export default function ProfileScreen() {
           ) : (
             <View style={styles.emptyOnline}>
               <Text style={styles.emptyOnlineText}>
-                {isConnected ? 'No other users online right now' : 'Connecting...'}
+                {isConnected ? 'No other members yet' : 'Loading...'}
               </Text>
             </View>
           )}
