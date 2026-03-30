@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Platform,
   Alert,
   Animated,
   ActivityIndicator,
@@ -38,13 +37,12 @@ import {
   Trash2,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 
 import { AppIllustrations } from '@/constants/illustrations';
-import { runSmartScan, generateReferenceImage, getLastProcessedBase64, SmartScanResult, SmartScanItemType } from '@/services/smartScanService';
+import type { SmartScanItemType } from '@/services/smartScanService';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
-import { persistScanImage } from '@/services/imagePersistence';
 import { usePremium } from '@/contexts/PremiumContext';
+import { useScanProcess, PHASE_MESSAGES } from '@/contexts/ScanProcessContext';
 import {
   FoodResultSection,
   GroceryResultSection,
@@ -69,17 +67,6 @@ import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
 import ReferenceSection from '@/components/scan/ReferenceSection';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 
-type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
-
-const PHASE_MESSAGES: Record<ScanPhase, string> = {
-  idle: '',
-  preprocessing: 'Preparing image...',
-  analyzing: 'Identifying item...',
-  generating_image: 'Creating reference image...',
-  done: 'Complete!',
-  error: 'Something went wrong',
-};
-
 export const TYPE_CONFIG: Record<SmartScanItemType, { label: string; color: string; bg: string; Icon: React.ComponentType<{ size: number; color: string }> }> = {
   food: { label: 'Food Item', color: '#16A34A', bg: '#16A34A18', Icon: Flame },
   grocery: { label: 'Grocery Product', color: '#2563EB', bg: '#2563EB18', Icon: Package },
@@ -102,86 +89,6 @@ const CAPABILITIES = [
   { icon: Smartphone, label: 'Electronics', desc: 'Specs, retail vs resale, depreciation, accessories', color: '#0284C7' },
 ];
 
-const CAMERA_OPTIONS: ImagePicker.ImagePickerOptions = {
-  mediaTypes: ['images'],
-  quality: 0.7,
-  allowsEditing: false,
-  exif: false,
-};
-
-const GALLERY_OPTIONS: ImagePicker.ImagePickerOptions = {
-  mediaTypes: ['images'],
-  quality: 0.7,
-  allowsEditing: false,
-  exif: false,
-};
-
-async function requestCameraImage(): Promise<ImagePicker.ImagePickerResult | null> {
-  if (Platform.OS === 'web') {
-    console.log('[Camera] Web platform — using gallery fallback');
-    return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
-  }
-
-  const { status, canAskAgain } = await ImagePicker.getCameraPermissionsAsync();
-  console.log('[Camera] Permission status:', status, 'canAskAgain:', canAskAgain);
-
-  if (status === 'granted') {
-    try {
-      const result = await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
-      return result;
-    } catch (err) {
-      console.log('[Camera] launchCameraAsync failed, falling back to gallery:', err);
-      return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
-    }
-  }
-
-  if (status === 'undetermined' || canAskAgain) {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (perm.granted) {
-      try {
-        const result = await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
-        return result;
-      } catch (err) {
-        console.log('[Camera] launchCameraAsync failed after grant, falling back:', err);
-        return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
-      }
-    }
-  }
-
-  Alert.alert(
-    'Camera Access Needed',
-    'Please allow camera access in your device Settings to use the camera scanner. You can also use the Gallery option.',
-    [{ text: 'OK' }]
-  );
-  return null;
-}
-
-async function requestGalleryImage(): Promise<ImagePicker.ImagePickerResult | null> {
-  if (Platform.OS !== 'web') {
-    const { status, canAskAgain } = await ImagePicker.getMediaLibraryPermissionsAsync();
-    console.log('[Gallery] Permission status:', status, 'canAskAgain:', canAskAgain);
-    if (status !== 'granted') {
-      if (status === 'undetermined' || canAskAgain) {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
-          return null;
-        }
-      } else {
-        Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
-        return null;
-      }
-    }
-  }
-  try {
-    return await ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
-  } catch (err) {
-    console.log('[Gallery] launchImageLibraryAsync failed:', err);
-    Alert.alert('Error', 'Could not open photo library. Please try again.');
-    return null;
-  }
-}
-
 function getTimeAgo(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -201,19 +108,26 @@ export default function SmartScanScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ historyEntryId?: string }>();
 
-  const [scanning, setScanning] = useState<boolean>(false);
-  const [scanPhase, setScanPhase] = useState<ScanPhase>('idle');
+  const {
+    scanning,
+    scanPhase,
+    result,
+    referenceImageUrl,
+    scannedImageUri,
+    generatingImage,
+    viewingEntryId,
+    pendingReceiptNav,
+    handleCapture,
+    resetScan,
+    loadHistoryEntry,
+    consumeReceiptNav,
+  } = useScanProcess();
 
-  const [result, setResult] = useState<SmartScanResult | null>(null);
-  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
-  const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
-  const [generatingImage, setGeneratingImage] = useState<boolean>(false);
   const [showReferenceSection, setShowReferenceSection] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
-  const [viewingEntryId, setViewingEntryId] = useState<string | null>(null);
 
-  const { entries, totalCount, hiddenCount, hasHiddenEntries, isAtFreeLimit, addEntry, deleteEntry, freeLimit } = useScanHistory();
+  const { entries, totalCount, hiddenCount, hasHiddenEntries, isAtFreeLimit, deleteEntry, freeLimit } = useScanHistory();
   const { isPremium, upgradeToPremium, restorePurchases, isPurchasing, isRestoring, annualPrice } = usePremium();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -222,6 +136,16 @@ export default function SmartScanScreen() {
 
   const historyEntryIdRef = useRef(params.historyEntryId);
   const hasNavigatedRef = useRef(false);
+
+  useEffect(() => {
+    if (pendingReceiptNav) {
+      consumeReceiptNav();
+      if (!hasNavigatedRef.current) {
+        hasNavigatedRef.current = true;
+        router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
+      }
+    }
+  }, [pendingReceiptNav, consumeReceiptNav, router]);
 
   useEffect(() => {
     if (historyEntryIdRef.current && entries.length > 0 && !result) {
@@ -236,190 +160,50 @@ export default function SmartScanScreen() {
           }
           return;
         }
-        setResult(entry.result);
-        setReferenceImageUrl(entry.result.reference_image_url ?? null);
-        setScannedImageUri(entry.imageUri ?? entry.result.scanned_image_uri ?? null);
-        setViewingEntryId(entry.id);
+        loadHistoryEntry({ result: entry.result, imageUri: entry.imageUri, id: entry.id });
         resultFade.setValue(1);
         historyEntryIdRef.current = undefined;
       }
     }
-  }, [entries, result, resultFade, router]);
+  }, [entries, result, resultFade, router, loadHistoryEntry]);
 
-  const startPulse = useCallback(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.06, duration: 600, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [pulseAnim]);
+  useEffect(() => {
+    if (scanning) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.06, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
 
-  const stopPulse = useCallback(() => {
-    pulseAnim.stopAnimation();
-    pulseAnim.setValue(1);
-  }, [pulseAnim]);
-
-  const animateProgress = useCallback((to: number, dur: number) => {
-    Animated.timing(progressWidth, { toValue: to, duration: dur, useNativeDriver: false }).start();
-  }, [progressWidth]);
-
-  const handleCapture = useCallback(async (mode: 'camera' | 'gallery') => {
-    setResult(null);
-    setReferenceImageUrl(null);
-    setScannedImageUri(null);
-    setGeneratingImage(false);
-    resultFade.setValue(0);
-    progressWidth.setValue(0);
-    hasNavigatedRef.current = false;
-
-    let capturedUri: string | null = null;
-
-    try {
-      let pickerResult: ImagePicker.ImagePickerResult | null;
-
-      if (mode === 'camera') {
-        pickerResult = await requestCameraImage();
-      } else {
-        pickerResult = await requestGalleryImage();
+      if (scanPhase === 'preprocessing') {
+        Animated.timing(progressWidth, { toValue: 20, duration: 1200, useNativeDriver: false }).start();
+      } else if (scanPhase === 'analyzing') {
+        Animated.timing(progressWidth, { toValue: 40, duration: 5000, useNativeDriver: false }).start();
+      } else if (scanPhase === 'generating_image') {
+        Animated.timing(progressWidth, { toValue: 85, duration: 3000, useNativeDriver: false }).start();
       }
-
-      if (!pickerResult || pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
-        console.log('[SmartScan] User cancelled image selection');
-        return;
-      }
-
-      capturedUri = pickerResult.assets[0].uri;
-      console.log('[SmartScan] Image captured:', capturedUri.substring(0, 80));
-
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      setScanning(true);
-      setScanPhase('preprocessing');
-      startPulse();
-      animateProgress(20, 1200);
-
-      setScanPhase('analyzing');
-      animateProgress(40, 5000);
-
-      const scanResult = await runSmartScan(capturedUri);
-
-      if (scanResult.item_type === 'receipt') {
-        animateProgress(100, 200);
-        setScanPhase('done');
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setScanning(false);
-        stopPulse();
-        if (!hasNavigatedRef.current) {
-          hasNavigatedRef.current = true;
-          router.push({ pathname: '/log-entry', params: { mode: 'receipt' } });
-        }
-        return;
-      }
-
-      animateProgress(70, 800);
-      setResult(scanResult);
-      setScannedImageUri(capturedUri);
-
-      setScanPhase('generating_image');
-      animateProgress(85, 3000);
-
-      const processedBase64 = getLastProcessedBase64();
-      if (scanResult.image_description) {
-        try {
-          setGeneratingImage(true);
-          const refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined);
-          if (refImageUrl) {
-            setReferenceImageUrl(refImageUrl);
-            scanResult.reference_image_url = refImageUrl;
-          }
-        } catch (imgErr) {
-          console.log('[SmartScan] Reference image generation failed:', imgErr);
-        } finally {
-          setGeneratingImage(false);
-        }
-      }
-
-      setScanPhase('done');
-      animateProgress(100, 300);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      let persistedUri = capturedUri;
-      try {
-        persistedUri = await persistScanImage(capturedUri);
-      } catch (e) {
-        console.log('[SmartScan] Image persistence failed:', e);
-      }
-      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
-      setViewingEntryId(newId);
-      addEntry(scanResult, persistedUri);
-
-      Animated.timing(resultFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      console.log('[SmartScan] Error:', msg);
-
-      const fallbackResult: SmartScanResult = {
-        item_type: 'general',
-        confidence: 0.25,
-        item_name: 'Scanned Item',
-        category: 'General',
-        food_details: null,
-        grocery_details: null,
-        household_details: null,
-        furniture_details: null,
-        fashion_details: null,
-        electronics_details: null,
-        document_details: null,
-        general_details: {
-          item_description: 'We could not fully analyze this item. Try scanning again with better lighting or a different angle.',
-          subcategory: 'other',
-          brand: null, model: null, material: null, color: null, condition: null,
-          estimated_retail_price: null, estimated_resale_value: null, price_range: null,
-          value_rating: null, value_verdict: null, value_reasoning: null,
-          resale_demand: null, resale_suggestion: null, best_selling_platform: null,
-          comparable_item: null, budget_insight: null, cheaper_alternative: null,
-          care_tip: null, fun_fact: null, practical_tip: 'Try scanning the product label, barcode, or a clearer angle for better results.',
-          age_or_era: null, rarity: null,
-          tags: ['needs-rescan'],
-          complementary_items: [],
-          purpose: null,
-          value_insight: null,
-          next_scan_suggestion: 'Try scanning the product label, barcode, or a clearer angle for better results.',
-        },
-        is_receipt: false,
-        short_summary: 'Could not fully identify this item. Try a clearer photo for better results.',
-        image_description: '',
-      };
-
-      setResult(fallbackResult);
-      setScannedImageUri(capturedUri);
-      setScanPhase('done');
-      animateProgress(100, 300);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-
-      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
-      setViewingEntryId(newId);
-
-      Animated.timing(resultFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
-    } finally {
-      setScanning(false);
-      stopPulse();
+    } else {
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(1);
     }
-  }, [startPulse, stopPulse, animateProgress, progressWidth, resultFade, addEntry, router]);
+  }, [scanning, scanPhase, pulseAnim, progressWidth]);
 
-  const resetScan = useCallback(() => {
-    setResult(null);
-    setReferenceImageUrl(null);
-    setScannedImageUri(null);
-    setViewingEntryId(null);
+  useEffect(() => {
+    if (scanPhase === 'done' && result) {
+      Animated.timing(progressWidth, { toValue: 100, duration: 300, useNativeDriver: false }).start();
+      Animated.timing(resultFade, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+    } else if (scanPhase === 'idle') {
+      progressWidth.setValue(0);
+      resultFade.setValue(0);
+    }
+  }, [scanPhase, result, progressWidth, resultFade]);
+
+  const handleResetScan = useCallback(() => {
+    resetScan();
     setShowReferenceSection(false);
-
-    setScanPhase('idle');
-    resultFade.setValue(0);
-    progressWidth.setValue(0);
     hasNavigatedRef.current = false;
-  }, [resultFade, progressWidth]);
+  }, [resetScan]);
 
   const typeConfig = result ? TYPE_CONFIG[result.item_type] : null;
 
@@ -531,10 +315,7 @@ export default function SmartScanScreen() {
                           style={st.historyItem}
                           onPress={() => {
                             void Haptics.selectionAsync();
-                            setResult(entry.result);
-                            setReferenceImageUrl(entry.result.reference_image_url ?? null);
-                            setScannedImageUri(entry.imageUri ?? entry.result.scanned_image_uri ?? null);
-                            setViewingEntryId(entry.id);
+                            loadHistoryEntry({ result: entry.result, imageUri: entry.imageUri, id: entry.id });
                             resultFade.setValue(1);
                           }}
                           testID={`history-item-${entry.id}`}
@@ -718,7 +499,7 @@ export default function SmartScanScreen() {
             <ResaleInsightsSection result={result} />
 
             <ScannerResultActions
-              onScanAgain={resetScan}
+              onScanAgain={handleResetScan}
               onTryDifferent={() => void handleCapture('gallery')}
               showTryDifferent={isLowConfidence}
               onDelete={viewingEntryId ? () => {
@@ -733,7 +514,7 @@ export default function SmartScanScreen() {
                       onPress: () => {
                         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                         deleteEntry(viewingEntryId);
-                        resetScan();
+                        handleResetScan();
                       },
                     },
                   ]
@@ -833,32 +614,32 @@ const st = StyleSheet.create({
 
   capabilitiesSection: { marginTop: 8 },
   capabilitiesTitle: { fontSize: 13, fontWeight: '600' as const, color: ScannerColors.textMuted, letterSpacing: 0.5, marginBottom: 14, textTransform: 'uppercase' as const },
-  capRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  capIconWrap: { width: 38, height: 38, borderRadius: ScannerRadius.md, justifyContent: 'center', alignItems: 'center' },
+  capRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, marginBottom: 14 },
+  capIconWrap: { width: 38, height: 38, borderRadius: ScannerRadius.md, justifyContent: 'center' as const, alignItems: 'center' as const },
   capTextCol: { flex: 1 },
   capLabel: { fontSize: 14, fontWeight: '600' as const, color: ScannerColors.text },
   capDesc: { fontSize: 12, color: ScannerColors.textSecondary, marginTop: 1 },
 
-  imageGallery: { flexDirection: 'row', gap: 10, marginBottom: ScannerSpacing.lg },
-  scannedImageContainer: { flex: 1, position: 'relative' as const, borderRadius: ScannerRadius.xxl, overflow: 'hidden' },
-  scannedImage: { width: '100%', height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
-  scannedImageBadge: { position: 'absolute' as const, bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
+  imageGallery: { flexDirection: 'row' as const, gap: 10, marginBottom: ScannerSpacing.lg },
+  scannedImageContainer: { flex: 1, position: 'relative' as const, borderRadius: ScannerRadius.xxl, overflow: 'hidden' as const },
+  scannedImage: { width: '100%' as const, height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
+  scannedImageBadge: { position: 'absolute' as const, bottom: 8, left: 8, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
   scannedImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
   tapHintBadge: { position: 'absolute' as const, top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: ScannerRadius.sm },
   tapHintText: { fontSize: 9, fontWeight: '600' as const, color: 'rgba(255,255,255,0.85)' },
-  referenceImageContainer: { flex: 1, position: 'relative' as const, borderRadius: ScannerRadius.xxl, overflow: 'hidden' },
-  referenceImage: { width: '100%', height: 220, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
-  referenceImageSmall: { width: '100%', height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
-  referenceImagePlaceholder: { width: '100%', height: 160, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder, justifyContent: 'center', alignItems: 'center', gap: 8 },
-  referenceImagePlaceholderSmall: { width: '100%', height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  referenceImageContainer: { flex: 1, position: 'relative' as const, borderRadius: ScannerRadius.xxl, overflow: 'hidden' as const },
+  referenceImage: { width: '100%' as const, height: 220, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
+  referenceImageSmall: { width: '100%' as const, height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card },
+  referenceImagePlaceholder: { width: '100%' as const, height: 160, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder, justifyContent: 'center' as const, alignItems: 'center' as const, gap: 8 },
+  referenceImagePlaceholderSmall: { width: '100%' as const, height: 200, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder, justifyContent: 'center' as const, alignItems: 'center' as const, gap: 8 },
   referenceImageLoadingText: { fontSize: 11, color: ScannerColors.textMuted, fontWeight: '500' as const, textAlign: 'center' as const },
-  referenceImageBadge: { position: 'absolute' as const, bottom: 8, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
+  referenceImageBadge: { position: 'absolute' as const, bottom: 8, right: 8, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
   referenceImageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#BFDBFE' },
 
   resultHeader: { marginBottom: ScannerSpacing.md },
   resultItemName: { fontSize: 22, fontWeight: '800' as const, color: ScannerColors.text, letterSpacing: -0.5, marginBottom: 8 },
-  resultMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: ScannerRadius.sm },
+  resultMetaRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 8, alignItems: 'center' as const },
+  typeBadge: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: ScannerRadius.sm },
   typeBadgeText: { fontSize: 12, fontWeight: '600' as const },
 
   summaryCard: { backgroundColor: '#F0FDF4', borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: '#BBF7D0' },
@@ -870,42 +651,42 @@ const st = StyleSheet.create({
   lowConfidenceTitle: { fontSize: 13, fontWeight: '700' as const, color: ScannerColors.warning, marginBottom: 4 },
   lowConfidenceText: { fontSize: 12, color: ScannerColors.textSecondary, lineHeight: 17 },
 
-  historySection: { backgroundColor: ScannerColors.card, borderRadius: ScannerRadius.xxl, marginBottom: ScannerSpacing.xl, overflow: 'hidden', borderWidth: 1, borderColor: ScannerColors.cardBorder },
-  historyHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: ScannerSpacing.lg, paddingVertical: 14 },
-  historyHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  historySection: { backgroundColor: ScannerColors.card, borderRadius: ScannerRadius.xxl, marginBottom: ScannerSpacing.xl, overflow: 'hidden' as const, borderWidth: 1, borderColor: ScannerColors.cardBorder },
+  historyHeaderRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingHorizontal: ScannerSpacing.lg, paddingVertical: 14 },
+  historyHeaderLeft: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 },
   historyHeaderTitle: { fontSize: 15, fontWeight: '700' as const, color: ScannerColors.text },
   historyCountBadge: { backgroundColor: ScannerColors.accent, paddingHorizontal: 7, paddingVertical: 2, borderRadius: ScannerRadius.sm },
   historyCountText: { fontSize: 11, fontWeight: '700' as const, color: '#FFFFFF' },
   historyList: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ScannerColors.cardBorder },
-  historyItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ScannerSpacing.lg, paddingVertical: ScannerSpacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ScannerColors.cardBorder, gap: 12 },
-  historyItemIcon: { width: 36, height: 36, borderRadius: ScannerRadius.md, justifyContent: 'center', alignItems: 'center' },
+  historyItem: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: ScannerSpacing.lg, paddingVertical: ScannerSpacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: ScannerColors.cardBorder, gap: 12 },
+  historyItemIcon: { width: 36, height: 36, borderRadius: ScannerRadius.md, justifyContent: 'center' as const, alignItems: 'center' as const },
   historyItemInfo: { flex: 1 },
   historyItemName: { fontSize: 14, fontWeight: '600' as const, color: ScannerColors.text },
   historyItemMeta: { fontSize: 12, fontWeight: '400' as const, color: ScannerColors.textSecondary, marginTop: 1 },
-  historyDeleteBtn: { width: 28, height: 28, borderRadius: ScannerRadius.sm, justifyContent: 'center', alignItems: 'center' },
-  upgradeHistoryCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: ScannerSpacing.lg, paddingVertical: 14, backgroundColor: ScannerColors.amberBg, gap: 12 },
-  upgradeHistoryIcon: { width: 36, height: 36, borderRadius: ScannerRadius.md, backgroundColor: ScannerColors.amberBg, justifyContent: 'center', alignItems: 'center' },
+  historyDeleteBtn: { width: 28, height: 28, borderRadius: ScannerRadius.sm, justifyContent: 'center' as const, alignItems: 'center' as const },
+  upgradeHistoryCard: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: ScannerSpacing.lg, paddingVertical: 14, backgroundColor: ScannerColors.amberBg, gap: 12 },
+  upgradeHistoryIcon: { width: 36, height: 36, borderRadius: ScannerRadius.md, backgroundColor: ScannerColors.amberBg, justifyContent: 'center' as const, alignItems: 'center' as const },
   upgradeHistoryInfo: { flex: 1 },
   upgradeHistoryTitle: { fontSize: 13, fontWeight: '600' as const, color: '#92400E' },
   upgradeHistorySubtext: { fontSize: 11, fontWeight: '400' as const, color: ScannerColors.amber, marginTop: 1 },
-  limitNotice: { paddingHorizontal: ScannerSpacing.lg, paddingVertical: 10, alignItems: 'center' },
+  limitNotice: { paddingHorizontal: ScannerSpacing.lg, paddingVertical: 10, alignItems: 'center' as const },
   limitNoticeText: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.textMuted },
 
-  modalOverlay: { flex: 1, backgroundColor: ScannerColors.overlay, justifyContent: 'center', alignItems: 'center', padding: ScannerSpacing.xxl },
-  upgradeModal: { backgroundColor: '#FFFFFF', borderRadius: ScannerRadius.xxl + 8, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 },
-  upgradeModalIcon: { width: 64, height: 64, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.amberBg, justifyContent: 'center', alignItems: 'center', marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.amberBorder },
+  modalOverlay: { flex: 1, backgroundColor: ScannerColors.overlay, justifyContent: 'center' as const, alignItems: 'center' as const, padding: ScannerSpacing.xxl },
+  upgradeModal: { backgroundColor: '#FFFFFF', borderRadius: ScannerRadius.xxl + 8, padding: 28, width: '100%' as const, maxWidth: 360, alignItems: 'center' as const, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 8 },
+  upgradeModalIcon: { width: 64, height: 64, borderRadius: ScannerRadius.xxl, backgroundColor: ScannerColors.amberBg, justifyContent: 'center' as const, alignItems: 'center' as const, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.amberBorder },
   upgradeModalTitle: { fontSize: 20, fontWeight: '800' as const, color: ScannerColors.text, letterSpacing: -0.5, marginBottom: 8 },
   upgradeModalDesc: { fontSize: 14, color: ScannerColors.textSecondary, textAlign: 'center' as const, lineHeight: 20, marginBottom: ScannerSpacing.xl },
-  upgradeFeatures: { width: '100%', gap: 10, marginBottom: ScannerSpacing.xxl },
-  upgradeFeatureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  upgradeFeatures: { width: '100%' as const, gap: 10, marginBottom: ScannerSpacing.xxl },
+  upgradeFeatureRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10 },
   upgradeFeatureText: { fontSize: 14, fontWeight: '500' as const, color: ScannerColors.text },
-  upgradeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: ScannerColors.amber, paddingVertical: 16, paddingHorizontal: 32, borderRadius: ScannerRadius.xl, width: '100%', marginBottom: 10 },
+  upgradeBtn: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 8, backgroundColor: ScannerColors.amber, paddingVertical: 16, paddingHorizontal: 32, borderRadius: ScannerRadius.xl, width: '100%' as const, marginBottom: 10 },
   upgradeBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
   upgradeDismissBtn: { paddingVertical: 10 },
   upgradeDismissText: { fontSize: 14, fontWeight: '500' as const, color: ScannerColors.textMuted },
 
-  unverifiedTitleBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: ScannerColors.amberBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: ScannerRadius.sm, marginBottom: 6, alignSelf: 'flex-start' as const, borderWidth: 1, borderColor: ScannerColors.amberBorder },
+  unverifiedTitleBadge: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, backgroundColor: ScannerColors.amberBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: ScannerRadius.sm, marginBottom: 6, alignSelf: 'flex-start' as const, borderWidth: 1, borderColor: ScannerColors.amberBorder },
   unverifiedTitleText: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.amber },
-  verificationSummaryRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+  verificationSummaryRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, marginTop: 8 },
   verificationSummaryText: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.textMuted },
 });

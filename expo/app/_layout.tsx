@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PremiumProvider } from "@/contexts/PremiumContext";
 import { ExpenseProvider } from "@/contexts/ExpenseContext";
 import { ScanHistoryProvider } from "@/contexts/ScanHistoryContext";
+import { ScanProcessProvider } from "@/contexts/ScanProcessContext";
 import { SavedItemsProvider } from "@/contexts/SavedItemsContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 import { BlocksProvider } from "@/contexts/BlocksContext";
@@ -39,6 +40,7 @@ export default function RootLayout() {
           <PremiumProvider>
             <ExpenseProvider>
               <ScanHistoryProvider>
+                <ScanProcessProvider>
                 <SavedItemsProvider>
                   <ProfileProvider>
                     <BlocksProvider>
@@ -48,6 +50,7 @@ export default function RootLayout() {
                     </BlocksProvider>
                   </ProfileProvider>
                 </SavedItemsProvider>
+                </ScanProcessProvider>
               </ScanHistoryProvider>
             </ExpenseProvider>
           </PremiumProvider>

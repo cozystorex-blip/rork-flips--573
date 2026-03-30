@@ -1,0 +1,309 @@
+import createContextHook from '@nkzw/create-context-hook';
+import { useState, useCallback, useRef, useMemo } from 'react';
+import { Platform, Alert } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { runSmartScan, generateReferenceImage, getLastProcessedBase64 } from '@/services/smartScanService';
+import { persistScanImage } from '@/services/imagePersistence';
+import { useScanHistory } from '@/contexts/ScanHistoryContext';
+import type { SmartScanResult } from '@/services/smartScanService';
+
+export type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
+
+export const PHASE_MESSAGES: Record<ScanPhase, string> = {
+  idle: '',
+  preprocessing: 'Preparing image...',
+  analyzing: 'Identifying item...',
+  generating_image: 'Creating reference image...',
+  done: 'Complete!',
+  error: 'Something went wrong',
+};
+
+const CAMERA_OPTIONS: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ['images'],
+  quality: 0.7,
+  allowsEditing: false,
+  exif: false,
+};
+
+const GALLERY_OPTIONS: ImagePicker.ImagePickerOptions = {
+  mediaTypes: ['images'],
+  quality: 0.7,
+  allowsEditing: false,
+  exif: false,
+};
+
+async function requestCameraImage(): Promise<ImagePicker.ImagePickerResult | null> {
+  if (Platform.OS === 'web') {
+    console.log('[Camera] Web platform — using gallery fallback');
+    return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+  }
+
+  const { status, canAskAgain } = await ImagePicker.getCameraPermissionsAsync();
+  console.log('[Camera] Permission status:', status, 'canAskAgain:', canAskAgain);
+
+  if (status === 'granted') {
+    try {
+      return await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
+    } catch (err) {
+      console.log('[Camera] launchCameraAsync failed, falling back to gallery:', err);
+      return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+    }
+  }
+
+  if (status === 'undetermined' || canAskAgain) {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (perm.granted) {
+      try {
+        return await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
+      } catch (err) {
+        console.log('[Camera] launchCameraAsync failed after grant, falling back:', err);
+        return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+      }
+    }
+  }
+
+  Alert.alert(
+    'Camera Access Needed',
+    'Please allow camera access in your device Settings to use the camera scanner. You can also use the Gallery option.',
+    [{ text: 'OK' }]
+  );
+  return null;
+}
+
+async function requestGalleryImage(): Promise<ImagePicker.ImagePickerResult | null> {
+  if (Platform.OS !== 'web') {
+    const { status, canAskAgain } = await ImagePicker.getMediaLibraryPermissionsAsync();
+    console.log('[Gallery] Permission status:', status, 'canAskAgain:', canAskAgain);
+    if (status !== 'granted') {
+      if (status === 'undetermined' || canAskAgain) {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
+          return null;
+        }
+      } else {
+        Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
+        return null;
+      }
+    }
+  }
+  try {
+    return await ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+  } catch (err) {
+    console.log('[Gallery] launchImageLibraryAsync failed:', err);
+    Alert.alert('Error', 'Could not open photo library. Please try again.');
+    return null;
+  }
+}
+
+export interface ScanProcessState {
+  scanning: boolean;
+  scanPhase: ScanPhase;
+  result: SmartScanResult | null;
+  referenceImageUrl: string | null;
+  scannedImageUri: string | null;
+  generatingImage: boolean;
+  viewingEntryId: string | null;
+  pendingReceiptNav: boolean;
+}
+
+export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
+  const [scanning, setScanning] = useState<boolean>(false);
+  const [scanPhase, setScanPhase] = useState<ScanPhase>('idle');
+  const [result, setResult] = useState<SmartScanResult | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
+  const [generatingImage, setGeneratingImage] = useState<boolean>(false);
+  const [viewingEntryId, setViewingEntryId] = useState<string | null>(null);
+  const [pendingReceiptNav, setPendingReceiptNav] = useState<boolean>(false);
+
+  const { addEntry } = useScanHistory();
+  const scanAbortRef = useRef<boolean>(false);
+
+  const handleCapture = useCallback(async (mode: 'camera' | 'gallery') => {
+    setResult(null);
+    setReferenceImageUrl(null);
+    setScannedImageUri(null);
+    setGeneratingImage(false);
+    setViewingEntryId(null);
+    setPendingReceiptNav(false);
+    scanAbortRef.current = false;
+
+    let capturedUri: string | null = null;
+
+    try {
+      let pickerResult: ImagePicker.ImagePickerResult | null;
+
+      if (mode === 'camera') {
+        pickerResult = await requestCameraImage();
+      } else {
+        pickerResult = await requestGalleryImage();
+      }
+
+      if (!pickerResult || pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
+        console.log('[ScanProcess] User cancelled image selection');
+        return;
+      }
+
+      capturedUri = pickerResult.assets[0].uri;
+      console.log('[ScanProcess] Image captured:', capturedUri.substring(0, 80));
+
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      setScanning(true);
+      setScanPhase('preprocessing');
+
+      setScanPhase('analyzing');
+
+      const scanResult = await runSmartScan(capturedUri);
+
+      if (scanAbortRef.current) {
+        console.log('[ScanProcess] Scan was aborted');
+        return;
+      }
+
+      if (scanResult.item_type === 'receipt') {
+        setScanPhase('done');
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setScanning(false);
+        setPendingReceiptNav(true);
+        return;
+      }
+
+      setResult(scanResult);
+      setScannedImageUri(capturedUri);
+
+      setScanPhase('generating_image');
+
+      const processedBase64 = getLastProcessedBase64();
+      if (scanResult.image_description) {
+        try {
+          setGeneratingImage(true);
+          const refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined);
+          if (refImageUrl) {
+            setReferenceImageUrl(refImageUrl);
+            scanResult.reference_image_url = refImageUrl;
+          }
+        } catch (imgErr) {
+          console.log('[ScanProcess] Reference image generation failed:', imgErr);
+        } finally {
+          setGeneratingImage(false);
+        }
+      }
+
+      setScanPhase('done');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      let persistedUri = capturedUri;
+      try {
+        persistedUri = await persistScanImage(capturedUri);
+      } catch (e) {
+        console.log('[ScanProcess] Image persistence failed:', e);
+      }
+      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
+      setViewingEntryId(newId);
+      addEntry(scanResult, persistedUri);
+
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      console.log('[ScanProcess] Error:', msg);
+
+      const fallbackResult: SmartScanResult = {
+        item_type: 'general',
+        confidence: 0.25,
+        item_name: 'Scanned Item',
+        category: 'General',
+        food_details: null,
+        grocery_details: null,
+        household_details: null,
+        furniture_details: null,
+        fashion_details: null,
+        electronics_details: null,
+        document_details: null,
+        general_details: {
+          item_description: 'We could not fully analyze this item. Try scanning again with better lighting or a different angle.',
+          subcategory: 'other',
+          brand: null, model: null, material: null, color: null, condition: null,
+          estimated_retail_price: null, estimated_resale_value: null, price_range: null,
+          value_rating: null, value_verdict: null, value_reasoning: null,
+          resale_demand: null, resale_suggestion: null, best_selling_platform: null,
+          comparable_item: null, budget_insight: null, cheaper_alternative: null,
+          care_tip: null, fun_fact: null, practical_tip: 'Try scanning the product label, barcode, or a clearer angle for better results.',
+          age_or_era: null, rarity: null,
+          tags: ['needs-rescan'],
+          complementary_items: [],
+          purpose: null,
+          value_insight: null,
+          next_scan_suggestion: 'Try scanning the product label, barcode, or a clearer angle for better results.',
+        },
+        is_receipt: false,
+        short_summary: 'Could not fully identify this item. Try a clearer photo for better results.',
+        image_description: '',
+      };
+
+      setResult(fallbackResult);
+      setScannedImageUri(capturedUri);
+      setScanPhase('done');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+
+      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
+      setViewingEntryId(newId);
+    } finally {
+      setScanning(false);
+    }
+  }, [addEntry]);
+
+  const resetScan = useCallback(() => {
+    setResult(null);
+    setReferenceImageUrl(null);
+    setScannedImageUri(null);
+    setViewingEntryId(null);
+    setScanPhase('idle');
+    setGeneratingImage(false);
+    setPendingReceiptNav(false);
+    scanAbortRef.current = false;
+  }, []);
+
+  const loadHistoryEntry = useCallback((entry: {
+    result: SmartScanResult;
+    imageUri?: string | null;
+    id: string;
+  }) => {
+    setResult(entry.result);
+    setReferenceImageUrl(entry.result.reference_image_url ?? null);
+    setScannedImageUri(entry.imageUri ?? entry.result.scanned_image_uri ?? null);
+    setViewingEntryId(entry.id);
+    setScanPhase('done');
+    setScanning(false);
+    setGeneratingImage(false);
+    setPendingReceiptNav(false);
+  }, []);
+
+  const consumeReceiptNav = useCallback(() => {
+    setPendingReceiptNav(false);
+  }, []);
+
+  return useMemo(() => ({
+    scanning,
+    scanPhase,
+    result,
+    referenceImageUrl,
+    scannedImageUri,
+    generatingImage,
+    viewingEntryId,
+    pendingReceiptNav,
+    handleCapture,
+    resetScan,
+    loadHistoryEntry,
+    consumeReceiptNav,
+    setResult,
+    setReferenceImageUrl,
+    setScannedImageUri,
+    setViewingEntryId,
+  }), [
+    scanning, scanPhase, result, referenceImageUrl, scannedImageUri,
+    generatingImage, viewingEntryId, pendingReceiptNav,
+    handleCapture, resetScan, loadHistoryEntry, consumeReceiptNav,
+  ]);
+});
