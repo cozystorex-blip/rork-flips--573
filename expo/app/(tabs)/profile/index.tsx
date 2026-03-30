@@ -9,21 +9,17 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
-  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   LogOut,
   Camera,
-  Users,
-  ChevronRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { useOnlinePeople, OnlineUser } from '@/contexts/OnlinePeopleContext';
+import { useOnlinePeople } from '@/contexts/OnlinePeopleContext';
 
 import {
   pickAndCropAvatar,
@@ -33,71 +29,15 @@ import {
   openAppSettings,
 } from '@/services/uploadService';
 
-const UserListItem = React.memo(function UserListItem({
-  user,
-  connected,
-  onPress,
-}: {
-  user: OnlineUser;
-  connected: boolean;
-  onPress: () => void;
-}) {
-  const initial = (user.display_name || '?').charAt(0).toUpperCase();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.personListItem,
-        pressed && { backgroundColor: '#F0F0F2' },
-      ]}
-      testID={`person-list-${user.id}`}
-    >
-      <View style={styles.personListAvatarWrap}>
-        {user.avatar_url ? (
-          <Image
-            source={{ uri: user.avatar_url }}
-            style={styles.personListAvatar}
-            contentFit="cover"
-          />
-        ) : (
-          <View style={styles.personListAvatarPlaceholder}>
-            <Text style={styles.personListInitial}>{initial}</Text>
-          </View>
-        )}
-        {user.is_online && <View style={styles.listOnlineDot} />}
-      </View>
-      <View style={styles.personListInfo}>
-        <Text style={styles.personListName} numberOfLines={1}>{user.display_name}</Text>
-        {user.bio ? (
-          <Text style={styles.personListBio} numberOfLines={1}>{user.bio}</Text>
-        ) : (
-          <Text style={[styles.personListStatus, !user.is_online && { color: '#8E8E93' }]}>
-            {user.is_online ? 'Online' : 'Offline'}
-          </Text>
-        )}
-      </View>
-      {connected && (
-        <View style={styles.connectedBadge}>
-          <Text style={styles.connectedBadgeText}>Connected</Text>
-        </View>
-      )}
-      <ChevronRight size={16} color="#C7C7CC" />
-    </Pressable>
-  );
-});
-
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
-  const { people, onlinePeople, isConnected, isLoading: peopleLoading, refetch, goOnline, isUserOnline } = useOnlinePeople();
+  const { goOnline, isUserOnline } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [goingOnline, setGoingOnline] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -270,36 +210,12 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handlePressPerson = useCallback((person: OnlineUser) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/profile/[id]', params: { id: person.id } });
-  }, [router]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await refetch();
-    } catch {
-      // ignore
-    } finally {
-      setRefreshing(false);
-    }
-  }, [refetch]);
-
   return (
     <View style={styles.root}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#FFFFFF"
-            colors={['#16A34A']}
-          />
-        }
       >
         <View style={[styles.greenHeader, { paddingTop: insets.top + 12 }]}>
           <View style={styles.profileSection}>
@@ -366,9 +282,6 @@ export default function ProfileScreen() {
                     <Text style={styles.onlineBadgeLabel}>
                       {isUserOnline ? 'You\'re Online' : 'Go Online'}
                     </Text>
-                    <Text style={styles.onlineBadgeSub}>
-                      · {onlinePeople.length} online · {people.length} total
-                    </Text>
                   </>
                 )}
               </Pressable>
@@ -377,34 +290,6 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {peopleLoading && people.length === 0 ? (
-            <View style={styles.loadingSection}>
-              <ActivityIndicator size="small" color="#16A34A" />
-              <Text style={styles.loadingText}>Finding people...</Text>
-            </View>
-          ) : people.length === 0 ? (
-            <View style={styles.emptyPeopleSection}>
-              <View style={styles.emptyPeopleIcon}>
-                <Users size={24} color="#8E8E93" />
-              </View>
-              <Text style={styles.emptyPeopleTitle}>No one here yet</Text>
-              <Text style={styles.emptyPeopleSub}>
-                When other users join, they'll appear here
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.usersListSection}>
-              {people.map((person) => (
-                <UserListItem
-                  key={person.id}
-                  user={person}
-                  connected={isConnected(person.id)}
-                  onPress={() => handlePressPerson(person)}
-                />
-              ))}
-            </View>
-          )}
-
           <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
             {isAuthenticated && (
               <Pressable
@@ -538,11 +423,6 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
-  onlineBadgeSub: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: 'rgba(255,255,255,0.6)',
-  },
   onlineBadgeActive: {
     backgroundColor: 'rgba(52,199,89,0.35)',
     borderWidth: 1.5,
@@ -560,119 +440,6 @@ const styles = StyleSheet.create({
     marginTop: -14,
     paddingTop: 20,
     minHeight: 300,
-  },
-  loadingSection: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#8E8E93',
-    fontWeight: '500' as const,
-  },
-  usersListSection: {
-    marginBottom: 16,
-  },
-  personListItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 1,
-  },
-  personListAvatarWrap: {
-    position: 'relative',
-  },
-  personListAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#E5E5EA',
-  },
-  personListAvatarPlaceholder: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#E0F2E9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  personListInitial: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#16A34A',
-  },
-  listOnlineDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#34C759',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  personListInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  personListName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  personListBio: {
-    fontSize: 13,
-    color: '#8E8E93',
-    lineHeight: 17,
-  },
-  personListStatus: {
-    fontSize: 13,
-    color: '#34C759',
-    fontWeight: '500' as const,
-  },
-  connectedBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  connectedBadgeText: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: '#16A34A',
-  },
-  emptyPeopleSection: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 40,
-    gap: 6,
-  },
-  emptyPeopleIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#E5E5EA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  emptyPeopleTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-  },
-  emptyPeopleSub: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 20,
   },
   bottomArea: {
     paddingTop: 16,
