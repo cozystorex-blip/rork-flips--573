@@ -75,21 +75,29 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { userId, isAuthenticated } = useAuth();
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [isUserOnline, setIsUserOnline] = useState(false);
 
   useEffect(() => {
-    if (!userId || !isAuthenticated) return;
+    if (!userId || !isAuthenticated) {
+      setIsUserOnline(false);
+      return;
+    }
 
-    void updatePresence(userId);
+    let interval: ReturnType<typeof setInterval> | null = null;
 
-    const interval = setInterval(() => {
-      void updatePresence(userId);
-    }, 30000);
+    if (isUserOnline) {
+      interval = setInterval(() => {
+        void updatePresence(userId);
+      }, 30000);
+    }
 
     return () => {
-      clearInterval(interval);
-      void setOffline(userId);
+      if (interval) clearInterval(interval);
+      if (isUserOnline) {
+        void setOffline(userId);
+      }
     };
-  }, [userId, isAuthenticated]);
+  }, [userId, isAuthenticated, isUserOnline]);
 
   const peopleQuery = useQuery({
     queryKey: ['online_people', userId],
@@ -270,26 +278,31 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     ).length;
   }, [connections, userId]);
 
-  const [isUserOnline, setIsUserOnline] = useState(false);
-
-  useEffect(() => {
-    if (userId && isAuthenticated) {
-      setIsUserOnline(true);
-    } else {
-      setIsUserOnline(false);
+  const goOnline = useCallback(async (): Promise<boolean> => {
+    if (!userId) {
+      console.log('[OnlinePeople] Cannot go online: no userId');
+      return false;
     }
-  }, [userId, isAuthenticated]);
-
-  const goOnline = useCallback(async () => {
-    if (!userId) return false;
+    if (isUserOnline) {
+      console.log('[OnlinePeople] Already online');
+      return true;
+    }
     console.log('[OnlinePeople] Going online NOW for:', userId);
-    const success = await updatePresence(userId);
-    if (success) {
-      setIsUserOnline(true);
-      void queryClient.invalidateQueries({ queryKey: ['online_people', userId] });
+    try {
+      const success = await updatePresence(userId);
+      if (success) {
+        setIsUserOnline(true);
+        void queryClient.invalidateQueries({ queryKey: ['online_people', userId] });
+        console.log('[OnlinePeople] Successfully went online');
+      } else {
+        console.log('[OnlinePeople] updatePresence returned false');
+      }
+      return success;
+    } catch (e) {
+      console.log('[OnlinePeople] goOnline error:', e);
+      return false;
     }
-    return success;
-  }, [userId, queryClient]);
+  }, [userId, queryClient, isUserOnline]);
 
   const allPeople = useMemo(() => peopleQuery.data ?? [], [peopleQuery.data]);
   const onlinePeople = useMemo(() => allPeople.filter(p => p.is_online), [allPeople]);
