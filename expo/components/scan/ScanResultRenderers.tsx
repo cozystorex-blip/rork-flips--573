@@ -571,7 +571,78 @@ export function FurnitureResultSection({ result }: ResultProps) {
     return <TrustResultSection result={result} trustResult={result.trustResult} />;
   }
   const fd = result.furniture_details;
-  const safeResale = fd.estimated_resale_value ? (fd.estimated_resale_value.startsWith('
+  return (
+    <>
+      {fd.item_type_specific && <InfoBlock text={fd.item_type_specific} />}
+
+      <SectionLabel text="Details" />
+      {fd.material && <LineItem label="Material" value={fd.material} />}
+      {fd.finish_color && <LineItem label="Color/Finish" value={fd.finish_color} />}
+      {fd.style && <LineItem label="Style" value={fd.style} />}
+      {fd.estimated_dimensions && <LineItem label="Dimensions" value={fd.estimated_dimensions} />}
+      {fd.mounting_type && <LineItem label="Mounting" value={capitalize(fd.mounting_type)} />}
+
+      <Divider />
+      <SectionLabel text="Price Check" />
+      {fd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={fd.estimated_retail_price} large />
+          {fd.estimated_resale_value && <PriceLineItem label="Resale Value" value={fd.estimated_resale_value} />}
+          {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
+        </>
+      ) : <NoPriceRow />}
+
+      {fd.value_level && <LineItem label="Value Level" value={capitalize(fd.value_level)} />}
+      {fd.value_rating && <LineItem label="Value Rating" value={capitalize(fd.value_rating)} />}
+      {fd.resale_demand && <LineItem label="Resale Demand" value={capitalize(fd.resale_demand)} />}
+      {fd.value_reasoning && <InfoBlock text={fd.value_reasoning} type="tip" />}
+
+      {fd.assembly_required && (
+        <>
+          <Divider />
+          <SectionLabel text="Assembly" />
+          {fd.assembly_difficulty && <LineItem label="Difficulty" value={capitalize(fd.assembly_difficulty)} />}
+          {fd.estimated_build_time && <LineItem label="Build Time" value={fd.estimated_build_time} />}
+          {fd.people_needed && <LineItem label="People Needed" value={fd.people_needed} />}
+          {fd.likely_tools_needed.length > 0 && <ChipRow items={fd.likely_tools_needed} label="TOOLS NEEDED" />}
+          {fd.likely_parts.length > 0 && <ChipRow items={fd.likely_parts} label="PARTS" />}
+          {fd.assembly_summary && <InfoBlock text={fd.assembly_summary} type="tip" />}
+        </>
+      )}
+
+      {fd.extra_purchase_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="You May Also Need" />
+          {fd.extra_purchase_items.map((item, i) => (
+            <View key={`extra-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>+</Text>
+              <Text style={s.bulletText}>{item.item}{item.estimated_cost ? ` (~${item.estimated_cost})` : ''}</Text>
+            </View>
+          ))}
+          {fd.total_estimated_cost && <LineItem label="Total Est. Cost" value={fd.total_estimated_cost} bold />}
+        </>
+      )}
+
+      {fd.worth_it_verdict && <InfoBlock text={fd.worth_it_verdict} type="success" />}
+      {fd.use_case && <LineItem label="Use Case" value={fd.use_case} />}
+      {fd.room_fit && <LineItem label="Room Fit" value={fd.room_fit} />}
+      {fd.budget_insight && <InfoBlock text={fd.budget_insight} type="tip" />}
+      {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
+      {fd.wall_anchor_note && <InfoBlock text={fd.wall_anchor_note} type="warning" />}
+      {fd.setup_notes && <InfoBlock text={fd.setup_notes} type="tip" />}
+      {fd.long_term_value && <InfoBlock text={fd.long_term_value} type="success" />}
+
+      <ResaleBlock result={result} />
+      <PurposeSection purpose={fd.purpose} />
+      <ValueInsightSection insight={fd.value_insight} />
+      <NextScanSection suggestion={fd.next_scan_suggestion} />
+      <TagsRow tags={fd.tags} />
+    </>
+  );
+}
+
+export function FashionResultSection({ result }: ResultProps) {
   if (!result.fashion_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
