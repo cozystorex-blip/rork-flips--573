@@ -8,16 +8,23 @@ import {
   Animated,
   Platform,
   ActivityIndicator,
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   LogOut,
   Camera,
+  Users,
+  ChevronRight,
+  Zap,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
+import { useOnlinePeople, OnlineUser } from '@/contexts/OnlinePeopleContext';
 
 import {
   pickAndCropAvatar,
@@ -27,14 +34,180 @@ import {
   openAppSettings,
 } from '@/services/uploadService';
 
+const OnlinePersonCard = React.memo(function OnlinePersonCard({
+  user,
+  onPress,
+}: {
+  user: OnlineUser;
+  onPress: () => void;
+}) {
+  const initial = (user.display_name || '?').charAt(0).toUpperCase();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.personCard,
+        pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+      ]}
+      testID={`person-${user.id}`}
+    >
+      <View style={styles.personAvatarWrap}>
+        {user.avatar_url ? (
+          <Image
+            source={{ uri: user.avatar_url }}
+            style={styles.personAvatar}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={styles.personAvatarPlaceholder}>
+            <Text style={styles.personInitial}>{initial}</Text>
+          </View>
+        )}
+        {user.is_online && <View style={styles.onlineDot} />}
+      </View>
+      <Text style={styles.personName} numberOfLines={1}>
+        {user.display_name}
+      </Text>
+    </Pressable>
+  );
+});
+
+const OnlinePeopleRow = React.memo(function OnlinePeopleRow({
+  people,
+  onPressPerson,
+}: {
+  people: OnlineUser[];
+  onPressPerson: (user: OnlineUser) => void;
+}) {
+  if (people.length === 0) return null;
+
+  return (
+    <View style={styles.onlineSection}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <View style={styles.onlineIndicator}>
+            <Zap size={12} color="#FFFFFF" fill="#FFFFFF" />
+          </View>
+          <Text style={styles.sectionTitle}>Online Now</Text>
+          <View style={styles.onlineCountBadge}>
+            <Text style={styles.onlineCountText}>{people.length}</Text>
+          </View>
+        </View>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.onlineScroll}
+      >
+        {people.map((person) => (
+          <OnlinePersonCard
+            key={person.id}
+            user={person}
+            onPress={() => onPressPerson(person)}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+});
+
+const AllPeopleList = React.memo(function AllPeopleList({
+  people,
+  isConnected,
+  onPressPerson,
+}: {
+  people: OnlineUser[];
+  isConnected: (id: string) => boolean;
+  onPressPerson: (user: OnlineUser) => void;
+}) {
+  if (people.length === 0) {
+    return (
+      <View style={styles.emptyPeopleSection}>
+        <View style={styles.emptyPeopleIcon}>
+          <Users size={24} color="#8E8E93" />
+        </View>
+        <Text style={styles.emptyPeopleTitle}>No one here yet</Text>
+        <Text style={styles.emptyPeopleSub}>
+          When other users join, they'll appear here
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.allPeopleSection}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <Users size={16} color="#1C1C1E" strokeWidth={2} />
+          <Text style={styles.sectionTitle}>People</Text>
+          <View style={styles.peopleCountBadge}>
+            <Text style={styles.peopleCountText}>{people.length}</Text>
+          </View>
+        </View>
+      </View>
+      {people.map((person) => {
+        const connected = isConnected(person.id);
+        const initial = (person.display_name || '?').charAt(0).toUpperCase();
+
+        return (
+          <Pressable
+            key={person.id}
+            onPress={() => onPressPerson(person)}
+            style={({ pressed }) => [
+              styles.personListItem,
+              pressed && { backgroundColor: '#F0F0F2' },
+            ]}
+            testID={`person-list-${person.id}`}
+          >
+            <View style={styles.personListAvatarWrap}>
+              {person.avatar_url ? (
+                <Image
+                  source={{ uri: person.avatar_url }}
+                  style={styles.personListAvatar}
+                  contentFit="cover"
+                />
+              ) : (
+                <View style={styles.personListAvatarPlaceholder}>
+                  <Text style={styles.personListInitial}>{initial}</Text>
+                </View>
+              )}
+              {person.is_online && <View style={styles.listOnlineDot} />}
+            </View>
+            <View style={styles.personListInfo}>
+              <Text style={styles.personListName} numberOfLines={1}>{person.display_name}</Text>
+              {person.bio ? (
+                <Text style={styles.personListBio} numberOfLines={1}>{person.bio}</Text>
+              ) : (
+                <Text style={styles.personListStatus}>
+                  {person.is_online ? 'Online' : 'Offline'}
+                </Text>
+              )}
+            </View>
+            {connected && (
+              <View style={styles.connectedBadge}>
+                <Text style={styles.connectedBadgeText}>Connected</Text>
+              </View>
+            )}
+            <ChevronRight size={16} color="#C7C7CC" />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+});
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
+  const { people, onlinePeople, isConnected, getConnectionCount, isLoading: peopleLoading, refetch } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -55,6 +228,8 @@ export default function ProfileScreen() {
     ? profile.display_name
     : user?.email?.split('@')[0] || 'Flip User';
 
+  const connectionCount = getConnectionCount();
+
   const handlePickImage = useCallback(async () => {
     void Haptics.selectionAsync();
 
@@ -68,7 +243,6 @@ export default function ProfileScreen() {
           quality: 0.8,
         });
         if (!result.canceled && result.assets?.[0]) {
-          console.log('[Profile] Web avatar picked:', result.assets[0].uri);
           await saveProfile({ avatar_url: result.assets[0].uri });
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
@@ -86,28 +260,20 @@ export default function ProfileScreen() {
         setUploadingAvatar(false);
         return;
       }
-
       if (!userId) {
         Alert.alert('Error', 'You must be signed in to upload a photo.');
         setUploadingAvatar(false);
         return;
       }
-
       const publicUrl = await uploadAvatarToSupabase(result.uri, userId);
       await saveProfile({ avatar_url: publicUrl });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log('[Profile] Avatar uploaded and saved:', publicUrl);
     } catch (e: unknown) {
-      console.log('[Profile] Avatar upload error:', e);
       if (e instanceof PermissionDeniedError) {
-        Alert.alert(
-          'Photo Access Required',
-          'Please allow access to your photo library to change your profile picture.',
-          [
-            { text: 'Open Settings', onPress: () => openAppSettings() },
-            { text: 'Cancel', style: 'cancel' },
-          ]
-        );
+        Alert.alert('Photo Access Required', 'Please allow access to your photo library.', [
+          { text: 'Open Settings', onPress: () => openAppSettings() },
+          { text: 'Cancel', style: 'cancel' },
+        ]);
       } else if (e instanceof ValidationError) {
         Alert.alert('Invalid Photo', e.message);
       } else {
@@ -136,10 +302,7 @@ export default function ProfileScreen() {
         }
         setSavingName(true);
         saveProfile({ display_name: trimmed })
-          .then(() => {
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            console.log('[Profile] Name updated to:', trimmed);
-          })
+          .then(() => void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success))
           .catch((e: unknown) => {
             const msg = e instanceof Error ? e.message : 'Failed to save name';
             Alert.alert('Save Failed', msg);
@@ -168,10 +331,7 @@ export default function ProfileScreen() {
             }
             setSavingName(true);
             saveProfile({ display_name: trimmed })
-              .then(() => {
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                console.log('[Profile] Name updated to:', trimmed);
-              })
+              .then(() => void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success))
               .catch((e: unknown) => {
                 const msg = e instanceof Error ? e.message : 'Failed to save name';
                 Alert.alert('Save Failed', msg);
@@ -187,115 +347,166 @@ export default function ProfileScreen() {
 
   const handleSignOut = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: () => { void signOut(); },
-        },
-      ]
-    );
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: () => { void signOut(); },
+      },
+    ]);
   };
+
+  const handlePressPerson = useCallback((person: OnlineUser) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/profile/[id]', params: { id: person.id } });
+  }, [router]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } catch {
+      // ignore
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   return (
     <View style={styles.root}>
-      <View style={[styles.greenFull, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}>
-        <View style={styles.topBar} />
-
-        <View style={styles.profileSection}>
-          <View style={styles.avatarOuter}>
-            <View style={styles.avatar}>
-              {uploadingAvatar ? (
-                <View style={styles.avatarLoading}>
-                  <ActivityIndicator size="large" color="#FFFFFF" />
-                </View>
-              ) : profile?.avatar_url ? (
-                <Image
-                  source={{ uri: profile.avatar_url }}
-                  style={styles.avatarImage}
-                  contentFit="cover"
-                />
-              ) : (
-                <Text style={styles.avatarInitial}>
-                  {displayName.charAt(0).toUpperCase()}
-                </Text>
-              )}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFFFFF"
+            colors={['#16A34A']}
+          />
+        }
+      >
+        <View style={[styles.greenHeader, { paddingTop: insets.top + 12 }]}>
+          <View style={styles.profileSection}>
+            <View style={styles.avatarOuter}>
+              <View style={styles.avatar}>
+                {uploadingAvatar ? (
+                  <View style={styles.avatarLoading}>
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                  </View>
+                ) : profile?.avatar_url ? (
+                  <Image
+                    source={{ uri: profile.avatar_url }}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Text style={styles.avatarInitial}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </Text>
+                )}
+              </View>
+              <Pressable
+                style={styles.cameraBtn}
+                hitSlop={6}
+                onPress={() => { void handlePickImage(); }}
+                disabled={uploadingAvatar}
+              >
+                <Camera size={14} color="#16A34A" strokeWidth={2} />
+              </Pressable>
             </View>
-            <Pressable
-              style={styles.cameraBtn}
-              hitSlop={6}
-              onPress={() => { void handlePickImage(); }}
-              disabled={uploadingAvatar}
-            >
-              <Camera size={14} color="#16A34A" strokeWidth={2} />
-            </Pressable>
-          </View>
 
-          <Pressable
-            onPress={handleTapName}
-            disabled={savingName}
-            style={({ pressed }) => [styles.nameRow, pressed && { opacity: 0.7 }]}
-            testID="profile-name-tap"
-          >
-            {savingName ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.nameText}>{displayName}</Text>
+            <Pressable
+              onPress={handleTapName}
+              disabled={savingName}
+              style={({ pressed }) => [styles.nameRow, pressed && { opacity: 0.7 }]}
+              testID="profile-name-tap"
+            >
+              {savingName ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.nameText}>{displayName}</Text>
+              )}
+            </Pressable>
+            <Text style={styles.memberText}>Member since {memberSince}</Text>
+            {user?.email && (
+              <Text style={styles.emailText}>{user.email}</Text>
             )}
-          </Pressable>
-          <Text style={styles.memberText}>Member since {memberSince}</Text>
-          {user?.email && (
-            <Text style={styles.emailText}>{user.email}</Text>
-          )}
+
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{connectionCount}</Text>
+                <Text style={styles.statLabel}>Connections</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{onlinePeople.length}</Text>
+                <Text style={styles.statLabel}>Online</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{people.length}</Text>
+                <Text style={styles.statLabel}>People</Text>
+              </View>
+            </View>
+          </View>
         </View>
 
-
-
-        <View style={styles.spacer} />
-
-        <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
-          {isAuthenticated && (
-            <Pressable
-              onPress={handleSignOut}
-              style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-            >
-              <LogOut size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.8} />
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </Pressable>
+        <View style={styles.whiteContent}>
+          {peopleLoading && people.length === 0 ? (
+            <View style={styles.loadingSection}>
+              <ActivityIndicator size="small" color="#16A34A" />
+              <Text style={styles.loadingText}>Finding people...</Text>
+            </View>
+          ) : (
+            <>
+              <OnlinePeopleRow
+                people={onlinePeople}
+                onPressPerson={handlePressPerson}
+              />
+              <AllPeopleList
+                people={people}
+                isConnected={isConnected}
+                onPressPerson={handlePressPerson}
+              />
+            </>
           )}
-        </Animated.View>
-      </View>
+
+          <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
+            {isAuthenticated && (
+              <Pressable
+                onPress={handleSignOut}
+                style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+              >
+                <LogOut size={16} color="#FF3B30" strokeWidth={1.8} />
+                <Text style={styles.signOutText}>Sign Out</Text>
+              </Pressable>
+            )}
+          </Animated.View>
+
+          <View style={{ height: insets.bottom + 20 }} />
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#F2F2F7',
   },
-  greenFull: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  greenHeader: {
     backgroundColor: '#16A34A',
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  topBarTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
+    paddingBottom: 28,
   },
   profileSection: {
     alignItems: 'center',
@@ -306,9 +517,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   avatar: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: 'rgba(255,255,255,0.22)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -317,18 +528,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImage: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
   avatarInitial: {
-    fontSize: 52,
+    fontSize: 44,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   avatarLoading: {
-    width: 130,
-    height: 130,
+    width: 110,
+    height: 110,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -355,28 +566,275 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nameText: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '700' as const,
     color: '#FFFFFF',
     letterSpacing: -0.4,
   },
   memberText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.6)',
     marginTop: 4,
   },
   emailText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400' as const,
     color: 'rgba(255,255,255,0.5)',
-    marginTop: 6,
+    marginTop: 4,
   },
-
-  spacer: {
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  statItem: {
     flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.65)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.3,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  whiteContent: {
+    flex: 1,
+    backgroundColor: '#F2F2F7',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -14,
+    paddingTop: 20,
+    minHeight: 300,
+  },
+  loadingSection: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    fontWeight: '500' as const,
+  },
+  onlineSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  onlineIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#16A34A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  onlineCountBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  onlineCountText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+  onlineScroll: {
+    paddingHorizontal: 20,
+    gap: 14,
+  },
+  personCard: {
+    alignItems: 'center',
+    width: 72,
+  },
+  personAvatarWrap: {
+    position: 'relative',
+    marginBottom: 6,
+  },
+  personAvatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#E5E5EA',
+  },
+  personAvatarPlaceholder: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#E0F2E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  personInitial: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#34C759',
+    borderWidth: 2.5,
+    borderColor: '#F2F2F7',
+  },
+  personName: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    textAlign: 'center',
+  },
+  allPeopleSection: {
+    marginBottom: 16,
+  },
+  peopleCountBadge: {
+    backgroundColor: '#F0F0F2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  peopleCountText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+  },
+  personListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 1,
+  },
+  personListAvatarWrap: {
+    position: 'relative',
+  },
+  personListAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#E5E5EA',
+  },
+  personListAvatarPlaceholder: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#E0F2E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  personListInitial: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+  listOnlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#34C759',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  personListInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  personListName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
+  },
+  personListBio: {
+    fontSize: 13,
+    color: '#8E8E93',
+    lineHeight: 17,
+  },
+  personListStatus: {
+    fontSize: 13,
+    color: '#34C759',
+    fontWeight: '500' as const,
+  },
+  connectedBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  connectedBadgeText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+  emptyPeopleSection: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    paddingHorizontal: 40,
+    gap: 6,
+  },
+  emptyPeopleIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E5E5EA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  emptyPeopleTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+  },
+  emptyPeopleSub: {
+    fontSize: 14,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   bottomArea: {
+    paddingTop: 16,
     paddingBottom: 10,
   },
   signOutBtn: {
@@ -385,10 +843,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
+    marginHorizontal: 16,
+    backgroundColor: '#FFF0F0',
+    borderRadius: 14,
   },
   signOutText: {
-    fontSize: 16,
-    fontWeight: '500' as const,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#FF3B30',
   },
 });

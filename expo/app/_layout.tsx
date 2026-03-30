@@ -9,6 +9,7 @@ import { ProfileProvider } from "@/contexts/ProfileContext";
 import { ScanHistoryProvider } from "@/contexts/ScanHistoryContext";
 import { ScanProcessProvider } from "@/contexts/ScanProcessContext";
 import { SavedItemsProvider } from "@/contexts/SavedItemsContext";
+import { OnlinePeopleProvider } from "@/contexts/OnlinePeopleContext";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -34,6 +35,7 @@ export default function RootLayout() {
         <PremiumProvider>
           <AuthProvider>
             <ProfileProvider>
+              <OnlinePeopleProvider>
                 <ScanHistoryProvider>
                   <SavedItemsProvider>
                     <ScanProcessProvider>
@@ -41,6 +43,7 @@ export default function RootLayout() {
                     </ScanProcessProvider>
                   </SavedItemsProvider>
                 </ScanHistoryProvider>
+              </OnlinePeopleProvider>
             </ProfileProvider>
           </AuthProvider>
         </PremiumProvider>
