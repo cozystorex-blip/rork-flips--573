@@ -92,12 +92,14 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
-  const { people, onlinePeople, isConnected, isLoading: peopleLoading, refetch } = useOnlinePeople();
+  const { people, onlinePeople, isConnected, isLoading: peopleLoading, refetch, goOnline, isUserOnline } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [goingOnline, setGoingOnline] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -106,6 +108,29 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  const handleGoOnline = useCallback(async () => {
+    if (goingOnline || isUserOnline) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setGoingOnline(true);
+    Animated.sequence([
+      Animated.timing(pulseAnim, { toValue: 1.15, duration: 120, useNativeDriver: true }),
+      Animated.timing(pulseAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+    ]).start();
+    try {
+      const success = await goOnline();
+      if (success) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        console.log('[Profile] Went online successfully');
+      } else {
+        Alert.alert('Error', 'Could not go online. Try again.');
+      }
+    } catch {
+      Alert.alert('Error', 'Could not go online. Try again.');
+    } finally {
+      setGoingOnline(false);
+    }
+  }, [goingOnline, isUserOnline, goOnline, pulseAnim]);
 
   const memberSince = useMemo(() => {
     if (profile?.created_at) {
@@ -323,11 +348,31 @@ export default function ProfileScreen() {
               <Text style={styles.emailText}>{user.email}</Text>
             )}
 
-            <View style={styles.onlineBadgeRow}>
-              <View style={styles.onlinePulse} />
-              <Text style={styles.onlineBadgeLabel}>{onlinePeople.length} Online</Text>
-              <Text style={styles.onlineBadgeSub}>· {people.length} total users</Text>
-            </View>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <Pressable
+                onPress={() => { void handleGoOnline(); }}
+                style={({ pressed }) => [
+                  styles.onlineBadgeRow,
+                  isUserOnline && styles.onlineBadgeActive,
+                  pressed && !isUserOnline && { opacity: 0.8 },
+                ]}
+                testID="go-online-btn"
+              >
+                {goingOnline ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <View style={[styles.onlinePulse, isUserOnline && styles.onlinePulseActive]} />
+                    <Text style={styles.onlineBadgeLabel}>
+                      {isUserOnline ? 'You\'re Online' : 'Go Online'}
+                    </Text>
+                    <Text style={styles.onlineBadgeSub}>
+                      · {onlinePeople.length} online · {people.length} total
+                    </Text>
+                  </>
+                )}
+              </Pressable>
+            </Animated.View>
           </View>
         </View>
 
@@ -497,6 +542,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.6)',
+  },
+  onlineBadgeActive: {
+    backgroundColor: 'rgba(52,199,89,0.35)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  onlinePulseActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(52,199,89,0.6)',
   },
   whiteContent: {
     flex: 1,

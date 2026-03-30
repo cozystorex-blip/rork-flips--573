@@ -44,16 +44,18 @@ async function saveLocalConnections(connections: Connection[]): Promise<void> {
   }
 }
 
-async function updatePresence(userId: string): Promise<void> {
-  if (!isSupabaseConfigured || !userId) return;
+async function updatePresence(userId: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !userId) return false;
   try {
     await supabase
       .from('profiles')
       .update({ is_online: true, last_seen: new Date().toISOString() })
       .eq('id', userId);
     console.log('[OnlinePeople] Presence updated for:', userId);
+    return true;
   } catch (e) {
     console.log('[OnlinePeople] Presence update error:', e);
+    return false;
   }
 }
 
@@ -268,6 +270,27 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     ).length;
   }, [connections, userId]);
 
+  const [isUserOnline, setIsUserOnline] = useState(false);
+
+  useEffect(() => {
+    if (userId && isAuthenticated) {
+      setIsUserOnline(true);
+    } else {
+      setIsUserOnline(false);
+    }
+  }, [userId, isAuthenticated]);
+
+  const goOnline = useCallback(async () => {
+    if (!userId) return false;
+    console.log('[OnlinePeople] Going online NOW for:', userId);
+    const success = await updatePresence(userId);
+    if (success) {
+      setIsUserOnline(true);
+      void queryClient.invalidateQueries({ queryKey: ['online_people', userId] });
+    }
+    return success;
+  }, [userId, queryClient]);
+
   const allPeople = useMemo(() => peopleQuery.data ?? [], [peopleQuery.data]);
   const onlinePeople = useMemo(() => allPeople.filter(p => p.is_online), [allPeople]);
 
@@ -281,5 +304,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     getConnectionCount,
     isLoading: peopleQuery.isLoading,
     refetch: peopleQuery.refetch,
-  }), [allPeople, onlinePeople, connections, connectToUser, disconnectFromUser, isConnected, getConnectionCount, peopleQuery.isLoading, peopleQuery.refetch]);
+    goOnline,
+    isUserOnline,
+  }), [allPeople, onlinePeople, connections, connectToUser, disconnectFromUser, isConnected, getConnectionCount, peopleQuery.isLoading, peopleQuery.refetch, goOnline, isUserOnline]);
 });
