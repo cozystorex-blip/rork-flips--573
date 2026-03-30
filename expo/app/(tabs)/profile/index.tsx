@@ -8,16 +8,19 @@ import {
   Animated,
   Platform,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   LogOut,
   Camera,
+  Users,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
+import { useOnlineUsers, OnlineUser } from '@/contexts/OnlineUsersContext';
 import {
   pickAndCropAvatar,
   uploadAvatarToSupabase,
@@ -30,6 +33,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
+  const { onlineUsers, onlineCount, isConnected } = useOnlineUsers();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -253,7 +257,37 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        <View style={styles.onlineSection}>
+          <View style={styles.onlineHeader}>
+            <View style={styles.onlineHeaderLeft}>
+              <Users size={16} color="rgba(255,255,255,0.85)" strokeWidth={2} />
+              <Text style={styles.onlineTitle}>Online Now</Text>
+            </View>
+            <View style={styles.onlineBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.onlineCountText}>
+                {onlineCount} {onlineCount === 1 ? 'user' : 'users'}
+              </Text>
+            </View>
+          </View>
 
+          {onlineCount > 0 ? (
+            <FlatList
+              data={onlineUsers}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.onlineList}
+              keyExtractor={(item) => item.user_id}
+              renderItem={({ item }) => <OnlineUserCard user={item} />}
+            />
+          ) : (
+            <View style={styles.emptyOnline}>
+              <Text style={styles.emptyOnlineText}>
+                {isConnected ? 'No other users online right now' : 'Connecting...'}
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View style={styles.spacer} />
 
@@ -272,6 +306,42 @@ export default function ProfileScreen() {
     </View>
   );
 }
+
+const OnlineUserCard = React.memo(({ user }: { user: OnlineUser }) => {
+  const initial = (user.display_name || 'U').charAt(0).toUpperCase();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.4, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [pulseAnim]);
+
+  return (
+    <View style={styles.onlineCard}>
+      <View style={styles.onlineAvatarWrap}>
+        <View style={styles.onlineAvatar}>
+          {user.avatar_url ? (
+            <Image
+              source={{ uri: user.avatar_url }}
+              style={styles.onlineAvatarImg}
+              contentFit="cover"
+            />
+          ) : (
+            <Text style={styles.onlineAvatarInitial}>{initial}</Text>
+          )}
+        </View>
+        <Animated.View style={[styles.onlineIndicator, { opacity: pulseAnim }]} />
+      </View>
+      <Text style={styles.onlineCardName} numberOfLines={1}>
+        {user.display_name || 'User'}
+      </Text>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
   root: {
@@ -406,6 +476,112 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
+  onlineSection: {
+    marginTop: 28,
+    paddingLeft: 20,
+  },
+  onlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    paddingRight: 20,
+  },
+  onlineHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  onlineTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  onlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#4ADE80',
+  },
+  onlineCountText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  onlineList: {
+    gap: 12,
+    paddingRight: 20,
+  },
+  onlineCard: {
+    alignItems: 'center',
+    width: 72,
+  },
+  onlineAvatarWrap: {
+    position: 'relative',
+    marginBottom: 6,
+  },
+  onlineAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.35)',
+    overflow: 'hidden',
+  },
+  onlineAvatarImg: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+  },
+  onlineAvatarInitial: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4ADE80',
+    borderWidth: 2.5,
+    borderColor: '#16A34A',
+  },
+  onlineCardName: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center' as const,
+    maxWidth: 72,
+  },
+  emptyOnline: {
+    paddingVertical: 20,
+    paddingRight: 20,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    marginRight: 20,
+  },
+  emptyOnlineText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.5)',
+  },
   spacer: {
     flex: 1,
   },
