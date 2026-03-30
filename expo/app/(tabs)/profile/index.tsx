@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,31 +13,18 @@ import {
   Settings,
   LogOut,
   Camera,
-  Pause,
-  Music,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
-
-const SONG_URL = 'https://cdn.pixabay.com/audio/2024/11/29/audio_437228a595.mp3';
-const SONG_TITLE = 'Smooth Vibes';
-const SONG_ARTIST = 'Pixabay Music';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile } = useProfile();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [_duration, setDuration] = useState<number>(0);
-  const [_position, setPosition] = useState<number>(0);
-
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -45,49 +32,6 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
-
-  useEffect(() => {
-    return () => {
-      if (sound) {
-        console.log('[Profile] Unloading sound on unmount');
-        void sound.unloadAsync();
-      }
-    };
-  }, [sound]);
-
-  const onPlaybackStatusUpdate = useCallback((status: any) => {
-    if (status.isLoaded) {
-      setIsPlaying(status.isPlaying);
-      setDuration(status.durationMillis ?? 0);
-      setPosition(status.positionMillis ?? 0);
-      const prog = status.durationMillis ? status.positionMillis / status.durationMillis : 0;
-      setProgress(prog);
-    }
-  }, []);
-
-  const handlePlayPause = useCallback(async () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    try {
-      if (sound) {
-        if (isPlaying) {
-          await sound.pauseAsync();
-        } else {
-          await sound.playAsync();
-        }
-      } else {
-        console.log('[Profile] Loading song...');
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: SONG_URL },
-          { shouldPlay: true, isLooping: true },
-          onPlaybackStatusUpdate
-        );
-        setSound(newSound);
-      }
-    } catch (err) {
-      console.log('[Profile] Audio error:', err);
-    }
-  }, [sound, isPlaying, onPlaybackStatusUpdate]);
 
 
 
@@ -201,26 +145,6 @@ export default function ProfileScreen() {
               <Text style={styles.videoLabel}>Featured</Text>
             </View>
           </View>
-
-          <Pressable
-            onPress={() => { void handlePlayPause(); }}
-            style={({ pressed }) => [styles.musicTile, pressed && { transform: [{ scale: 0.96 }] }]}
-          >
-            <View style={styles.musicIconWrap}>
-              {isPlaying ? (
-                <Pause size={22} color="#16A34A" strokeWidth={2.5} />
-              ) : (
-                <Music size={22} color="#16A34A" strokeWidth={2} />
-              )}
-            </View>
-            <Text style={styles.musicTileTitle} numberOfLines={1}>{SONG_TITLE}</Text>
-            <Text style={styles.musicTileArtist} numberOfLines={1}>{SONG_ARTIST}</Text>
-            {isPlaying && (
-              <View style={styles.miniProgress}>
-                <View style={[styles.miniProgressFill, { width: `${Math.min(progress * 100, 100)}%` as any }]} />
-              </View>
-            )}
-          </Pressable>
         </View>
 
         <View style={styles.spacer} />
@@ -367,52 +291,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.3,
   },
-  musicTile: {
-    width: 110,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.15)',
-    padding: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  musicIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  musicTileTitle: {
-    fontSize: 12,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-    textAlign: 'center' as const,
-  },
-  musicTileArtist: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    color: 'rgba(255,255,255,0.55)',
-    marginTop: 2,
-    textAlign: 'center' as const,
-  },
-  miniProgress: {
-    width: '100%' as const,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    overflow: 'hidden',
-    marginTop: 10,
-  },
-  miniProgressFill: {
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#FFFFFF',
-  },
+
   spacer: {
     flex: 1,
   },
