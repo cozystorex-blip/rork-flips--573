@@ -217,19 +217,6 @@ export default function HomeScreen() {
 
           {allScans.length > 0 ? (
             <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Recent</Text>
-                <Pressable
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    router.push('/(tabs)/saved');
-                  }}
-                  hitSlop={8}
-                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={styles.seeAllText}>View</Text>
-                </Pressable>
-              </View>
 
               <View style={styles.gridContainer}>
                 {allScans.map((entry, index) => {
