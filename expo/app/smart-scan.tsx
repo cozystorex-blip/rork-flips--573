@@ -29,7 +29,6 @@ import {
   Smartphone,
   Scan,
   Lamp,
-  Dumbbell,
   Sparkles,
   ShieldCheck,
   Info,
@@ -38,7 +37,6 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
-import { AppIllustrations } from '@/constants/illustrations';
 import type { SmartScanItemType } from '@/services/smartScanService';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { usePremium } from '@/contexts/PremiumContext';
@@ -80,14 +78,6 @@ export const TYPE_CONFIG: Record<SmartScanItemType, { label: string; color: stri
   unknown: { label: 'Unknown Item', color: '#6B7280', bg: '#6B728018', Icon: HelpCircle },
 };
 
-const CAPABILITIES = [
-  { icon: Scan, label: 'Any Product', desc: 'Scan anything — get price, value, and smart insights instantly', color: '#0D9488' },
-  { icon: Shirt, label: 'Fashion & Sneakers', desc: 'Brand, model, retail price, resale value, style info', color: '#E11D48' },
-  { icon: Sofa, label: 'Furniture & Home', desc: 'Dimensions, assembly guide, tools needed, matching items', color: '#0058A3' },
-  { icon: Flame, label: 'Food & Groceries', desc: 'Nutrition, calories, price comparison, budget tips', color: '#16A34A' },
-  { icon: Dumbbell, label: 'Fitness & Household', desc: 'Equipment details, care tips, price estimates', color: '#7C3AED' },
-  { icon: Smartphone, label: 'Electronics', desc: 'Specs, retail vs resale, depreciation, accessories', color: '#0284C7' },
-];
 
 function getTimeAgo(dateStr: string): string {
   const now = new Date();
@@ -126,6 +116,7 @@ export default function SmartScanScreen() {
   const [showReferenceSection, setShowReferenceSection] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const hasAutoLaunched = useRef(false);
 
   const { entries, totalCount, hiddenCount, hasHiddenEntries, isAtFreeLimit, deleteEntry, freeLimit } = useScanHistory();
   const { isPremium, upgradeToPremium, restorePurchases, isPurchasing, isRestoring, annualPrice } = usePremium();
@@ -136,6 +127,15 @@ export default function SmartScanScreen() {
 
   const historyEntryIdRef = useRef(params.historyEntryId);
   const hasNavigatedRef = useRef(false);
+
+  useEffect(() => {
+    if (!hasAutoLaunched.current && !result && !scanning && !params.historyEntryId) {
+      hasAutoLaunched.current = true;
+      console.log('[SmartScan] Auto-launching camera on open');
+      void handleCapture('camera');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (pendingReceiptNav) {
@@ -249,18 +249,6 @@ export default function SmartScanScreen() {
       >
         {!result && (
           <>
-            <View style={st.heroSection}>
-              <ExpoImage
-                source={{ uri: AppIllustrations.scanner }}
-                style={st.heroIllustration}
-                contentFit="contain"
-                cachePolicy="memory-disk"
-              />
-              <Text style={st.heroSub}>
-                Scan any item — food, sneakers, furniture, electronics, or anything else. Get instant details, pricing, and smart insights.
-              </Text>
-            </View>
-
             <ScannerActionButtons
               onCamera={() => void handleCapture('camera')}
               onGallery={() => void handleCapture('gallery')}
@@ -368,22 +356,7 @@ export default function SmartScanScreen() {
               </View>
             )}
 
-            {!scanning && (
-              <View style={st.capabilitiesSection}>
-                <Text style={st.capabilitiesTitle}>What you can scan</Text>
-                {CAPABILITIES.map((cap) => (
-                  <View key={cap.label} style={st.capRow}>
-                    <View style={[st.capIconWrap, { backgroundColor: `${cap.color}18` }]}>
-                      <cap.icon size={16} color={cap.color} />
-                    </View>
-                    <View style={st.capTextCol}>
-                      <Text style={st.capLabel}>{cap.label}</Text>
-                      <Text style={st.capDesc}>{cap.desc}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
+
           </>
         )}
 
