@@ -7,6 +7,7 @@ import {
   Pressable,
   RefreshControl,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -24,8 +25,6 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
-import AdMobBanner from '@/components/ads/AdMobBanner';
-import { useScreenWidth } from '@/hooks/useScreenWidth';
 import type { SmartScanResult } from '@/services/smartScanService';
 
 const FILTER_CHIPS = [
@@ -37,6 +36,7 @@ const FILTER_CHIPS = [
 
 const GRID_GAP = 12;
 const H_PAD = 16;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface UnifiedItem {
   id: string;
@@ -89,8 +89,7 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
 export default function SavedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const screenWidth = useScreenWidth();
-  const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
+  const cardWidth = (SCREEN_WIDTH - H_PAD * 2 - GRID_GAP) / 2;
   const { entries: scanEntries, isLoading: scanLoading } = useScanHistory();
   const { savedDeals, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();
@@ -280,21 +279,21 @@ export default function SavedScreen() {
                   ]}
                   testID={`saved-card-${item.id}`}
                 >
-                  <View style={[styles.gridImageWrap, { width: cardWidth, height: cardWidth * 0.85 }]}>
+                  <View style={[styles.gridImageWrap, { width: cardWidth, height: cardWidth }]}>
                     {item.imageUri ? (
                       <Image
                         source={{ uri: item.imageUri }}
-                        style={[styles.gridImage, { width: cardWidth, height: cardWidth * 0.85 }]}
+                        style={[styles.gridImage, { width: cardWidth, height: cardWidth }]}
                         contentFit="cover"
                         cachePolicy="memory-disk"
                         recyclingKey={`saved-${item.id}`}
                       />
                     ) : (
-                      <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth * 0.85 }]}>
+                      <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth }]}>
                         {item.type === 'deal' ? (
-                          <Tag size={24} color="#C7C7CC" strokeWidth={1.5} />
+                          <Tag size={28} color="#C7C7CC" strokeWidth={1.5} />
                         ) : (
-                          <Package size={24} color="#C7C7CC" strokeWidth={1.5} />
+                          <Package size={28} color="#C7C7CC" strokeWidth={1.5} />
                         )}
                       </View>
                     )}
@@ -313,8 +312,6 @@ export default function SavedScreen() {
                 </Pressable>
               ))}
             </View>
-
-            <AdMobBanner />
           </View>
         )}
 
@@ -343,10 +340,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   screenTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800' as const,
     color: '#1C1C1E',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   notifBtn: {
     width: 36,
@@ -481,14 +478,13 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 3,
-    marginBottom: 0,
   },
   gridImageWrap: {
     backgroundColor: '#F2F2F7',
@@ -503,17 +499,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   gridCardBody: {
-    padding: 10,
-    gap: 2,
+    padding: 12,
+    gap: 3,
   },
   gridCardTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600' as const,
     color: '#1C1C1E',
-    lineHeight: 17,
+    lineHeight: 18,
   },
   gridCardPrice: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700' as const,
     color: '#1C1C1E',
     marginTop: 2,

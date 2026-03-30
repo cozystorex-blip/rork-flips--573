@@ -16,6 +16,7 @@ import {
   Flame,
   DollarSign,
   Scan,
+  ChevronRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -24,7 +25,6 @@ import ScanFrameIcon from '@/components/ScanFrameIcon';
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
-import AdMobBanner from '@/components/ads/AdMobBanner';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -136,12 +136,12 @@ export default function HomeScreen() {
   }, [savedDeals]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(12)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, slideAnim]);
 
@@ -162,7 +162,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerArea, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.headerArea, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerRow}>
           <Text style={styles.brandTitle}>Flip</Text>
           <View style={{ flex: 1 }} />
@@ -187,170 +187,171 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-        <Pressable
-          onPress={handleScanPress}
-          style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
-          testID="home-scan-card"
-        >
-          <View style={styles.scanCardContent}>
-            <View style={styles.scanCardIconWrap}>
-              <ScanFrameIcon size={32} color="#FFFFFF" strokeWidth={2.5} />
+          <Pressable
+            onPress={handleScanPress}
+            style={({ pressed }) => [styles.scanCard, pressed && styles.scanCardPressed]}
+            testID="home-scan-card"
+          >
+            <View style={styles.scanCardContent}>
+              <View style={styles.scanCardIconWrap}>
+                <ScanFrameIcon size={30} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+              <View style={styles.scanCardTextWrap}>
+                <Text style={styles.scanCardTitle}>Scan Item</Text>
+                <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
+              </View>
             </View>
-            <Text style={styles.scanCardTitle}>Scan Item</Text>
-            <Text style={styles.scanCardSub}>Barcode, product, or receipt</Text>
-          </View>
-        </Pressable>
+            <ChevronRight size={18} color="rgba(255,255,255,0.6)" strokeWidth={2} />
+          </Pressable>
 
-        {recentScans.length > 0 && (
+          {recentScans.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Recent Scans</Text>
+                <Pressable
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    router.push('/(tabs)/saved');
+                  }}
+                  hitSlop={8}
+                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.seeAllText}>See All</Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.listCard}>
+                {recentScans.map((entry, index) => {
+                  const price = getScanPrice(entry);
+                  const badge = getScanBadge(entry);
+                  const subtitle = getScanSubtitle(entry);
+                  return (
+                    <Pressable
+                      key={entry.id}
+                      onPress={() => handleScanItemPress(entry)}
+                      style={({ pressed }) => [
+                        styles.scanRow,
+                        pressed && styles.scanRowPressed,
+                        index < recentScans.length - 1 && styles.scanRowBorder,
+                      ]}
+                    >
+                      <View style={styles.scanImageWrap}>
+                        {entry.imageUri ? (
+                          <Image
+                            source={{ uri: entry.imageUri }}
+                            style={styles.scanImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                          />
+                        ) : (
+                          <View style={styles.scanImagePlaceholder}>
+                            <Package size={18} color="#C7C7CC" strokeWidth={1.5} />
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.scanInfo}>
+                        <Text style={styles.scanItemTitle} numberOfLines={1}>
+                          {entry.result.item_name || 'Scanned Item'}
+                        </Text>
+                        <Text style={styles.scanItemSub} numberOfLines={1}>
+                          {subtitle}{subtitle ? ' · ' : ''}{formatTimeAgo(entry.scannedAt)}
+                        </Text>
+                        {badge && (
+                          <View style={[styles.scanBadgePill, { backgroundColor: badge.color + '18' }]}>
+                            <Text style={[styles.scanBadgeText, { color: badge.color }]}>{badge.label}</Text>
+                          </View>
+                        )}
+                      </View>
+                      {price && (
+                        <Text style={styles.scanPrice}>{price}</Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, styles.statCardSavings]}>
+              <View style={styles.statIconWrap}>
+                <DollarSign size={14} color="#16A34A" strokeWidth={2.2} />
+              </View>
+              <Text style={styles.statLabel}>Total Saved</Text>
+              <Text style={styles.statValue}>${totalSavings > 0 ? totalSavings.toFixed(0) : '0'}</Text>
+              <Text style={styles.statPeriod}>This month</Text>
+            </View>
+            <View style={[styles.statCard, styles.statCardScanned]}>
+              <View style={[styles.statIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <Scan size={14} color="#3B82F6" strokeWidth={2.2} />
+              </View>
+              <Text style={styles.statLabel}>Items Scanned</Text>
+              <Text style={styles.statValue}>{itemsScannedCount}</Text>
+              <Text style={styles.statPeriod}>This week</Text>
+            </View>
+          </View>
+
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Recent Scans</Text>
-              <Pressable
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  router.push('/(tabs)/saved');
-                }}
-                hitSlop={8}
-                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </Pressable>
+              <Text style={styles.sectionTitle}>Recent Receipts</Text>
+              {recentReceipts.length > 0 && (
+                <Pressable
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    router.push('/(tabs)/receipts' as any);
+                  }}
+                  hitSlop={8}
+                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.seeAllText}>See All</Text>
+                </Pressable>
+              )}
             </View>
 
-            <View style={styles.listCard}>
-              {recentScans.map((entry, index) => {
-                const price = getScanPrice(entry);
-                const badge = getScanBadge(entry);
-                const subtitle = getScanSubtitle(entry);
-                return (
-                  <Pressable
-                    key={entry.id}
-                    onPress={() => handleScanItemPress(entry)}
-                    style={({ pressed }) => [
-                      styles.scanRow,
-                      pressed && styles.scanRowPressed,
-                      index < recentScans.length - 1 && styles.scanRowBorder,
-                    ]}
-                  >
-                    <View style={styles.scanImageWrap}>
-                      {entry.imageUri ? (
-                        <Image
-                          source={{ uri: entry.imageUri }}
-                          style={styles.scanImage}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                        />
-                      ) : (
-                        <View style={styles.scanImagePlaceholder}>
-                          <Package size={18} color="#C7C7CC" strokeWidth={1.5} />
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.scanInfo}>
-                      <Text style={styles.scanItemTitle} numberOfLines={1}>
-                        {entry.result.item_name || 'Scanned Item'}
-                      </Text>
-                      <Text style={styles.scanItemSub} numberOfLines={1}>
-                        {subtitle}{subtitle ? ' · ' : ''}{formatTimeAgo(entry.scannedAt)}
-                      </Text>
-                      {badge && (
-                        <View style={[styles.scanBadgePill, { backgroundColor: badge.color + '18' }]}>
-                          <Text style={[styles.scanBadgeText, { color: badge.color }]}>{badge.label}</Text>
-                        </View>
-                      )}
-                    </View>
-                    {price && (
-                      <Text style={styles.scanPrice}>{price}</Text>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, styles.statCardSavings]}>
-            <View style={styles.statIconWrap}>
-              <DollarSign size={14} color="#16A34A" strokeWidth={2} />
-            </View>
-            <Text style={styles.statLabel}>Total Saved</Text>
-            <Text style={styles.statValue}>${totalSavings > 0 ? totalSavings.toFixed(0) : '0'}</Text>
-            <Text style={styles.statPeriod}>This month</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Scan size={14} color="#3B82F6" strokeWidth={2} />
-            </View>
-            <Text style={styles.statLabel}>Items Scanned</Text>
-            <Text style={styles.statValue}>{itemsScannedCount}</Text>
-            <Text style={styles.statPeriod}>This week</Text>
-          </View>
-        </View>
-
-        <AdMobBanner />
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Recent Receipts</Text>
-            {recentReceipts.length > 0 && (
-              <Pressable
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  router.push('/(tabs)/receipts' as any);
-                }}
-                hitSlop={8}
-                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-              >
-                <Text style={styles.seeAllText}>See All</Text>
-              </Pressable>
+            {recentReceipts.length > 0 ? (
+              <View style={styles.listCard}>
+                {recentReceipts.map((exp, index) => {
+                  const itemCount = exp.receiptItemsPreview
+                    ? exp.receiptItemsPreview.split(',').length
+                    : 0;
+                  return (
+                    <Pressable
+                      key={exp.id}
+                      onPress={() => handleReceiptPress(exp.id)}
+                      style={({ pressed }) => [
+                        styles.receiptRow,
+                        pressed && styles.scanRowPressed,
+                        index < recentReceipts.length - 1 && styles.scanRowBorder,
+                      ]}
+                    >
+                      <View style={styles.receiptIconWrap}>
+                        <Text style={styles.receiptStoreIcon}>
+                          {(exp.merchant || exp.title || 'S').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.scanInfo}>
+                        <Text style={styles.scanItemTitle} numberOfLines={1}>
+                          {exp.merchant || exp.title}
+                        </Text>
+                        <Text style={styles.scanItemSub}>
+                          {itemCount > 0 ? `${itemCount} items · ` : ''}{formatDate(exp.createdAt)}
+                        </Text>
+                      </View>
+                      <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Package size={24} color="#C7C7CC" strokeWidth={1.3} />
+                <Text style={styles.emptyTitle}>No receipts yet</Text>
+                <Text style={styles.emptySubtext}>Scan a receipt to start tracking</Text>
+              </View>
             )}
           </View>
 
-          {recentReceipts.length > 0 ? (
-            <View style={styles.listCard}>
-              {recentReceipts.map((exp, index) => {
-                const itemCount = exp.receiptItemsPreview
-                  ? exp.receiptItemsPreview.split(',').length
-                  : 0;
-                return (
-                  <Pressable
-                    key={exp.id}
-                    onPress={() => handleReceiptPress(exp.id)}
-                    style={({ pressed }) => [
-                      styles.receiptRow,
-                      pressed && styles.scanRowPressed,
-                      index < recentReceipts.length - 1 && styles.scanRowBorder,
-                    ]}
-                  >
-                    <View style={styles.receiptIconWrap}>
-                      <Text style={styles.receiptStoreIcon}>
-                        {(exp.merchant || exp.title || 'S').charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={styles.scanInfo}>
-                      <Text style={styles.scanItemTitle} numberOfLines={1}>
-                        {exp.merchant || exp.title}
-                      </Text>
-                      <Text style={styles.scanItemSub}>
-                        {itemCount > 0 ? `· ${itemCount} items` : ''} · {formatDate(exp.createdAt)}
-                      </Text>
-                    </View>
-                    <Text style={styles.receiptAmount}>${exp.amount.toFixed(2)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <Package size={24} color="#C7C7CC" strokeWidth={1.3} />
-              <Text style={styles.emptyTitle}>No receipts yet</Text>
-              <Text style={styles.emptySubtext}>Scan a receipt to start tracking</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={{ height: 32 }} />
+          <View style={{ height: 32 }} />
         </Animated.View>
       </ScrollView>
     </View>
@@ -365,7 +366,7 @@ const styles = StyleSheet.create({
   headerArea: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
@@ -375,10 +376,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800' as const,
     color: '#1C1C1E',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
   streakBadge: {
     flexDirection: 'row',
@@ -407,48 +408,52 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 14,
   },
   scanCard: {
     backgroundColor: '#16A34A',
-    borderRadius: 16,
-    paddingVertical: 28,
+    borderRadius: 14,
+    paddingVertical: 18,
     paddingHorizontal: 18,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
     shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
     elevation: 6,
   },
   scanCardPressed: {
-    opacity: 0.9,
+    opacity: 0.92,
     transform: [{ scale: 0.98 }],
   },
   scanCardContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 14,
   },
   scanCardIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+  },
+  scanCardTextWrap: {
+    gap: 2,
   },
   scanCardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   scanCardSub: {
     fontSize: 13,
     fontWeight: '400' as const,
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.7)',
   },
   section: {
     marginBottom: 20,
@@ -463,16 +468,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700' as const,
     color: '#1C1C1E',
+    letterSpacing: -0.2,
   },
   seeAllText: {
     fontSize: 14,
-    fontWeight: '500' as const,
+    fontWeight: '600' as const,
     color: '#16A34A',
   },
   statsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,
@@ -480,23 +486,27 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
     elevation: 2,
   },
   statCardSavings: {
     borderLeftWidth: 3,
     borderLeftColor: '#16A34A',
   },
+  statCardScanned: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
   statIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#F2F2F7',
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   statLabel: {
     fontSize: 12,
@@ -505,7 +515,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -518,13 +528,13 @@ const styles = StyleSheet.create({
   },
   listCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   scanRow: {
     flexDirection: 'row',
@@ -598,7 +608,7 @@ const styles = StyleSheet.create({
   receiptIconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
@@ -615,7 +625,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 28,
     paddingHorizontal: 20,
     alignItems: 'center',

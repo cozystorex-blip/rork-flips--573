@@ -340,10 +340,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800' as const,
     color: '#1C1C1E',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
     marginBottom: 12,
   },
   searchBar: {
