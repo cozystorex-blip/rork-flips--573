@@ -52,19 +52,44 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
   const mutate = saveMutation.mutate;
 
   const addEntry = useCallback(
-    (result: SmartScanResult, imageUri?: string) => {
+    (result: SmartScanResult, imageUri?: string, existingId?: string): string | null => {
       if (result.item_type === 'receipt' || result.item_type === 'unknown') {
         console.log('[ScanHistory] Skipping receipt/unknown type');
-        return;
+        return null;
       }
+      const entryId = existingId ?? (Date.now().toString() + Math.random().toString(36).substring(2, 6));
       const newEntry: ScanHistoryEntry = {
-        id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+        id: entryId,
         result,
         imageUri: imageUri ?? null,
         scannedAt: new Date().toISOString(),
       };
-      console.log('[ScanHistory] Adding entry:', newEntry.result.item_name, 'imageUri:', imageUri ? 'yes' : 'no');
+      console.log('[ScanHistory] Adding entry:', newEntry.result.item_name, 'id:', entryId, 'imageUri:', imageUri ? 'yes' : 'no');
       const updated = [newEntry, ...entries];
+      setEntries(updated);
+      mutate(updated);
+      return entryId;
+    },
+    [entries, mutate]
+  );
+
+  const getEntryById = useCallback(
+    (id: string): ScanHistoryEntry | undefined => {
+      return entries.find((e) => e.id === id);
+    },
+    [entries]
+  );
+
+  const updateEntryImage = useCallback(
+    (id: string, newImageUri: string) => {
+      const idx = entries.findIndex((e) => e.id === id);
+      if (idx === -1) {
+        console.log('[ScanHistory] updateEntryImage: entry not found:', id);
+        return;
+      }
+      console.log('[ScanHistory] Updating image for entry:', id);
+      const updated = [...entries];
+      updated[idx] = { ...updated[idx], imageUri: newImageUri };
       setEntries(updated);
       mutate(updated);
     },
@@ -114,12 +139,14 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
     hasHiddenEntries,
     isAtFreeLimit,
     addEntry,
+    getEntryById,
+    updateEntryImage,
     deleteEntry,
     clearHistory,
     isLoading: historyQuery.isLoading,
     freeLimit: FREE_HISTORY_LIMIT,
   }), [
     visibleEntries, entries, totalCount, hiddenCount, hasHiddenEntries,
-    isAtFreeLimit, addEntry, deleteEntry, clearHistory, historyQuery.isLoading,
+    isAtFreeLimit, addEntry, getEntryById, updateEntryImage, deleteEntry, clearHistory, historyQuery.isLoading,
   ]);
 });

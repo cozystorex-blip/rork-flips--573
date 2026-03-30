@@ -22,6 +22,7 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
+import { useScanProcess } from '@/contexts/ScanProcessContext';
 import type { SmartScanResult } from '@/services/smartScanService';
 
 const GRID_GAP = 12;
@@ -126,10 +127,18 @@ export default function SavedScreen() {
 
   const filteredItems = unifiedItems;
 
+  const { loadHistoryEntry } = useScanProcess();
+
   const handleCardPress = useCallback((item: UnifiedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (item.type === 'scan') {
       const scanEntry = item.raw as ScanHistoryEntry;
+      console.log('[Saved] Opening scan entry:', scanEntry.id, scanEntry.result.item_name);
+      loadHistoryEntry({
+        result: scanEntry.result,
+        imageUri: scanEntry.imageUri,
+        id: scanEntry.id,
+      });
       router.push({ pathname: '/smart-scan', params: { historyEntryId: scanEntry.id } });
     } else if (item.type === 'deal') {
       const deal = item.raw as SavedDeal;
@@ -148,7 +157,7 @@ export default function SavedScreen() {
         },
       });
     }
-  }, [router]);
+  }, [router, loadHistoryEntry]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

@@ -171,8 +171,19 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         return;
       }
 
+      const entryId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
+
+      let persistedUri = capturedUri;
+      try {
+        persistedUri = await persistScanImage(capturedUri);
+        console.log('[ScanProcess] Image persisted:', persistedUri.substring(0, 80));
+      } catch (e) {
+        console.log('[ScanProcess] Image persistence failed, using captured URI:', e);
+      }
+
       setResult(scanResult);
-      setScannedImageUri(capturedUri);
+      setScannedImageUri(persistedUri);
+      setViewingEntryId(entryId);
 
       setScanPhase('generating_image');
 
@@ -195,15 +206,9 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       setScanPhase('done');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      let persistedUri = capturedUri;
-      try {
-        persistedUri = await persistScanImage(capturedUri);
-      } catch (e) {
-        console.log('[ScanProcess] Image persistence failed:', e);
-      }
-      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
-      setViewingEntryId(newId);
-      addEntry(scanResult, persistedUri);
+      scanResult.scanned_image_uri = persistedUri;
+      addEntry(scanResult, persistedUri, entryId);
+      console.log('[ScanProcess] Scan saved with ID:', entryId, 'name:', scanResult.item_name);
 
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -242,13 +247,25 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         image_description: '',
       };
 
+      let fallbackPersistedUri = capturedUri;
+      if (capturedUri) {
+        try {
+          fallbackPersistedUri = await persistScanImage(capturedUri);
+        } catch (persistErr) {
+          console.log('[ScanProcess] Fallback image persistence failed:', persistErr);
+        }
+      }
+
+      fallbackResult.scanned_image_uri = fallbackPersistedUri ?? undefined;
       setResult(fallbackResult);
-      setScannedImageUri(capturedUri);
+      setScannedImageUri(fallbackPersistedUri);
       setScanPhase('done');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
-      const newId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
-      setViewingEntryId(newId);
+      const fallbackId = Date.now().toString() + Math.random().toString(36).substring(2, 6);
+      setViewingEntryId(fallbackId);
+      addEntry(fallbackResult, fallbackPersistedUri ?? undefined, fallbackId);
+      console.log('[ScanProcess] Fallback scan saved with ID:', fallbackId);
     } finally {
       setScanning(false);
     }
