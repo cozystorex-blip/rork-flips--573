@@ -114,6 +114,7 @@ export interface ScanProcessState {
 }
 
 const SCAN_TIMEOUT_MS = 60000;
+const SCAN_STUCK_TIMEOUT_MS = 90000;
 
 export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [scanning, setScanning] = useState<boolean>(false);
@@ -131,11 +132,16 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const scanAbortRef = useRef<boolean>(false);
   const scanInProgressRef = useRef<boolean>(false);
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stuckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearScanTimeout = useCallback(() => {
     if (scanTimeoutRef.current) {
       clearTimeout(scanTimeoutRef.current);
       scanTimeoutRef.current = null;
+    }
+    if (stuckTimeoutRef.current) {
+      clearTimeout(stuckTimeoutRef.current);
+      stuckTimeoutRef.current = null;
     }
   }, []);
 
@@ -154,6 +160,15 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setPendingReceiptNav(false);
     scanAbortRef.current = false;
     clearScanTimeout();
+
+    stuckTimeoutRef.current = setTimeout(() => {
+      if (scanInProgressRef.current) {
+        console.log('[ScanProcess] STUCK SAFETY: Force-resetting scanInProgressRef after', SCAN_STUCK_TIMEOUT_MS, 'ms');
+        scanInProgressRef.current = false;
+        setScanning(false);
+        setScanPhase('idle');
+      }
+    }, SCAN_STUCK_TIMEOUT_MS);
 
     let capturedUri: string | null = null;
 
@@ -258,8 +273,8 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
 
     } catch (error: unknown) {
       clearScanTimeout();
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      console.log('[ScanProcess] Error:', msg);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log('[ScanProcess] Error during scan:', msg);
 
       const fallbackResult: SmartScanResult = {
         item_type: 'general',
@@ -316,6 +331,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       addEntry(fallbackResult, fallbackPersistedUri ?? undefined, fallbackId);
       console.log('[ScanProcess] Fallback scan saved with ID:', fallbackId);
     } finally {
+      console.log('[ScanProcess] Scan complete, resetting state flags');
       setScanning(false);
       scanInProgressRef.current = false;
       clearScanTimeout();
@@ -323,6 +339,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   }, [addEntry, clearScanTimeout, scanMode]);
 
   const resetScan = useCallback(() => {
+    console.log('[ScanProcess] Resetting scan state');
     setResult(null);
     setReferenceImageUrl(null);
     setScannedImageUri(null);
@@ -333,6 +350,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setLastValidation(null);
     scanAbortRef.current = false;
     scanInProgressRef.current = false;
+    setScanning(false);
     clearScanTimeout();
   }, [clearScanTimeout]);
 

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 export interface PreprocessedImage {
@@ -28,8 +29,58 @@ function getTargetWidth(width: number, height: number, mode: ImageScanMode): num
   return isLong ? 1200 : 1500;
 }
 
+async function webFallbackPreprocess(imageUri: string): Promise<PreprocessedImage> {
+  console.log('[ImagePreprocess] Using web fallback for:', imageUri.substring(0, 80));
+  return new Promise<PreprocessedImage>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const maxDim = 1800;
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > maxDim || h > maxDim) {
+          const scale = maxDim / Math.max(w, h);
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context unavailable'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const base64 = dataUrl.split(',')[1] ?? '';
+        const sizeKB = Math.round((base64.length * 3) / 4 / 1024);
+        console.log('[ImagePreprocess] Web fallback:', w, 'x', h, 'size:', sizeKB, 'KB');
+        resolve({ uri: imageUri, base64, width: w, height: h, sizeKB });
+      } catch (err) {
+        console.log('[ImagePreprocess] Web canvas error:', err);
+        reject(err);
+      }
+    };
+    img.onerror = (err) => {
+      console.log('[ImagePreprocess] Web image load error:', err);
+      reject(new Error('Failed to load image on web'));
+    };
+    img.src = imageUri;
+  });
+}
+
 export async function preprocessReceiptImage(imageUri: string, mode: ImageScanMode = 'auto'): Promise<PreprocessedImage> {
-  console.log('[ImagePreprocess] Starting for mode:', mode, 'uri:', imageUri.substring(0, 80));
+  console.log('[ImagePreprocess] Starting for mode:', mode, 'uri:', imageUri.substring(0, 80), 'platform:', Platform.OS);
+
+  if (Platform.OS === 'web') {
+    try {
+      return await webFallbackPreprocess(imageUri);
+    } catch (webErr) {
+      console.log('[ImagePreprocess] Web fallback failed, trying manipulateAsync:', webErr);
+    }
+  }
 
   let initial;
   try {
@@ -40,10 +91,14 @@ export async function preprocessReceiptImage(imageUri: string, mode: ImageScanMo
     );
   } catch (err) {
     console.log('[ImagePreprocess] Initial read failed:', err);
+    if (Platform.OS === 'web') {
+      return { uri: imageUri, base64: '', width: 800, height: 600, sizeKB: 0 };
+    }
     throw new Error('Failed to read image. The file may be corrupted or inaccessible.');
   }
 
   if (!initial.base64) {
+    console.log('[ImagePreprocess] No base64 from initial read');
     throw new Error('Failed to read image data during preprocessing');
   }
 
@@ -73,12 +128,25 @@ export async function preprocessReceiptImage(imageUri: string, mode: ImageScanMo
       { compress: quality, format: SaveFormat.JPEG, base64: true }
     );
   } catch (err) {
-    console.log('[ImagePreprocess] Compression failed:', err);
-    throw new Error('Failed to process image. Try a different photo.');
+    console.log('[ImagePreprocess] Compression failed, using initial:', err);
+    return {
+      uri: initial.uri,
+      base64: initial.base64,
+      width: initial.width,
+      height: initial.height,
+      sizeKB: originalSizeKB,
+    };
   }
 
   if (!processed.base64) {
-    throw new Error('Failed to generate base64 after compression');
+    console.log('[ImagePreprocess] No base64 after compression, using initial');
+    return {
+      uri: initial.uri,
+      base64: initial.base64,
+      width: initial.width,
+      height: initial.height,
+      sizeKB: originalSizeKB,
+    };
   }
 
   const finalSizeKB = Math.round((processed.base64.length * 3) / 4 / 1024);

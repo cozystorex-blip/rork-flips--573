@@ -202,13 +202,27 @@ export default function SmartScanScreen() {
   const historyLoadedRef = useRef(false);
 
   useEffect(() => {
-    if (!hasAutoLaunched.current && !result && !scanning && !params.historyEntryId && !viewingEntryId) {
+    if (hasAutoLaunched.current) return;
+    if (params.historyEntryId) {
+      console.log('[SmartScan] History entry param present, skipping auto-launch');
       hasAutoLaunched.current = true;
-      console.log('[SmartScan] Auto-launching camera on open');
-      void handleCapture('camera');
+      return;
     }
+    if (viewingEntryId || result) {
+      console.log('[SmartScan] Already viewing entry or have result, skipping auto-launch');
+      hasAutoLaunched.current = true;
+      return;
+    }
+    if (scanning) return;
+
+    hasAutoLaunched.current = true;
+    console.log('[SmartScan] Auto-launching camera on open');
+    const timer = setTimeout(() => {
+      void handleCapture('camera');
+    }, 100);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [params.historyEntryId, viewingEntryId, result, scanning]);
 
   useEffect(() => {
     if (pendingReceiptNav) {

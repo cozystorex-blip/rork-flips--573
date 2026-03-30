@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useBlocks } from '@/contexts/BlocksContext';
 import { useAuth } from '@/contexts/AuthContext';
-import Colors from '@/constants/colors';
+
 import { uploadBlockImageToSupabase } from '@/services/uploadService';
 import * as ImageManipulator from 'expo-image-manipulator';
 
@@ -169,7 +169,7 @@ export default function CreateBlockScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
           <Pressable onPress={() => router.back()} style={styles.closeBtn} testID="close-create-block">
-            <X size={20} color={Colors.text} />
+            <X size={20} color="#1C1C1E" />
           </Pressable>
           <Text style={styles.topTitle}>Add Photo</Text>
           <Pressable
@@ -205,7 +205,7 @@ export default function CreateBlockScreen() {
 
           {!hasImage && !uploadingImage && (
             <View style={styles.emptyPreview}>
-              <Camera size={32} color={Colors.textTertiary} />
+              <Camera size={32} color="#AEAEB2" />
               <Text style={styles.emptyPreviewText}>Select a photo to post</Text>
             </View>
           )}
@@ -247,7 +247,7 @@ export default function CreateBlockScreen() {
           <TextInput
             style={styles.descriptionInput}
             placeholder="Add a description (optional)"
-            placeholderTextColor={Colors.textTertiary}
+            placeholderTextColor="#AEAEB2"
             value={description}
             onChangeText={setDescription}
             multiline
@@ -263,7 +263,7 @@ export default function CreateBlockScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   flex: { flex: 1 },
   topBar: {
     flexDirection: 'row',
@@ -271,10 +271,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: Colors.headerBg,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-    ...Colors.headerShadow,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   closeBtn: {
     width: 36,
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  topTitle: { fontSize: 17, fontWeight: '700' as const, color: Colors.text },
+  topTitle: { fontSize: 17, fontWeight: '700' as const, color: '#1C1C1E' },
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -327,17 +326,17 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     borderRadius: 16,
-    backgroundColor: Colors.card,
+    backgroundColor: '#F8F8F8',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: '#E5E5EA',
     borderStyle: 'dashed',
   },
   emptyPreviewText: {
     fontSize: 15,
-    color: Colors.textTertiary,
+    color: '#AEAEB2',
     fontWeight: '500' as const,
   },
   pickerRow: {
@@ -366,14 +365,14 @@ const styles = StyleSheet.create({
   },
 
   descriptionInput: {
-    backgroundColor: Colors.card,
+    backgroundColor: '#F8F8F8',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E5E5EA',
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.text,
+    color: '#1C1C1E',
     minHeight: 80,
     textAlignVertical: 'top' as const,
   },
