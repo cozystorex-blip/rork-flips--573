@@ -13,12 +13,12 @@ import {
   Settings,
   LogOut,
   Camera,
-  Play,
   Pause,
   Music,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 
@@ -34,8 +34,8 @@ export default function ProfileScreen() {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(0);
-  const [position, setPosition] = useState<number>(0);
+  const [_duration, setDuration] = useState<number>(0);
+  const [_position, setPosition] = useState<number>(0);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -88,12 +88,7 @@ export default function ProfileScreen() {
     }
   }, [sound, isPlaying, onPlaybackStatusUpdate]);
 
-  const formatTime = useCallback((ms: number) => {
-    const totalSec = Math.floor(ms / 1000);
-    const min = Math.floor(totalSec / 60);
-    const sec = totalSec % 60;
-    return `${min}:${sec.toString().padStart(2, '0')}`;
-  }, []);
+
 
   const memberSince = useMemo(() => {
     if (profile?.created_at) {
@@ -167,37 +162,40 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <View style={styles.musicSection}>
-          <View style={styles.musicCard}>
-            <View style={styles.musicTop}>
-              <View style={styles.musicIconWrap}>
-                <Music size={22} color="#16A34A" strokeWidth={2} />
-              </View>
-              <View style={styles.musicInfo}>
-                <Text style={styles.musicTitle} numberOfLines={1}>{SONG_TITLE}</Text>
-                <Text style={styles.musicArtist} numberOfLines={1}>{SONG_ARTIST}</Text>
-              </View>
-              <Pressable
-                onPress={() => { void handlePlayPause(); }}
-                style={({ pressed }) => [styles.playBtn, pressed && { transform: [{ scale: 0.92 }] }]}
-              >
-                {isPlaying ? (
-                  <Pause size={18} color="#FFFFFF" strokeWidth={2.5} />
-                ) : (
-                  <Play size={18} color="#FFFFFF" strokeWidth={2.5} style={{ marginLeft: 2 }} />
-                )}
-              </Pressable>
-            </View>
-            <View style={styles.progressArea}>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${Math.min(progress * 100, 100)}%` as any }]} />
-              </View>
-              <View style={styles.timeRow}>
-                <Text style={styles.timeText}>{formatTime(position)}</Text>
-                <Text style={styles.timeText}>{duration > 0 ? formatTime(duration) : '--:--'}</Text>
-              </View>
+        <View style={styles.mediaRow}>
+          <View style={styles.videoCard}>
+            <Video
+              source={{ uri: 'https://assets.mixkit.co/videos/607/607-720.mp4' }}
+              style={styles.video}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay
+              isLooping
+              isMuted
+            />
+            <View style={styles.videoOverlay}>
+              <Text style={styles.videoLabel}>Featured</Text>
             </View>
           </View>
+
+          <Pressable
+            onPress={() => { void handlePlayPause(); }}
+            style={({ pressed }) => [styles.musicTile, pressed && { transform: [{ scale: 0.96 }] }]}
+          >
+            <View style={styles.musicIconWrap}>
+              {isPlaying ? (
+                <Pause size={22} color="#16A34A" strokeWidth={2.5} />
+              ) : (
+                <Music size={22} color="#16A34A" strokeWidth={2} />
+              )}
+            </View>
+            <Text style={styles.musicTileTitle} numberOfLines={1}>{SONG_TITLE}</Text>
+            <Text style={styles.musicTileArtist} numberOfLines={1}>{SONG_ARTIST}</Text>
+            {isPlaying && (
+              <View style={styles.miniProgress}>
+                <View style={[styles.miniProgressFill, { width: `${Math.min(progress * 100, 100)}%` as any }]} />
+              </View>
+            )}
+          </Pressable>
         </View>
 
         <View style={styles.spacer} />
@@ -311,76 +309,84 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     marginTop: 6,
   },
-  musicSection: {
-    paddingHorizontal: 24,
+  mediaRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
     marginTop: 28,
+    gap: 12,
   },
-  musicCard: {
+  videoCard: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  video: {
+    width: '100%' as const,
+    height: 160,
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  videoLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  musicTile: {
+    width: 110,
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.15)',
-    padding: 16,
-  },
-  musicTop: {
-    flexDirection: 'row',
+    padding: 14,
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
   },
   musicIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 24,
     backgroundColor: 'rgba(255,255,255,0.92)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  musicInfo: {
-    flex: 1,
-  },
-  musicTitle: {
-    fontSize: 16,
+  musicTileTitle: {
+    fontSize: 12,
     fontWeight: '700' as const,
     color: '#FFFFFF',
     letterSpacing: -0.2,
+    textAlign: 'center' as const,
   },
-  musicArtist: {
-    fontSize: 13,
+  musicTileArtist: {
+    fontSize: 10,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.55)',
     marginTop: 2,
+    textAlign: 'center' as const,
   },
-  playBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressArea: {
-    marginTop: 16,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
+  miniProgress: {
+    width: '100%' as const,
+    height: 3,
+    borderRadius: 1.5,
     backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
+    marginTop: 10,
   },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
+  miniProgressFill: {
+    height: 3,
+    borderRadius: 1.5,
     backgroundColor: '#FFFFFF',
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  timeText: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: 'rgba(255,255,255,0.45)',
   },
   spacer: {
     flex: 1,
