@@ -218,7 +218,7 @@ export default function HomeScreen() {
           {allScans.length > 0 ? (
             <View style={styles.section}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Scanned</Text>
+                <Text style={styles.sectionTitle}>Recent</Text>
                 <Pressable
                   onPress={() => {
                     void Haptics.selectionAsync();
@@ -227,7 +227,7 @@ export default function HomeScreen() {
                   hitSlop={8}
                   style={({ pressed }) => [pressed && { opacity: 0.6 }]}
                 >
-                  <Text style={styles.seeAllText}>See All</Text>
+                  <Text style={styles.seeAllText}>View</Text>
                 </Pressable>
               </View>
 
@@ -287,7 +287,7 @@ export default function HomeScreen() {
           ) : (
             <View style={styles.emptyState}>
               <Scan size={32} color="#C7C7CC" strokeWidth={1.3} />
-              <Text style={styles.emptyTitle}>No scanned items yet</Text>
+              <Text style={styles.emptyTitle}>No items yet</Text>
               <Text style={styles.emptySubtext}>Tap the scan button to start scanning products</Text>
             </View>
           )}
