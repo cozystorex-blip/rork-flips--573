@@ -61,8 +61,8 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.greenFull}>
-        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.greenFull, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}>
+        <View style={styles.topBar}>
           <Text style={styles.topBarTitle}>Profile</Text>
           <Pressable
             style={styles.settingsBtn}
@@ -99,21 +99,25 @@ export default function ProfileScreen() {
 
           <Text style={styles.nameText}>{displayName}</Text>
           <Text style={styles.memberText}>Member since {memberSince}</Text>
-
+          {user?.email && (
+            <Text style={styles.emailText}>{user.email}</Text>
+          )}
         </View>
-      </View>
 
-      <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
-        {isAuthenticated && (
-          <Pressable
-            onPress={handleSignOut}
-            style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
-          >
-            <LogOut size={16} color="#EF4444" strokeWidth={1.8} />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </Pressable>
-        )}
-      </Animated.View>
+        <View style={styles.spacer} />
+
+        <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
+          {isAuthenticated && (
+            <Pressable
+              onPress={handleSignOut}
+              style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.7 }]}
+            >
+              <LogOut size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.8} />
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </Pressable>
+          )}
+        </Animated.View>
+      </View>
     </View>
   );
 }
@@ -121,18 +125,18 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#16A34A',
   },
   greenFull: {
+    flex: 1,
     backgroundColor: '#16A34A',
-    paddingBottom: 40,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   topBarTitle: {
     fontSize: 18,
@@ -154,12 +158,12 @@ const styles = StyleSheet.create({
   },
   avatarOuter: {
     position: 'relative',
-    marginBottom: 14,
+    marginBottom: 18,
   },
   avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: 'rgba(255,255,255,0.22)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -168,12 +172,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
   },
   avatarInitial: {
-    fontSize: 36,
+    fontSize: 52,
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
@@ -194,22 +198,28 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   nameText: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '700' as const,
     color: '#FFFFFF',
     letterSpacing: -0.4,
   },
   memberText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500' as const,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 3,
-    marginBottom: 20,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
+  },
+  emailText: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 6,
+  },
+  spacer: {
+    flex: 1,
   },
   bottomArea: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   signOutBtn: {
     flexDirection: 'row',
@@ -217,11 +227,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    marginTop: 4,
   },
   signOutText: {
     fontSize: 16,
     fontWeight: '500' as const,
-    color: '#EF4444',
+    color: 'rgba(255,255,255,0.7)',
   },
 });
