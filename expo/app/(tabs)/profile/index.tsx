@@ -88,9 +88,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.greenFull, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}>
-        <View style={styles.topBar}>
-          <Text style={styles.topBarTitle}>Profile</Text>
-        </View>
+        <View style={styles.topBar} />
 
         <View style={styles.profileSection}>
           <View style={styles.avatarOuter}>

@@ -163,11 +163,7 @@ export default function TabLayout() {
           borderTopColor: "#E5E5EA",
           borderTopWidth: StyleSheet.hairlineWidth,
         },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "600" as const,
-          letterSpacing: 0.1,
-        },
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen

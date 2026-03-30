@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Package,
-  Bell,
+
   Flame,
   Scan,
 } from 'lucide-react-native';
@@ -191,7 +191,6 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={[styles.headerArea, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerRow}>
-          <Text style={styles.brandTitle}>Flip</Text>
           <View style={{ flex: 1 }} />
           {streakDays > 0 && (
             <View style={styles.streakBadge}>
@@ -199,13 +198,6 @@ export default function HomeScreen() {
               <Text style={styles.streakText}>{streakDays}-day streak</Text>
             </View>
           )}
-          <Pressable
-            onPress={() => { void Haptics.selectionAsync(); }}
-            style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.6, transform: [{ scale: 0.92 }] }]}
-            hitSlop={8}
-          >
-            <Bell size={19} color="#1C1C1E" strokeWidth={1.5} />
-          </Pressable>
         </View>
       </View>
 
