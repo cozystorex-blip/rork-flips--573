@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
-  Dimensions,
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,10 +23,10 @@ import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext'
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import { useScanProcess } from '@/contexts/ScanProcessContext';
 import type { SmartScanResult } from '@/services/smartScanService';
+import { useScreenWidth } from '@/hooks/useScreenWidth';
 
 const GRID_GAP = 12;
 const H_PAD = 16;
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface UnifiedItem {
   id: string;
@@ -80,7 +79,8 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const cardWidth = (SCREEN_WIDTH - H_PAD * 2 - GRID_GAP) / 2;
+  const screenWidth = useScreenWidth();
+  const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
   const { entries: scanEntries, isLoading: scanLoading } = useScanHistory();
   const { savedDeals, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();

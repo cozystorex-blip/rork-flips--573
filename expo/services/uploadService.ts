@@ -151,9 +151,11 @@ export async function uploadAvatarToSupabase(uri: string, userId: string): Promi
 
 export async function pickBlockImage(): Promise<{ uri: string } | null> {
   console.log('[Upload] Requesting image picker for block');
-  const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permResult.granted) {
-    throw new Error('Permission to access photos is required.');
+  if (Platform.OS !== 'web') {
+    const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permResult.granted) {
+      throw new Error('Permission to access photos is required.');
+    }
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
