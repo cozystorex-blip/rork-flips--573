@@ -4,7 +4,7 @@ import React, { useCallback } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 
-const SCAN_SIZE = 62;
+const SCAN_SIZE = 64;
 
 function ScanTabButton() {
   const router = useRouter();
@@ -39,19 +39,19 @@ function ScanTabButton() {
 
 const scanStyles = StyleSheet.create({
   outerWrapper: {
-    width: SCAN_SIZE + 36,
-    height: SCAN_SIZE + 10,
+    width: SCAN_SIZE + 28,
+    height: SCAN_SIZE + 12,
     alignItems: "center",
     justifyContent: "flex-end",
-    marginTop: -(SCAN_SIZE / 2 + 4),
+    marginTop: -(SCAN_SIZE / 2),
   },
   halfCircleBg: {
     position: "absolute",
     bottom: 0,
-    width: SCAN_SIZE + 36,
-    height: (SCAN_SIZE + 36) / 2,
-    borderTopLeftRadius: (SCAN_SIZE + 36) / 2,
-    borderTopRightRadius: (SCAN_SIZE + 36) / 2,
+    width: SCAN_SIZE + 28,
+    height: (SCAN_SIZE + 28) / 2,
+    borderTopLeftRadius: (SCAN_SIZE + 28) / 2,
+    borderTopRightRadius: (SCAN_SIZE + 28) / 2,
     backgroundColor: "#FFFFFF",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderLeftWidth: StyleSheet.hairlineWidth,
@@ -66,11 +66,11 @@ const scanStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0D7A2F",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
-    marginBottom: 6,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+    marginBottom: 4,
   },
   scannerIcon: {
     width: 24,
