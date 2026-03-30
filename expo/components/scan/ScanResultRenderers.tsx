@@ -414,6 +414,34 @@ export function ReceiptResultSection({ result }: ResultProps) {
   );
 }
 
+function RecipeCard({ recipe }: { recipe: { name: string; description: string; difficulty: string; prep_time: string; key_ingredients: string[] } }) {
+  const diffColor = recipe.difficulty === 'easy' ? C.green : recipe.difficulty === 'medium' ? C.amber : C.red;
+  const diffBg = recipe.difficulty === 'easy' ? C.greenBg : recipe.difficulty === 'medium' ? C.amberBg : C.redBg;
+  return (
+    <View style={s.recipeCard}>
+      <View style={s.recipeHeader}>
+        <Text style={s.recipeName}>{recipe.name}</Text>
+        <View style={[s.recipeDiffBadge, { backgroundColor: diffBg }]}>
+          <Text style={[s.recipeDiffText, { color: diffColor }]}>{capitalize(recipe.difficulty)}</Text>
+        </View>
+      </View>
+      <Text style={s.recipeDesc}>{recipe.description}</Text>
+      <View style={s.recipeMetaRow}>
+        <Text style={s.recipeMetaText}>{recipe.prep_time}</Text>
+      </View>
+      {recipe.key_ingredients.length > 0 && (
+        <View style={s.recipeIngredientsRow}>
+          {recipe.key_ingredients.map((ing, i) => (
+            <View key={`${ing}-${i}`} style={s.recipeIngChip}>
+              <Text style={s.recipeIngText}>{ing}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function FoodResultSection({ result }: ResultProps) {
   if (!result.food_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
@@ -455,6 +483,57 @@ export function FoodResultSection({ result }: ResultProps) {
         </>
       )}
 
+      {fd.ingredients && fd.ingredients.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Ingredients" />
+          {fd.ingredients.map((ing, i) => (
+            <View key={`ing-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>{'\u2022'}</Text>
+              <Text style={s.bulletText}>{ing}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <ChipRow items={fd.allergens} label="ALLERGENS" />
+      <ChipRow items={fd.dietary_info} label="DIETARY INFO" />
+
+      {fd.cuisine_type && <LineItem label="Cuisine" value={fd.cuisine_type} />}
+      {fd.origin_region && <LineItem label="Origin" value={fd.origin_region} />}
+      {fd.season_availability && <LineItem label="Season" value={fd.season_availability} />}
+
+      {fd.recipe_ideas && fd.recipe_ideas.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Recipe Ideas" />
+          {fd.recipe_ideas.map((recipe, i) => (
+            <RecipeCard key={`recipe-${i}`} recipe={recipe} />
+          ))}
+        </>
+      )}
+
+      {fd.preparation_tips && fd.preparation_tips.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Preparation Tips" />
+          {fd.preparation_tips.map((tip, i) => (
+            <View key={`prep-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>{'\u2192'}</Text>
+              <Text style={s.bulletText}>{tip}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {fd.storage_tip && (
+        <>
+          <Divider />
+          <SectionLabel text="Storage" />
+          <InfoBlock text={fd.storage_tip} type="tip" />
+        </>
+      )}
+
       <Divider />
       <SectionLabel text="Price Check" />
       {fd.estimated_price ? (
@@ -480,7 +559,7 @@ export function FoodResultSection({ result }: ResultProps) {
       {fd.health_benefits.length > 0 && (
         <>
           <Divider />
-          <SectionLabel text="Benefits" />
+          <SectionLabel text="Health Benefits" />
           {fd.health_benefits.map((b, i) => (
             <View key={`${b}-${i}`} style={s.bulletRow}>
               <Text style={s.bulletChar}>{'\u2713'}</Text>
@@ -496,6 +575,9 @@ export function FoodResultSection({ result }: ResultProps) {
           <InfoBlock text={fd.quick_tip} type="tip" />
         </>
       )}
+
+      <ChipRow items={fd.pairs_with_drinks} label="DRINK PAIRINGS" />
+      <ChipRow items={fd.substitutes} label="SUBSTITUTES" />
 
       {result.trustResult ? (
         <SourceQualitySection sources={result.trustResult.sections.sourceQuality} label={result.trustResult.sourceQualityLabel} />
@@ -521,6 +603,23 @@ export function GroceryResultSection({ result }: ResultProps) {
       <SectionLabel text="Product Info" />
       {gd.brand && <LineItem label="Brand" value={gd.brand} bold />}
       {gd.package_size && <LineItem label="Size" value={gd.package_size} />}
+      {gd.nutrition_highlights && <InfoBlock text={gd.nutrition_highlights} type="success" />}
+
+      {gd.ingredients_list && gd.ingredients_list.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Ingredients" />
+          {gd.ingredients_list.map((ing, i) => (
+            <View key={`ging-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>{'\u2022'}</Text>
+              <Text style={s.bulletText}>{ing}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <ChipRow items={gd.allergens} label="ALLERGENS" />
+      <ChipRow items={gd.dietary_info} label="DIETARY INFO" />
 
       <Divider />
       <SectionLabel text="Price Check" />
@@ -541,6 +640,39 @@ export function GroceryResultSection({ result }: ResultProps) {
         </>
       )}
       {gd.cheaper_alternative && <InfoBlock text={`Try instead: ${gd.cheaper_alternative}`} type="warning" />}
+
+      {gd.recipe_ideas && gd.recipe_ideas.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Recipe Ideas" />
+          {gd.recipe_ideas.map((recipe, i) => (
+            <RecipeCard key={`grecipe-${i}`} recipe={recipe} />
+          ))}
+        </>
+      )}
+
+      {gd.preparation_tips && gd.preparation_tips.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Preparation Tips" />
+          {gd.preparation_tips.map((tip, i) => (
+            <View key={`gprep-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>{'\u2192'}</Text>
+              <Text style={s.bulletText}>{tip}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {gd.storage_tip && (
+        <>
+          <Divider />
+          <SectionLabel text="Storage" />
+          <InfoBlock text={gd.storage_tip} type="tip" />
+        </>
+      )}
+
+      <ChipRow items={gd.substitutes} label="SUBSTITUTES" />
 
       {gd.what_else_needed && gd.what_else_needed.length > 0 && (
         <>
@@ -1481,5 +1613,74 @@ const s = StyleSheet.create({
     color: C.textSecondary,
     lineHeight: 17,
     fontWeight: '500' as const,
+  },
+  recipeCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+    marginBottom: 8,
+  },
+  recipeHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 4,
+  },
+  recipeName: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+    flex: 1,
+    marginRight: 8,
+  },
+  recipeDiffBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  recipeDiffText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.3,
+  },
+  recipeDesc: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+    marginBottom: 6,
+  },
+  recipeMetaRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginBottom: 6,
+  },
+  recipeMetaText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: C.textMuted,
+  },
+  recipeIngredientsRow: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 4,
+    marginTop: 2,
+  },
+  recipeIngChip: {
+    backgroundColor: C.bg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  recipeIngText: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: C.textSecondary,
   },
 });

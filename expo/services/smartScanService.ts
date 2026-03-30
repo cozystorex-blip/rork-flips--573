@@ -113,6 +113,14 @@ const classificationSchema = z.object({
   page_topic: z.string(),
 });
 
+const recipeSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  difficulty: z.enum(['easy', 'medium', 'hard']),
+  prep_time: z.string(),
+  key_ingredients: z.array(z.string()),
+});
+
 const foodDetailsSchema = z.object({
   serving_size: z.string(),
   calories: z.number(),
@@ -136,6 +144,17 @@ const foodDetailsSchema = z.object({
   purpose: z.string().nullable(),
   value_insight: z.string().nullable(),
   next_scan_suggestion: z.string().nullable(),
+  ingredients: z.array(z.string()),
+  allergens: z.array(z.string()),
+  dietary_info: z.array(z.string()),
+  recipe_ideas: z.array(recipeSchema),
+  preparation_tips: z.array(z.string()),
+  storage_tip: z.string().nullable(),
+  season_availability: z.string().nullable(),
+  origin_region: z.string().nullable(),
+  cuisine_type: z.string().nullable(),
+  pairs_with_drinks: z.array(z.string()),
+  substitutes: z.array(z.string()),
 });
 
 const groceryDetailsSchema = z.object({
@@ -154,6 +173,14 @@ const groceryDetailsSchema = z.object({
   purpose: z.string().nullable(),
   value_insight: z.string().nullable(),
   next_scan_suggestion: z.string().nullable(),
+  ingredients_list: z.array(z.string()),
+  allergens: z.array(z.string()),
+  dietary_info: z.array(z.string()),
+  recipe_ideas: z.array(recipeSchema),
+  preparation_tips: z.array(z.string()),
+  storage_tip: z.string().nullable(),
+  nutrition_highlights: z.string().nullable(),
+  substitutes: z.array(z.string()),
 });
 
 const householdDetailsSchema = z.object({
@@ -704,9 +731,22 @@ QUALITY CHECK — before returning your answer:
 - key_nutrients, health_benefits (2+ items), health_summary, quick_tip
 - estimated_price, price_range, value_rating, budget_insight
 - tags and complementary_items
-- purpose: One sentence explaining what this food is typically used for or how it's eaten (e.g. "A high-protein breakfast option often paired with fruit and granola")
-- value_insight: One practical insight about this food's value (e.g. "Good protein-to-calorie ratio for the price" or "Premium brand — store-brand alternatives offer similar quality for 40% less")
-- next_scan_suggestion: What to scan next for better accuracy (e.g. "Scan the nutrition label on the back for exact calorie and macro data" or "Scan the barcode for exact product match")
+- purpose: One sentence explaining what this food is typically used for or how it's eaten
+- value_insight: One practical insight about this food's value
+- next_scan_suggestion: What to scan next for better accuracy
+
+FOOD-SPECIFIC DETAIL FIELDS (FILL ALL):
+- ingredients: List the main visible or known ingredients in this food item. If it's a whole food (e.g. apple, chicken breast), list its natural composition. If it's a prepared dish, list the likely ingredients.
+- allergens: Common allergens present or likely present (e.g. "Gluten", "Dairy", "Nuts", "Soy", "Eggs", "Shellfish"). Empty array if none.
+- dietary_info: Dietary classifications (e.g. "Vegan", "Gluten-Free", "Keto-Friendly", "High-Protein", "Low-Carb", "Dairy-Free", "Whole30", "Paleo")
+- recipe_ideas: 2-4 recipe ideas using this food item. Each with: name (recipe title), description (1-2 sentence description of the dish), difficulty (easy/medium/hard), prep_time (e.g. "15 min", "30 min", "1 hour"), key_ingredients (3-6 other ingredients needed). Think like a chef — suggest practical, delicious recipes.
+- preparation_tips: 2-4 tips for preparing, cooking, or serving this food (e.g. "Sear on high heat for a crispy crust", "Let rest 5 minutes after cooking", "Best served at room temperature")
+- storage_tip: How to store this food for maximum freshness (e.g. "Refrigerate and consume within 3 days" or "Store in a cool, dry place for up to 6 months")
+- season_availability: When this food is in season or at peak quality (e.g. "Summer (June-August)" or "Year-round" or "Fall harvest"). Null if not applicable.
+- origin_region: Where this food typically comes from (e.g. "Mediterranean region", "Southeast Asia", "Central America"). Null if generic.
+- cuisine_type: What cuisine this is associated with (e.g. "Italian", "Mexican", "Japanese", "American comfort food"). Null if generic.
+- pairs_with_drinks: 2-4 drink pairings (e.g. "Red wine", "Sparkling water with lemon", "Green tea", "Cold brew coffee")
+- substitutes: 2-4 substitutes or alternatives for this food (e.g. "Cauliflower rice" for rice, "Greek yogurt" for sour cream)
 DO NOT fill furniture_details, fashion_details, electronics_details, household_details, or general_details.`;
 
     case 'grocery':
@@ -714,9 +754,19 @@ DO NOT fill furniture_details, fashion_details, electronics_details, household_d
 - brand (from label), package_size, estimated_price, price_range, unit_price
 - value_rating, budget_insight, cheaper_alternative
 - what_else_needed, tags, complementary_items
-- purpose: One sentence explaining what this product is for (e.g. "A pantry staple used as a base for pasta dishes, casseroles, and soups")
-- value_insight: One practical insight (e.g. "Buying the larger 28oz can saves ~30% per ounce vs the 14oz" or "Store brand version is nearly identical in taste tests")
-- next_scan_suggestion: What to scan next (e.g. "Scan the barcode for exact price comparison" or "Scan the nutrition label for detailed ingredient info")
+- purpose: One sentence explaining what this product is for
+- value_insight: One practical insight
+- next_scan_suggestion: What to scan next
+
+GROCERY-SPECIFIC DETAIL FIELDS (FILL ALL):
+- ingredients_list: List the main ingredients (from label if visible, or typical ingredients for this product type). List in order of quantity/importance.
+- allergens: Common allergens in this product (e.g. "Wheat", "Milk", "Soy", "Tree Nuts", "Peanuts", "Eggs", "Fish"). Empty array if none.
+- dietary_info: Dietary classifications (e.g. "Organic", "Non-GMO", "Gluten-Free", "Vegan", "Sugar-Free", "Low-Sodium", "Kosher", "Halal")
+- recipe_ideas: 2-4 recipes you can make with this grocery product. Each with: name (recipe title), description (1-2 sentence description), difficulty (easy/medium/hard), prep_time (e.g. "20 min"), key_ingredients (3-6 OTHER ingredients you'd need to buy). Be practical and creative.
+- preparation_tips: 2-3 tips for using this grocery product (e.g. "Cook al dente for best texture", "Shake well before opening", "Rinse before cooking to remove excess starch")
+- storage_tip: How to store after opening or before use (e.g. "Refrigerate after opening, use within 7 days" or "Store in a cool, dry pantry")
+- nutrition_highlights: One-line nutrition highlight (e.g. "High in fiber and iron" or "Low calorie, zero added sugar" or "Good source of Vitamin C")
+- substitutes: 2-4 product substitutes (e.g. "Whole wheat pasta" for regular pasta, "Coconut aminos" for soy sauce)
 DO NOT fill furniture_details, fashion_details, electronics_details, household_details, or general_details.`;
 
     case 'household':
@@ -1612,6 +1662,17 @@ function normalizeFullResult(result: SmartScanResult): SmartScanResult {
     fd.purpose = normalizeTextField(fd.purpose);
     fd.value_insight = normalizeTextField(fd.value_insight);
     fd.next_scan_suggestion = normalizeTextField(fd.next_scan_suggestion);
+    fd.ingredients = normalizeStringArray(fd.ingredients);
+    fd.allergens = normalizeStringArray(fd.allergens);
+    fd.dietary_info = normalizeStringArray(fd.dietary_info);
+    fd.preparation_tips = normalizeStringArray(fd.preparation_tips);
+    fd.storage_tip = normalizeTextField(fd.storage_tip);
+    fd.season_availability = normalizeTextField(fd.season_availability);
+    fd.origin_region = normalizeTextField(fd.origin_region);
+    fd.cuisine_type = normalizeTextField(fd.cuisine_type);
+    fd.pairs_with_drinks = normalizeStringArray(fd.pairs_with_drinks);
+    fd.substitutes = normalizeStringArray(fd.substitutes);
+    if (!fd.recipe_ideas) fd.recipe_ideas = [];
     n.food_details = fd;
   }
 
@@ -1629,6 +1690,14 @@ function normalizeFullResult(result: SmartScanResult): SmartScanResult {
     gd.purpose = normalizeTextField(gd.purpose);
     gd.value_insight = normalizeTextField(gd.value_insight);
     gd.next_scan_suggestion = normalizeTextField(gd.next_scan_suggestion);
+    gd.ingredients_list = normalizeStringArray(gd.ingredients_list);
+    gd.allergens = normalizeStringArray(gd.allergens);
+    gd.dietary_info = normalizeStringArray(gd.dietary_info);
+    gd.preparation_tips = normalizeStringArray(gd.preparation_tips);
+    gd.storage_tip = normalizeTextField(gd.storage_tip);
+    gd.nutrition_highlights = normalizeTextField(gd.nutrition_highlights);
+    gd.substitutes = normalizeStringArray(gd.substitutes);
+    if (!gd.recipe_ideas) gd.recipe_ideas = [];
     n.grocery_details = gd;
   }
 
