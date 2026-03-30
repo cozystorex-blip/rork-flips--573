@@ -15,6 +15,7 @@ import {
   Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 
@@ -102,6 +103,22 @@ export default function ProfileScreen() {
           {user?.email && (
             <Text style={styles.emailText}>{user.email}</Text>
           )}
+        </View>
+
+        <View style={styles.videoSection}>
+          <View style={styles.videoCard}>
+            <Video
+              source={{ uri: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4' }}
+              style={styles.video}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay
+              isLooping
+              isMuted
+            />
+            <View style={styles.videoOverlay}>
+              <Text style={styles.videoLabel}>Featured</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.spacer} />
@@ -214,6 +231,36 @@ const styles = StyleSheet.create({
     fontWeight: '400' as const,
     color: 'rgba(255,255,255,0.5)',
     marginTop: 6,
+  },
+  videoSection: {
+    paddingHorizontal: 24,
+    marginTop: 28,
+  },
+  videoCard: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  video: {
+    width: '100%' as const,
+    height: 200,
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  videoLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   spacer: {
     flex: 1,
