@@ -189,15 +189,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} strokeWidth={1.8} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="scan"
         options={{
           title: "",
@@ -207,6 +198,15 @@ export default function TabLayout() {
           tabPress: (e) => {
             e.preventDefault();
           },
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <User size={size} color={color} strokeWidth={1.8} />
+          ),
         }}
       />
     </Tabs>
