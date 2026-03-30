@@ -4,8 +4,7 @@ import React, { useCallback } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 
-const SCAN_SIZE = 58;
-const TAB_BAR_HEIGHT = 50;
+const SCAN_SIZE = 62;
 
 function ScanTabButton() {
   const router = useRouter();
@@ -17,11 +16,12 @@ function ScanTabButton() {
 
   return (
     <View style={scanStyles.outerWrapper}>
+      <View style={scanStyles.halfCircleBg} />
       <Pressable
         onPress={handlePress}
         style={({ pressed }) => [
           scanStyles.circle,
-          pressed && { opacity: 0.9, transform: [{ scale: 0.92 }] },
+          pressed && { opacity: 0.9, transform: [{ scale: 0.93 }] },
         ]}
         testID="tab-scan-button"
       >
@@ -33,18 +33,30 @@ function ScanTabButton() {
           <View style={scanStyles.scanLine} />
         </View>
       </Pressable>
-      <View style={scanStyles.dashLine} />
     </View>
   );
 }
 
 const scanStyles = StyleSheet.create({
   outerWrapper: {
-    width: SCAN_SIZE + 16,
-    height: TAB_BAR_HEIGHT + SCAN_SIZE / 2,
+    width: SCAN_SIZE + 36,
+    height: SCAN_SIZE + 10,
     alignItems: "center",
-    justifyContent: "flex-start",
-    marginTop: -(SCAN_SIZE / 2),
+    justifyContent: "flex-end",
+    marginTop: -(SCAN_SIZE / 2 + 4),
+  },
+  halfCircleBg: {
+    position: "absolute",
+    bottom: 0,
+    width: SCAN_SIZE + 36,
+    height: (SCAN_SIZE + 36) / 2,
+    borderTopLeftRadius: (SCAN_SIZE + 36) / 2,
+    borderTopRightRadius: (SCAN_SIZE + 36) / 2,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E5EA",
   },
   circle: {
     width: SCAN_SIZE,
@@ -55,23 +67,22 @@ const scanStyles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: "#0D7A2F",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 10,
-    borderWidth: 4,
-    borderColor: "#FFFFFF",
+    marginBottom: 6,
   },
   scannerIcon: {
-    width: 22,
-    height: 18,
+    width: 24,
+    height: 20,
     position: "relative",
   },
   cornerTL: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderTopWidth: 2.5,
     borderLeftWidth: 2.5,
     borderColor: "#FFFFFF",
@@ -81,8 +92,8 @@ const scanStyles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: 0,
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderTopWidth: 2.5,
     borderRightWidth: 2.5,
     borderColor: "#FFFFFF",
@@ -92,8 +103,8 @@ const scanStyles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     left: 0,
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderBottomWidth: 2.5,
     borderLeftWidth: 2.5,
     borderColor: "#FFFFFF",
@@ -103,8 +114,8 @@ const scanStyles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderBottomWidth: 2.5,
     borderRightWidth: 2.5,
     borderColor: "#FFFFFF",
@@ -118,14 +129,6 @@ const scanStyles = StyleSheet.create({
     height: 2,
     backgroundColor: "#FFFFFF",
     borderRadius: 1,
-  },
-  dashLine: {
-    width: 28,
-    height: 0,
-    borderTopWidth: 2,
-    borderStyle: "dashed" as const,
-    borderColor: "#16A34A",
-    marginTop: 5,
   },
 });
 
@@ -158,15 +161,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="saved"
-        options={{
-          title: "Saved",
-          tabBarIcon: ({ color, size }) => (
-            <Heart size={size} color={color} strokeWidth={1.8} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="scan"
         options={{
           title: "",
@@ -178,7 +172,15 @@ export default function TabLayout() {
           },
         }}
       />
-
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: "Saved",
+          tabBarIcon: ({ color, size }) => (
+            <Heart size={size} color={color} strokeWidth={1.8} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="profile"
         options={{

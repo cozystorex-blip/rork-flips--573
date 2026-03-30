@@ -15,7 +15,7 @@ import {
   Package,
   Heart,
   Camera,
-  ChevronDown,
+
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -198,10 +198,6 @@ export default function SavedScreen() {
           <View>
             <View style={styles.countRow}>
               <Text style={styles.countLabel}>{filteredItems.length} items saved</Text>
-              <Pressable style={styles.sortBtn}>
-                <Text style={styles.sortText}>Recently Added</Text>
-                <ChevronDown size={12} color="#8E8E93" strokeWidth={1.5} />
-              </Pressable>
             </View>
 
             <View style={styles.grid}>
