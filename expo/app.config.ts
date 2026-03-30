@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Flip",
   slug: "grocery-tracker-map-clone-cl-v42ss0s",
-  version: "1.10.2",
+  version: "1.10000",
   sdkVersion: "54.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
