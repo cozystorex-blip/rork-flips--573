@@ -13,44 +13,60 @@ function ScanTabButton() {
   }, [router]);
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [
-        scanStyles.wrapper,
-        pressed && { transform: [{ scale: 0.92 }] },
-      ]}
-      testID="tab-scan-button"
-    >
-      <View style={scanStyles.button}>
-        <View style={scanStyles.iconCircle}>
-          <Scan size={26} color="#FFFFFF" strokeWidth={2.2} />
+    <View style={scanStyles.wrapper}>
+      <Pressable
+        onPress={handlePress}
+        style={({ pressed }) => [
+          scanStyles.touchArea,
+          pressed && { transform: [{ scale: 0.95 }] },
+        ]}
+        testID="tab-scan-button"
+      >
+        <View style={scanStyles.halfCircle}>
+          <View style={scanStyles.iconWrap}>
+            <Scan size={28} color="#FFFFFF" strokeWidth={2.4} />
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
+
+const HALF_SIZE = 64;
 
 const scanStyles = StyleSheet.create({
   wrapper: {
     position: "relative",
-    top: -22,
+    top: -HALF_SIZE / 2,
     justifyContent: "center",
     alignItems: "center",
+    width: HALF_SIZE + 16,
+    height: HALF_SIZE,
   },
-  button: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+  touchArea: {
+    width: HALF_SIZE + 16,
+    height: HALF_SIZE,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  halfCircle: {
+    width: HALF_SIZE + 16,
+    height: HALF_SIZE,
+    borderTopLeftRadius: (HALF_SIZE + 16) / 2,
+    borderTopRightRadius: (HALF_SIZE + 16) / 2,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     backgroundColor: "#16A34A",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#16A34A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 8,
   },
-  iconCircle: {
+  iconWrap: {
+    marginTop: 6,
     justifyContent: "center",
     alignItems: "center",
   },
