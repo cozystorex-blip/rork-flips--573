@@ -1,8 +1,11 @@
 import { Tabs, useRouter } from "expo-router";
-import { Home, Heart, Receipt, User, Scan } from "lucide-react-native";
+import { Home, Heart, Receipt, User } from "lucide-react-native";
 import React, { useCallback } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
+
+const SCAN_WIDTH = 72;
+const SCAN_HEIGHT = 40;
 
 function ScanTabButton() {
   const router = useRouter();
@@ -18,13 +21,17 @@ function ScanTabButton() {
         onPress={handlePress}
         style={({ pressed }) => [
           scanStyles.touchArea,
-          pressed && { transform: [{ scale: 0.95 }] },
+          pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
         ]}
         testID="tab-scan-button"
       >
         <View style={scanStyles.halfCircle}>
-          <View style={scanStyles.iconWrap}>
-            <Scan size={28} color="#FFFFFF" strokeWidth={2.4} />
+          <View style={scanStyles.scannerIcon}>
+            <View style={scanStyles.cornerTL} />
+            <View style={scanStyles.cornerTR} />
+            <View style={scanStyles.cornerBL} />
+            <View style={scanStyles.cornerBR} />
+            <View style={scanStyles.scanLine} />
           </View>
         </View>
       </Pressable>
@@ -32,43 +39,95 @@ function ScanTabButton() {
   );
 }
 
-const HALF_SIZE = 64;
-
 const scanStyles = StyleSheet.create({
   wrapper: {
     position: "relative",
-    top: -HALF_SIZE / 2,
+    top: -SCAN_HEIGHT + 2,
     justifyContent: "center",
     alignItems: "center",
-    width: HALF_SIZE + 16,
-    height: HALF_SIZE,
+    width: SCAN_WIDTH,
+    height: SCAN_HEIGHT + 10,
   },
   touchArea: {
-    width: HALF_SIZE + 16,
-    height: HALF_SIZE,
+    width: SCAN_WIDTH,
+    height: SCAN_HEIGHT + 10,
     alignItems: "center",
     justifyContent: "flex-end",
   },
   halfCircle: {
-    width: HALF_SIZE + 16,
-    height: HALF_SIZE,
-    borderTopLeftRadius: (HALF_SIZE + 16) / 2,
-    borderTopRightRadius: (HALF_SIZE + 16) / 2,
+    width: SCAN_WIDTH,
+    height: SCAN_HEIGHT,
+    borderTopLeftRadius: SCAN_WIDTH / 2,
+    borderTopRightRadius: SCAN_WIDTH / 2,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     backgroundColor: "#16A34A",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#16A34A",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: "#0D7A2F",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  iconWrap: {
-    marginTop: 6,
-    justifyContent: "center",
-    alignItems: "center",
+  scannerIcon: {
+    width: 24,
+    height: 20,
+    marginTop: 4,
+    position: "relative",
+  },
+  cornerTL: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 7,
+    height: 7,
+    borderTopWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderColor: "#FFFFFF",
+    borderTopLeftRadius: 2,
+  },
+  cornerTR: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 7,
+    height: 7,
+    borderTopWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderColor: "#FFFFFF",
+    borderTopRightRadius: 2,
+  },
+  cornerBL: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    width: 7,
+    height: 7,
+    borderBottomWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderColor: "#FFFFFF",
+    borderBottomLeftRadius: 2,
+  },
+  cornerBR: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 7,
+    height: 7,
+    borderBottomWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderColor: "#FFFFFF",
+    borderBottomRightRadius: 2,
+  },
+  scanLine: {
+    position: "absolute",
+    top: "45%" as any,
+    left: 3,
+    right: 3,
+    height: 2,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 1,
   },
 });
 
