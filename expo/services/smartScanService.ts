@@ -1527,10 +1527,27 @@ item_type MUST be "${classification.item_type}". Do NOT change it. is_receipt mu
 confidence should be ${classification.confidence.toFixed(2)}.
 Keep item_name EXACTLY as "${classification.item_name}" — do NOT rename or replace the item.
 CRITICAL: ONLY populate the ${classification.item_type}_details field. ALL other detail fields (*_details) MUST be null.
-Do NOT invent information you cannot see or confidently infer. If you don't know a value, set it to null.
 Be ACCURATE: real prices for recognized products, realistic ranges for unrecognized ones. Do not hallucinate brand names, model numbers, or prices.
 CONSISTENCY: For the same item scanned multiple times, return essentially the same details. Be deterministic.
-FORMATTING: Prices must start with $. Tags must be lowercase. Arrays ordered by relevance. Use null instead of "n/a" or "none".`;
+FORMATTING: Prices must start with $. Tags must be lowercase. Arrays ordered by relevance. Use null instead of "n/a" or "none".
+
+IMPORTANT — FILL EVERY FIELD POSSIBLE:
+You are a product analysis genie. The user wants MAXIMUM detail on every item. Do NOT leave fields null if you can make a reasonable estimate. Think like a professional appraiser + retail expert + resale consultant. For EVERY field:
+- brand: Even if logo is not visible, if you can identify the brand from design/style, state it. Say "Likely Nike" etc.
+- estimated_retail_price / estimated_price: ALWAYS provide your best estimate. Use ranges if unsure.
+- estimated_resale_value: ALWAYS estimate for non-consumable items. Think eBay, Poshmark, Mercari, Facebook Marketplace.
+- best_selling_platform: ALWAYS suggest where this sells best (eBay, StockX, Poshmark, Mercari, Facebook Marketplace, Craigslist, OfferUp, Depop, etc.)
+- value_verdict / value_rating: ALWAYS rate the value.
+- resale_demand: ALWAYS estimate demand level.
+- comparable_model / comparable_item: ALWAYS suggest a comparable product.
+- condition: ALWAYS assess from what you see.
+- care_tip: ALWAYS provide care advice.
+- budget_insight: ALWAYS provide a money-saving tip.
+- cheaper_alternative: ALWAYS suggest an alternative if one exists.
+- tags: Provide 5-10 relevant tags.
+- complementary_items: Suggest 3-5 items that go with this.
+- purpose, value_insight, next_scan_suggestion: ALWAYS fill these.
+The goal: leave NO field empty unless truly impossible. Act like a product oracle.`;
 
   const result = await callWithRetry(
     () => generateObject({

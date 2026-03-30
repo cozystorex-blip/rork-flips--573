@@ -567,51 +567,11 @@ export function FurnitureResultSection({ result }: ResultProps) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
   }
-
   if (result.trustResult) {
     return <TrustResultSection result={result} trustResult={result.trustResult} />;
   }
-
   const fd = result.furniture_details;
-  return (
-    <>
-      <SectionLabel text="Product Details" />
-      {fd.material && <LineItem label="Material" value={fd.material} />}
-      {fd.finish_color && <LineItem label="Color/Finish" value={fd.finish_color} />}
-      {fd.style && <LineItem label="Style" value={fd.style} />}
-      {fd.estimated_dimensions && <LineItem label="Dimensions" value={fd.estimated_dimensions} />}
-      {fd.use_case && <LineItem label="Use" value={fd.use_case} />}
-      {fd.room_fit && <LineItem label="Room" value={fd.room_fit} />}
-
-      <Divider />
-      <SectionLabel text="Price Check" />
-      {fd.estimated_retail_price ? (
-        <>
-          <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />
-          {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
-        </>
-      ) : fd.estimated_price_range ? (
-        <>
-          <View style={s.genericSectionHeader}>
-            <SectionLabel text="" />
-            <VerificationBadge status="likely" />
-          </View>
-          <PriceLineItem label="Estimated Range" value={fd.estimated_price_range} large />
-          <Text style={s.resaleDisclaimer}>Estimated from similar products</Text>
-        </>
-      ) : <NoPriceRow />}
-
-      {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
-      <ResaleBlock result={result} />
-      <PurposeSection purpose={fd.purpose} />
-      <ValueInsightSection insight={fd.value_insight} />
-      <NextScanSection suggestion={fd.next_scan_suggestion} />
-      <TagsRow tags={fd.tags} />
-    </>
-  );
-}
-
-export function FashionResultSection({ result }: ResultProps) {
+  const safeResale = fd.estimated_resale_value ? (fd.estimated_resale_value.startsWith('
   if (!result.fashion_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
     return <EmptyFallbackSection result={result} />;
@@ -789,6 +749,2898 @@ export function GeneralResultSection({ result }: ResultProps) {
       {gd.care_tip && <InfoBlock text={gd.care_tip} type="tip" />}
 
       <ResaleBlock result={result} />
+      <PurposeSection purpose={gd.purpose} />
+      <ValueInsightSection insight={gd.value_insight} />
+      <NextScanSection suggestion={gd.next_scan_suggestion} />
+      <TagsRow tags={gd.tags} />
+    </>
+  );
+}
+
+export function DocumentResultSection({ result }: ResultProps) {
+  const dd = result.document_details;
+  if (!dd) {
+    return (
+      <>
+        <SectionLabel text="Content Detected" />
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{result.item_name || 'Document / Printed Content'}</Text>
+          {result.short_summary ? (
+            <Text style={s.fallbackSub}>{result.short_summary}</Text>
+          ) : null}
+        </View>
+        <Divider />
+        <InfoBlock text="This scan appears to show printed or digital reference content rather than one physical item. Try cropping a specific item for single-item identification." type="tip" />
+      </>
+    );
+  }
+
+  const docTypeLabels: Record<string, string> = {
+    infographic: 'Infographic',
+    catalog: 'Catalog / Multi-Item Page',
+    educational: 'Educational Material',
+    poster: 'Poster',
+    screenshot: 'Screenshot / Digital Content',
+    chart: 'Chart / Diagram',
+    reference: 'Reference Material',
+    other: 'Document',
+  };
+
+  return (
+    <>
+      <SectionLabel text="Content Analysis" />
+      <LineItem label="Type" value={docTypeLabels[dd.document_type] ?? 'Document'} />
+      {dd.main_topic ? <LineItem label="Topic" value={dd.main_topic} /> : null}
+
+      {dd.content_description ? (
+        <>
+          <Divider />
+          <InfoBlock text={dd.content_description} type="tip" />
+        </>
+      ) : null}
+
+      {dd.detected_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Items / Subjects Detected" />
+          {dd.detected_items.map((item, i) => (
+            <View key={`di-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>•</Text>
+              <Text style={s.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.key_information.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Key Information" />
+          {dd.key_information.map((info, i) => (
+            <View key={`ki-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>✓</Text>
+              <Text style={s.bulletText}>{info}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.visible_text_summary ? (
+        <>
+          <Divider />
+          <SectionLabel text="Content Summary" />
+          <View style={s.fallbackBlock}>
+            <Text style={s.fallbackSub}>{dd.visible_text_summary}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {dd.suggested_actions.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Suggested Next Steps" />
+          {dd.suggested_actions.map((action, i) => (
+            <View key={`sa-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>→</Text>
+              <Text style={s.bulletText}>{action}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <TagsRow tags={dd.tags} />
+    </>
+  );
+}
+
+export function UnknownResultSection({ result }: ResultProps) {
+  if (result.general_details != null) return <GeneralResultSection result={result} />;
+  if (result.household_details != null) return <HouseholdResultSection result={result} />;
+  if (result.furniture_details != null) return <FurnitureResultSection result={result} />;
+  if (result.food_details != null) return <FoodResultSection result={result} />;
+  if (result.grocery_details != null) return <GroceryResultSection result={result} />;
+  if (result.fashion_details != null) return <FashionResultSection result={result} />;
+  if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
+
+  const isVeryLow = result.confidence < 0.3;
+  return (
+    <>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>
+          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
+        </Text>
+        {result.category && result.category !== 'unknown' ? (
+          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
+        ) : null}
+      </View>
+      <Divider />
+      {isVeryLow ? (
+        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
+      ) : (
+        <>
+          <NoPriceRow />
+          {result.short_summary ? (
+            <>
+              <Divider />
+              <InfoBlock text={result.short_summary} type="tip" />
+            </>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  divider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 12,
+  },
+  sectionLabel: {
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  sectionLabelText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  lineItemLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '500' as const,
+  },
+  lineItemValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '600' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  lineItemBold: {
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  priceLineItem: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  priceLineLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '600' as const,
+  },
+  priceLineValue: {
+    fontSize: 16,
+    color: C.text,
+    fontWeight: '700' as const,
+  },
+  priceLargeLbl: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+  },
+  priceLargeVal: {
+    fontSize: 24,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  servingNote: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginBottom: 6,
+    fontWeight: '500' as const,
+  },
+  calorieBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  calorieNumber: {
+    fontSize: 40,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -1,
+  },
+  calorieUnit: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    letterSpacing: 2,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginBottom: 6,
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  macroCell: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  macroCellVal: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  macroCellLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+  },
+  infoBlock: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginVertical: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: C.blue,
+  },
+  infoBlockText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  chipSection: {
+    marginTop: 10,
+  },
+  chipSectionLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: C.textSecondary,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 3,
+  },
+  bulletChar: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    width: 14,
+  },
+  bulletText: {
+    fontSize: 13,
+    color: C.text,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  tagsRow: {
+    marginTop: 6,
+  },
+  tagsInner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center' as const,
+  },
+  tag: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+  },
+  resalePlatform: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+    textAlign: 'right' as const,
+  },
+  resaleDisclaimer: {
+    fontSize: 10,
+    color: C.textMuted,
+    fontWeight: '400' as const,
+    marginTop: 2,
+    fontStyle: 'italic' as const,
+  },
+  fallbackBlock: {
+    alignItems: 'center' as const,
+    paddingVertical: 16,
+  },
+  fallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: C.text,
+    textAlign: 'center' as const,
+  },
+  fallbackSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  noPriceRow: {
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+  },
+  noPriceText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+  },
+  noPriceSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  verificationDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
+  trustLineItem: {
+    paddingVertical: 5,
+  },
+  trustLineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trustLineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '60%' as unknown as number,
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 3,
+  },
+  confirmedCard: {
+    backgroundColor: '#16A34A0D',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+    padding: 12,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  confirmedLabel: {
+    fontSize: 13,
+    color: '#16A34A',
+    fontWeight: '600' as const,
+  },
+  confirmedValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '700' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  confirmedDivider: {
+    height: 1,
+    backgroundColor: '#16A34A15',
+    marginVertical: 4,
+  },
+  genericSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  sourceCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    marginBottom: 6,
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+    marginLeft: 4,
+  },
+  purposeText: {
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 19,
+    fontWeight: '500' as const,
+  },
+  nextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  nextScanLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  nextScanText: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+  },
+});
+) ? fd.estimated_resale_value : `${fd.estimated_resale_value}`) : null;
+  return (
+    <>
+      <SectionLabel text="Product Details" />
+      {fd.item_type_specific && <LineItem label="Type" value={fd.item_type_specific} />}
+      {fd.material && <LineItem label="Material" value={fd.material} />}
+      {fd.finish_color && <LineItem label="Color/Finish" value={fd.finish_color} />}
+      {fd.style && <LineItem label="Style" value={fd.style} />}
+      {fd.estimated_dimensions && <LineItem label="Dimensions" value={fd.estimated_dimensions} />}
+      {fd.value_level && <LineItem label="Tier" value={capitalize(fd.value_level)} />}
+      {fd.mounting_type && <LineItem label="Mount" value={capitalize(fd.mounting_type.replace(/-/g, ' '))} />}
+      {fd.use_case && <LineItem label="Use" value={fd.use_case} />}
+      {fd.room_fit && <LineItem label="Room" value={fd.room_fit} />}
+
+      <Divider />
+      <SectionLabel text="Price & Value" />
+      {fd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />
+          {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
+          {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
+        </>
+      ) : fd.estimated_price_range ? (
+        <>
+          <View style={s.genericSectionHeader}>
+            <SectionLabel text="" />
+            <VerificationBadge status="likely" />
+          </View>
+          <PriceLineItem label="Estimated Range" value={fd.estimated_price_range} large />
+          <Text style={s.resaleDisclaimer}>Estimated from similar products</Text>
+        </>
+      ) : <NoPriceRow />}
+      {fd.value_rating && <LineItem label="Value Rating" value={capitalize(fd.value_rating)} />}
+      {fd.value_verdict && <LineItem label="Value Verdict" value={capitalize(fd.value_verdict)} />}
+      {fd.value_reasoning && <InfoBlock text={fd.value_reasoning} type="tip" />}
+      {fd.worth_it_verdict && <InfoBlock text={`Verdict: ${fd.worth_it_verdict}`} type="success" />}
+
+      {(fd.resale_demand || fd.best_selling_platform || fd.resale_suggestion) && (
+        <>
+          <Divider />
+          <SectionLabel text="Resale Intel" />
+          {fd.resale_demand && <LineItem label="Demand" value={capitalize(fd.resale_demand)} />}
+          {fd.best_selling_platform && <LineItem label="Best Platform" value={fd.best_selling_platform} bold />}
+          {fd.comparable_model && <LineItem label="Comparable" value={fd.comparable_model} />}
+          {fd.resale_suggestion && <InfoBlock text={fd.resale_suggestion} type="success" />}
+          {fd.long_term_value && <InfoBlock text={`Long-term: ${fd.long_term_value}`} type="tip" />}
+        </>
+      )}
+
+      {(fd.assembly_required || fd.assembly_summary) && (
+        <>
+          <Divider />
+          <SectionLabel text="Assembly" />
+          {fd.assembly_difficulty && <LineItem label="Difficulty" value={capitalize(fd.assembly_difficulty)} />}
+          {fd.estimated_build_time && <LineItem label="Build Time" value={fd.estimated_build_time} />}
+          {fd.people_needed && <LineItem label="People" value={fd.people_needed} />}
+          {fd.assembly_summary && <InfoBlock text={fd.assembly_summary} type="tip" />}
+          {fd.wall_anchor_note && <InfoBlock text={fd.wall_anchor_note} type="warning" />}
+          {fd.setup_notes && <InfoBlock text={fd.setup_notes} type="tip" />}
+          <ChipRow items={fd.likely_tools_needed} label="TOOLS NEEDED" />
+        </>
+      )}
+
+      {(fd.care_tip || fd.budget_insight || fd.cheaper_alternative) && (
+        <>
+          <Divider />
+          <SectionLabel text="Tips & Care" />
+          {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
+          {fd.budget_insight && <InfoBlock text={fd.budget_insight} type="tip" />}
+          {fd.cheaper_alternative && <InfoBlock text={`Alternative: ${fd.cheaper_alternative}`} type="warning" />}
+        </>
+      )}
+
+      {fd.extra_purchase_items && fd.extra_purchase_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="You May Also Need" />
+          {fd.extra_purchase_items.map((item, i) => (
+            <View key={`ep-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>+</Text>
+              <Text style={s.bulletText}>{item.item}{item.estimated_cost ? ` (~${item.estimated_cost})` : ''}{item.reason ? ` \u2014 ${item.reason}` : ''}</Text>
+            </View>
+          ))}
+          {fd.total_estimated_cost && <LineItem label="Total Est. Cost" value={fd.total_estimated_cost} bold />}
+        </>
+      )}
+
+      <ChipRow items={fd.room_fit_labels} label="FITS IN" />
+      <ChipRow items={fd.matching_products} label="MATCHES WITH" />
+      <ChipRow items={fd.complementary_items} label="PAIRS WELL WITH" />
+      <PurposeSection purpose={fd.purpose} />
+      <ValueInsightSection insight={fd.value_insight} />
+      <NextScanSection suggestion={fd.next_scan_suggestion} />
+      <TagsRow tags={fd.tags} />
+    </>
+  );
+}
+
+export function FashionResultSection({ result }: ResultProps) {
+  if (!result.fashion_details) {
+    if (result.general_details) return <GeneralResultSection result={result} />;
+    return <EmptyFallbackSection result={result} />;
+  }
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+  const fd = result.fashion_details;
+  const subcategoryLabels: Record<string, string> = {
+    shoes: 'Shoes', clothing: 'Clothing', outerwear: 'Outerwear',
+    accessories: 'Accessories', bags: 'Bags', jewelry: 'Jewelry',
+    activewear: 'Activewear', other: 'Fashion',
+  };
+  const safeResale = fd.estimated_resale_value ? (fd.estimated_resale_value.startsWith('
+
+export function DocumentResultSection({ result }: ResultProps) {
+  const dd = result.document_details;
+  if (!dd) {
+    return (
+      <>
+        <SectionLabel text="Content Detected" />
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{result.item_name || 'Document / Printed Content'}</Text>
+          {result.short_summary ? (
+            <Text style={s.fallbackSub}>{result.short_summary}</Text>
+          ) : null}
+        </View>
+        <Divider />
+        <InfoBlock text="This scan appears to show printed or digital reference content rather than one physical item. Try cropping a specific item for single-item identification." type="tip" />
+      </>
+    );
+  }
+
+  const docTypeLabels: Record<string, string> = {
+    infographic: 'Infographic',
+    catalog: 'Catalog / Multi-Item Page',
+    educational: 'Educational Material',
+    poster: 'Poster',
+    screenshot: 'Screenshot / Digital Content',
+    chart: 'Chart / Diagram',
+    reference: 'Reference Material',
+    other: 'Document',
+  };
+
+  return (
+    <>
+      <SectionLabel text="Content Analysis" />
+      <LineItem label="Type" value={docTypeLabels[dd.document_type] ?? 'Document'} />
+      {dd.main_topic ? <LineItem label="Topic" value={dd.main_topic} /> : null}
+
+      {dd.content_description ? (
+        <>
+          <Divider />
+          <InfoBlock text={dd.content_description} type="tip" />
+        </>
+      ) : null}
+
+      {dd.detected_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Items / Subjects Detected" />
+          {dd.detected_items.map((item, i) => (
+            <View key={`di-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>•</Text>
+              <Text style={s.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.key_information.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Key Information" />
+          {dd.key_information.map((info, i) => (
+            <View key={`ki-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>✓</Text>
+              <Text style={s.bulletText}>{info}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.visible_text_summary ? (
+        <>
+          <Divider />
+          <SectionLabel text="Content Summary" />
+          <View style={s.fallbackBlock}>
+            <Text style={s.fallbackSub}>{dd.visible_text_summary}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {dd.suggested_actions.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Suggested Next Steps" />
+          {dd.suggested_actions.map((action, i) => (
+            <View key={`sa-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>→</Text>
+              <Text style={s.bulletText}>{action}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <TagsRow tags={dd.tags} />
+    </>
+  );
+}
+
+export function UnknownResultSection({ result }: ResultProps) {
+  if (result.general_details != null) return <GeneralResultSection result={result} />;
+  if (result.household_details != null) return <HouseholdResultSection result={result} />;
+  if (result.furniture_details != null) return <FurnitureResultSection result={result} />;
+  if (result.food_details != null) return <FoodResultSection result={result} />;
+  if (result.grocery_details != null) return <GroceryResultSection result={result} />;
+  if (result.fashion_details != null) return <FashionResultSection result={result} />;
+  if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
+
+  const isVeryLow = result.confidence < 0.3;
+  return (
+    <>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>
+          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
+        </Text>
+        {result.category && result.category !== 'unknown' ? (
+          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
+        ) : null}
+      </View>
+      <Divider />
+      {isVeryLow ? (
+        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
+      ) : (
+        <>
+          <NoPriceRow />
+          {result.short_summary ? (
+            <>
+              <Divider />
+              <InfoBlock text={result.short_summary} type="tip" />
+            </>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  divider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 12,
+  },
+  sectionLabel: {
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  sectionLabelText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  lineItemLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '500' as const,
+  },
+  lineItemValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '600' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  lineItemBold: {
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  priceLineItem: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  priceLineLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '600' as const,
+  },
+  priceLineValue: {
+    fontSize: 16,
+    color: C.text,
+    fontWeight: '700' as const,
+  },
+  priceLargeLbl: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+  },
+  priceLargeVal: {
+    fontSize: 24,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  servingNote: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginBottom: 6,
+    fontWeight: '500' as const,
+  },
+  calorieBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  calorieNumber: {
+    fontSize: 40,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -1,
+  },
+  calorieUnit: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    letterSpacing: 2,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginBottom: 6,
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  macroCell: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  macroCellVal: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  macroCellLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+  },
+  infoBlock: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginVertical: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: C.blue,
+  },
+  infoBlockText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  chipSection: {
+    marginTop: 10,
+  },
+  chipSectionLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: C.textSecondary,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 3,
+  },
+  bulletChar: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    width: 14,
+  },
+  bulletText: {
+    fontSize: 13,
+    color: C.text,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  tagsRow: {
+    marginTop: 6,
+  },
+  tagsInner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center' as const,
+  },
+  tag: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+  },
+  resalePlatform: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+    textAlign: 'right' as const,
+  },
+  resaleDisclaimer: {
+    fontSize: 10,
+    color: C.textMuted,
+    fontWeight: '400' as const,
+    marginTop: 2,
+    fontStyle: 'italic' as const,
+  },
+  fallbackBlock: {
+    alignItems: 'center' as const,
+    paddingVertical: 16,
+  },
+  fallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: C.text,
+    textAlign: 'center' as const,
+  },
+  fallbackSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  noPriceRow: {
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+  },
+  noPriceText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+  },
+  noPriceSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  verificationDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
+  trustLineItem: {
+    paddingVertical: 5,
+  },
+  trustLineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trustLineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '60%' as unknown as number,
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 3,
+  },
+  confirmedCard: {
+    backgroundColor: '#16A34A0D',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+    padding: 12,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  confirmedLabel: {
+    fontSize: 13,
+    color: '#16A34A',
+    fontWeight: '600' as const,
+  },
+  confirmedValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '700' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  confirmedDivider: {
+    height: 1,
+    backgroundColor: '#16A34A15',
+    marginVertical: 4,
+  },
+  genericSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  sourceCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    marginBottom: 6,
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+    marginLeft: 4,
+  },
+  purposeText: {
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 19,
+    fontWeight: '500' as const,
+  },
+  nextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  nextScanLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  nextScanText: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+  },
+});
+) ? fd.estimated_resale_value : `${fd.estimated_resale_value}`) : null;
+  return (
+    <>
+      {fd.item_description && <InfoBlock text={fd.item_description} />}
+      <SectionLabel text="Identification" />
+      <LineItem label="Type" value={subcategoryLabels[fd.subcategory] ?? fd.subcategory} />
+      {fd.brand && <LineItem label="Brand" value={fd.brand} bold />}
+      {fd.model && <LineItem label="Model" value={fd.model} />}
+      {fd.gender_target && <LineItem label="For" value={capitalize(fd.gender_target)} />}
+
+      <Divider />
+      <SectionLabel text="Details" />
+      {fd.color && <LineItem label="Color" value={`${fd.color}${fd.secondary_color ? ` / ${fd.secondary_color}` : ''}`} />}
+      {fd.material && <LineItem label="Material" value={fd.material} />}
+      {fd.pattern && <LineItem label="Pattern" value={fd.pattern} />}
+      {fd.style && <LineItem label="Style" value={fd.style} />}
+      {fd.fit && <LineItem label="Fit" value={fd.fit} />}
+      {fd.sleeve_length && <LineItem label="Sleeve" value={fd.sleeve_length} />}
+      {fd.neckline && <LineItem label="Neckline" value={fd.neckline} />}
+      {fd.closure_type && <LineItem label="Closure" value={fd.closure_type} />}
+      {fd.condition && <LineItem label="Condition" value={capitalize(fd.condition)} />}
+      {fd.condition_notes && <InfoBlock text={fd.condition_notes} type="warning" />}
+
+      <Divider />
+      <SectionLabel text="Price & Value" />
+      {fd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={fd.estimated_retail_price} large />
+          {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
+          {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
+        </>
+      ) : <NoPriceRow />}
+      {fd.value_verdict && <LineItem label="Value Verdict" value={capitalize(fd.value_verdict)} />}
+      {fd.value_rating && <LineItem label="Value Rating" value={capitalize(fd.value_rating)} />}
+      {fd.value_reasoning && <InfoBlock text={fd.value_reasoning} type="tip" />}
+
+      {(fd.resale_demand || fd.best_selling_platform || fd.resale_suggestion) && (
+        <>
+          <Divider />
+          <SectionLabel text="Resale Intel" />
+          {fd.resale_demand && <LineItem label="Demand" value={capitalize(fd.resale_demand)} />}
+          {fd.best_selling_platform && <LineItem label="Best Platform" value={fd.best_selling_platform} bold />}
+          {fd.comparable_model && <LineItem label="Comparable" value={fd.comparable_model} />}
+          {fd.resale_suggestion && <InfoBlock text={fd.resale_suggestion} type="success" />}
+        </>
+      )}
+
+      {(fd.cleaning_recommendation || fd.care_tip) && (
+        <>
+          <Divider />
+          <SectionLabel text="Care & Maintenance" />
+          {fd.cleaning_recommendation && fd.cleaning_recommendation !== 'none' && (
+            <LineItem label="Cleaning" value={`${capitalize(fd.cleaning_recommendation)}${fd.cleaning_reason ? ` - ${fd.cleaning_reason}` : ''}`} />
+          )}
+          {fd.care_tip && <InfoBlock text={fd.care_tip} type="tip" />}
+        </>
+      )}
+
+      {fd.budget_insight && (
+        <>
+          <Divider />
+          <SectionLabel text="Budget Tip" />
+          <InfoBlock text={fd.budget_insight} type="tip" />
+        </>
+      )}
+      {fd.cheaper_alternative && <InfoBlock text={`Try instead: ${fd.cheaper_alternative}`} type="warning" />}
+      <ChipRow items={fd.complementary_items} label="PAIRS WELL WITH" />
+      <PurposeSection purpose={fd.purpose} />
+      <ValueInsightSection insight={fd.value_insight} />
+      <NextScanSection suggestion={fd.next_scan_suggestion} />
+      <TagsRow tags={fd.tags} />
+    </>
+  );
+}
+
+export function ElectronicsResultSection({ result }: ResultProps) {
+  if (!result.electronics_details) {
+    if (result.general_details) return <GeneralResultSection result={result} />;
+    return <EmptyFallbackSection result={result} />;
+  }
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+  const ed = result.electronics_details;
+  const safeResale = ed.estimated_resale_value ? (ed.estimated_resale_value.startsWith('
+
+export function DocumentResultSection({ result }: ResultProps) {
+  const dd = result.document_details;
+  if (!dd) {
+    return (
+      <>
+        <SectionLabel text="Content Detected" />
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{result.item_name || 'Document / Printed Content'}</Text>
+          {result.short_summary ? (
+            <Text style={s.fallbackSub}>{result.short_summary}</Text>
+          ) : null}
+        </View>
+        <Divider />
+        <InfoBlock text="This scan appears to show printed or digital reference content rather than one physical item. Try cropping a specific item for single-item identification." type="tip" />
+      </>
+    );
+  }
+
+  const docTypeLabels: Record<string, string> = {
+    infographic: 'Infographic',
+    catalog: 'Catalog / Multi-Item Page',
+    educational: 'Educational Material',
+    poster: 'Poster',
+    screenshot: 'Screenshot / Digital Content',
+    chart: 'Chart / Diagram',
+    reference: 'Reference Material',
+    other: 'Document',
+  };
+
+  return (
+    <>
+      <SectionLabel text="Content Analysis" />
+      <LineItem label="Type" value={docTypeLabels[dd.document_type] ?? 'Document'} />
+      {dd.main_topic ? <LineItem label="Topic" value={dd.main_topic} /> : null}
+
+      {dd.content_description ? (
+        <>
+          <Divider />
+          <InfoBlock text={dd.content_description} type="tip" />
+        </>
+      ) : null}
+
+      {dd.detected_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Items / Subjects Detected" />
+          {dd.detected_items.map((item, i) => (
+            <View key={`di-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>•</Text>
+              <Text style={s.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.key_information.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Key Information" />
+          {dd.key_information.map((info, i) => (
+            <View key={`ki-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>✓</Text>
+              <Text style={s.bulletText}>{info}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.visible_text_summary ? (
+        <>
+          <Divider />
+          <SectionLabel text="Content Summary" />
+          <View style={s.fallbackBlock}>
+            <Text style={s.fallbackSub}>{dd.visible_text_summary}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {dd.suggested_actions.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Suggested Next Steps" />
+          {dd.suggested_actions.map((action, i) => (
+            <View key={`sa-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>→</Text>
+              <Text style={s.bulletText}>{action}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <TagsRow tags={dd.tags} />
+    </>
+  );
+}
+
+export function UnknownResultSection({ result }: ResultProps) {
+  if (result.general_details != null) return <GeneralResultSection result={result} />;
+  if (result.household_details != null) return <HouseholdResultSection result={result} />;
+  if (result.furniture_details != null) return <FurnitureResultSection result={result} />;
+  if (result.food_details != null) return <FoodResultSection result={result} />;
+  if (result.grocery_details != null) return <GroceryResultSection result={result} />;
+  if (result.fashion_details != null) return <FashionResultSection result={result} />;
+  if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
+
+  const isVeryLow = result.confidence < 0.3;
+  return (
+    <>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>
+          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
+        </Text>
+        {result.category && result.category !== 'unknown' ? (
+          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
+        ) : null}
+      </View>
+      <Divider />
+      {isVeryLow ? (
+        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
+      ) : (
+        <>
+          <NoPriceRow />
+          {result.short_summary ? (
+            <>
+              <Divider />
+              <InfoBlock text={result.short_summary} type="tip" />
+            </>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  divider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 12,
+  },
+  sectionLabel: {
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  sectionLabelText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  lineItemLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '500' as const,
+  },
+  lineItemValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '600' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  lineItemBold: {
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  priceLineItem: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  priceLineLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '600' as const,
+  },
+  priceLineValue: {
+    fontSize: 16,
+    color: C.text,
+    fontWeight: '700' as const,
+  },
+  priceLargeLbl: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+  },
+  priceLargeVal: {
+    fontSize: 24,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  servingNote: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginBottom: 6,
+    fontWeight: '500' as const,
+  },
+  calorieBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  calorieNumber: {
+    fontSize: 40,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -1,
+  },
+  calorieUnit: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    letterSpacing: 2,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginBottom: 6,
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  macroCell: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  macroCellVal: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  macroCellLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+  },
+  infoBlock: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginVertical: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: C.blue,
+  },
+  infoBlockText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  chipSection: {
+    marginTop: 10,
+  },
+  chipSectionLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: C.textSecondary,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 3,
+  },
+  bulletChar: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    width: 14,
+  },
+  bulletText: {
+    fontSize: 13,
+    color: C.text,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  tagsRow: {
+    marginTop: 6,
+  },
+  tagsInner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center' as const,
+  },
+  tag: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+  },
+  resalePlatform: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+    textAlign: 'right' as const,
+  },
+  resaleDisclaimer: {
+    fontSize: 10,
+    color: C.textMuted,
+    fontWeight: '400' as const,
+    marginTop: 2,
+    fontStyle: 'italic' as const,
+  },
+  fallbackBlock: {
+    alignItems: 'center' as const,
+    paddingVertical: 16,
+  },
+  fallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: C.text,
+    textAlign: 'center' as const,
+  },
+  fallbackSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  noPriceRow: {
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+  },
+  noPriceText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+  },
+  noPriceSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  verificationDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
+  trustLineItem: {
+    paddingVertical: 5,
+  },
+  trustLineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trustLineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '60%' as unknown as number,
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 3,
+  },
+  confirmedCard: {
+    backgroundColor: '#16A34A0D',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+    padding: 12,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  confirmedLabel: {
+    fontSize: 13,
+    color: '#16A34A',
+    fontWeight: '600' as const,
+  },
+  confirmedValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '700' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  confirmedDivider: {
+    height: 1,
+    backgroundColor: '#16A34A15',
+    marginVertical: 4,
+  },
+  genericSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  sourceCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    marginBottom: 6,
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+    marginLeft: 4,
+  },
+  purposeText: {
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 19,
+    fontWeight: '500' as const,
+  },
+  nextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  nextScanLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  nextScanText: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+  },
+});
+) ? ed.estimated_resale_value : `${ed.estimated_resale_value}`) : null;
+  return (
+    <>
+      {ed.product_type && (
+        <InfoBlock text={`${ed.brand ? `${ed.brand} ` : ''}${ed.model ?? ed.product_type}${ed.storage_or_spec ? ` \u00b7 ${ed.storage_or_spec}` : ''}`} />
+      )}
+      <SectionLabel text="Specs" />
+      <LineItem label="Type" value={ed.product_type} />
+      {ed.brand && <LineItem label="Brand" value={ed.brand} bold />}
+      {ed.model && <LineItem label="Model" value={ed.model} />}
+      {ed.storage_or_spec && <LineItem label="Spec" value={ed.storage_or_spec} />}
+      {ed.condition && <LineItem label="Condition" value={capitalize(ed.condition)} />}
+
+      <Divider />
+      <SectionLabel text="Price & Value" />
+      {ed.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={ed.estimated_retail_price} large />
+          {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
+          {ed.price_range && <LineItem label="Range" value={ed.price_range} />}
+        </>
+      ) : <NoPriceRow />}
+      {ed.value_verdict && <LineItem label="Value Verdict" value={capitalize(ed.value_verdict)} />}
+      {ed.value_rating && <LineItem label="Value Rating" value={capitalize(ed.value_rating)} />}
+      {ed.value_reasoning && <InfoBlock text={ed.value_reasoning} type="tip" />}
+      {ed.depreciation_note && <InfoBlock text={`Depreciation: ${ed.depreciation_note}`} type="warning" />}
+
+      {(ed.resale_demand || ed.best_selling_platform || ed.resale_suggestion) && (
+        <>
+          <Divider />
+          <SectionLabel text="Resale Intel" />
+          {ed.resale_demand && <LineItem label="Demand" value={capitalize(ed.resale_demand)} />}
+          {ed.best_selling_platform && <LineItem label="Best Platform" value={ed.best_selling_platform} bold />}
+          {ed.comparable_model && <LineItem label="Comparable" value={ed.comparable_model} />}
+          {ed.resale_suggestion && <InfoBlock text={ed.resale_suggestion} type="success" />}
+        </>
+      )}
+
+      {(ed.care_tip || ed.budget_insight || ed.cheaper_alternative) && (
+        <>
+          <Divider />
+          <SectionLabel text="Tips & Savings" />
+          {ed.care_tip && <InfoBlock text={ed.care_tip} type="tip" />}
+          {ed.budget_insight && <InfoBlock text={ed.budget_insight} type="tip" />}
+          {ed.cheaper_alternative && <InfoBlock text={`Alternative: ${ed.cheaper_alternative}`} type="warning" />}
+        </>
+      )}
+      <ChipRow items={ed.complementary_items} label="GOES WELL WITH" />
+      <PurposeSection purpose={ed.purpose} />
+      <ValueInsightSection insight={ed.value_insight} />
+      <NextScanSection suggestion={ed.next_scan_suggestion} />
+      <TagsRow tags={ed.tags} />
+    </>
+  );
+}
+
+export function HouseholdResultSection({ result }: ResultProps) {
+  if (!result.household_details) {
+    if (result.general_details) return <GeneralResultSection result={result} />;
+    return <EmptyFallbackSection result={result} />;
+  }
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+  const hd = result.household_details;
+  const subcategoryLabels: Record<string, string> = {
+    tools: 'Tools', fitness: 'Fitness Equipment', kitchenware: 'Kitchenware',
+    cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor',
+    garden: 'Garden', storage: 'Storage', lighting: 'Lighting',
+    small_appliance: 'Small Appliance', other: 'Household',
+  };
+  const safeResale = hd.estimated_resale_value ? (hd.estimated_resale_value.startsWith('
+
+export function DocumentResultSection({ result }: ResultProps) {
+  const dd = result.document_details;
+  if (!dd) {
+    return (
+      <>
+        <SectionLabel text="Content Detected" />
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{result.item_name || 'Document / Printed Content'}</Text>
+          {result.short_summary ? (
+            <Text style={s.fallbackSub}>{result.short_summary}</Text>
+          ) : null}
+        </View>
+        <Divider />
+        <InfoBlock text="This scan appears to show printed or digital reference content rather than one physical item. Try cropping a specific item for single-item identification." type="tip" />
+      </>
+    );
+  }
+
+  const docTypeLabels: Record<string, string> = {
+    infographic: 'Infographic',
+    catalog: 'Catalog / Multi-Item Page',
+    educational: 'Educational Material',
+    poster: 'Poster',
+    screenshot: 'Screenshot / Digital Content',
+    chart: 'Chart / Diagram',
+    reference: 'Reference Material',
+    other: 'Document',
+  };
+
+  return (
+    <>
+      <SectionLabel text="Content Analysis" />
+      <LineItem label="Type" value={docTypeLabels[dd.document_type] ?? 'Document'} />
+      {dd.main_topic ? <LineItem label="Topic" value={dd.main_topic} /> : null}
+
+      {dd.content_description ? (
+        <>
+          <Divider />
+          <InfoBlock text={dd.content_description} type="tip" />
+        </>
+      ) : null}
+
+      {dd.detected_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Items / Subjects Detected" />
+          {dd.detected_items.map((item, i) => (
+            <View key={`di-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>•</Text>
+              <Text style={s.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.key_information.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Key Information" />
+          {dd.key_information.map((info, i) => (
+            <View key={`ki-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>✓</Text>
+              <Text style={s.bulletText}>{info}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.visible_text_summary ? (
+        <>
+          <Divider />
+          <SectionLabel text="Content Summary" />
+          <View style={s.fallbackBlock}>
+            <Text style={s.fallbackSub}>{dd.visible_text_summary}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {dd.suggested_actions.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Suggested Next Steps" />
+          {dd.suggested_actions.map((action, i) => (
+            <View key={`sa-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>→</Text>
+              <Text style={s.bulletText}>{action}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <TagsRow tags={dd.tags} />
+    </>
+  );
+}
+
+export function UnknownResultSection({ result }: ResultProps) {
+  if (result.general_details != null) return <GeneralResultSection result={result} />;
+  if (result.household_details != null) return <HouseholdResultSection result={result} />;
+  if (result.furniture_details != null) return <FurnitureResultSection result={result} />;
+  if (result.food_details != null) return <FoodResultSection result={result} />;
+  if (result.grocery_details != null) return <GroceryResultSection result={result} />;
+  if (result.fashion_details != null) return <FashionResultSection result={result} />;
+  if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
+
+  const isVeryLow = result.confidence < 0.3;
+  return (
+    <>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>
+          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
+        </Text>
+        {result.category && result.category !== 'unknown' ? (
+          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
+        ) : null}
+      </View>
+      <Divider />
+      {isVeryLow ? (
+        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
+      ) : (
+        <>
+          <NoPriceRow />
+          {result.short_summary ? (
+            <>
+              <Divider />
+              <InfoBlock text={result.short_summary} type="tip" />
+            </>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  divider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 12,
+  },
+  sectionLabel: {
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  sectionLabelText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  lineItemLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '500' as const,
+  },
+  lineItemValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '600' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  lineItemBold: {
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  priceLineItem: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  priceLineLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '600' as const,
+  },
+  priceLineValue: {
+    fontSize: 16,
+    color: C.text,
+    fontWeight: '700' as const,
+  },
+  priceLargeLbl: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+  },
+  priceLargeVal: {
+    fontSize: 24,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  servingNote: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginBottom: 6,
+    fontWeight: '500' as const,
+  },
+  calorieBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  calorieNumber: {
+    fontSize: 40,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -1,
+  },
+  calorieUnit: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    letterSpacing: 2,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginBottom: 6,
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  macroCell: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  macroCellVal: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  macroCellLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+  },
+  infoBlock: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginVertical: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: C.blue,
+  },
+  infoBlockText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  chipSection: {
+    marginTop: 10,
+  },
+  chipSectionLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: C.textSecondary,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 3,
+  },
+  bulletChar: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    width: 14,
+  },
+  bulletText: {
+    fontSize: 13,
+    color: C.text,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  tagsRow: {
+    marginTop: 6,
+  },
+  tagsInner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center' as const,
+  },
+  tag: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+  },
+  resalePlatform: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+    textAlign: 'right' as const,
+  },
+  resaleDisclaimer: {
+    fontSize: 10,
+    color: C.textMuted,
+    fontWeight: '400' as const,
+    marginTop: 2,
+    fontStyle: 'italic' as const,
+  },
+  fallbackBlock: {
+    alignItems: 'center' as const,
+    paddingVertical: 16,
+  },
+  fallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: C.text,
+    textAlign: 'center' as const,
+  },
+  fallbackSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  noPriceRow: {
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+  },
+  noPriceText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+  },
+  noPriceSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  verificationDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
+  trustLineItem: {
+    paddingVertical: 5,
+  },
+  trustLineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trustLineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '60%' as unknown as number,
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 3,
+  },
+  confirmedCard: {
+    backgroundColor: '#16A34A0D',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+    padding: 12,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  confirmedLabel: {
+    fontSize: 13,
+    color: '#16A34A',
+    fontWeight: '600' as const,
+  },
+  confirmedValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '700' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  confirmedDivider: {
+    height: 1,
+    backgroundColor: '#16A34A15',
+    marginVertical: 4,
+  },
+  genericSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  sourceCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    marginBottom: 6,
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+    marginLeft: 4,
+  },
+  purposeText: {
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 19,
+    fontWeight: '500' as const,
+  },
+  nextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  nextScanLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  nextScanText: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+  },
+});
+) ? hd.estimated_resale_value : `${hd.estimated_resale_value}`) : null;
+  return (
+    <>
+      {hd.item_description && <InfoBlock text={hd.item_description} />}
+      <SectionLabel text="Identification" />
+      <LineItem label="Type" value={subcategoryLabels[hd.subcategory] ?? hd.subcategory} />
+      {hd.brand && <LineItem label="Brand" value={hd.brand} bold />}
+      {hd.model && <LineItem label="Model" value={hd.model} />}
+      {hd.material && <LineItem label="Material" value={hd.material} />}
+      {hd.condition && <LineItem label="Condition" value={capitalize(hd.condition)} />}
+
+      <Divider />
+      <SectionLabel text="Price & Value" />
+      {hd.estimated_price ? (
+        <>
+          <PriceLineItem label="Est. Price" value={hd.estimated_price} large />
+          {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
+          {hd.price_range && <LineItem label="Range" value={hd.price_range} />}
+        </>
+      ) : <NoPriceRow />}
+      {hd.value_verdict && <LineItem label="Value Verdict" value={capitalize(hd.value_verdict)} />}
+      {hd.value_rating && <LineItem label="Value Rating" value={capitalize(hd.value_rating)} />}
+      {hd.value_reasoning && <InfoBlock text={hd.value_reasoning} type="tip" />}
+
+      {(hd.resale_potential || hd.best_selling_platform || hd.resale_suggestion) && (
+        <>
+          <Divider />
+          <SectionLabel text="Resale Intel" />
+          {hd.resale_potential && <LineItem label="Resale Potential" value={capitalize(hd.resale_potential)} />}
+          {hd.best_selling_platform && <LineItem label="Best Platform" value={hd.best_selling_platform} bold />}
+          {hd.comparable_model && <LineItem label="Comparable" value={hd.comparable_model} />}
+          {hd.commodity_vs_collectible && <LineItem label="Type" value={capitalize(hd.commodity_vs_collectible)} />}
+          {hd.buy_new_vs_used && <InfoBlock text={hd.buy_new_vs_used} type="tip" />}
+          {hd.resale_suggestion && <InfoBlock text={hd.resale_suggestion} type="success" />}
+          {hd.shipping_note && <InfoBlock text={`Shipping: ${hd.shipping_note}`} type="warning" />}
+          {hd.local_pickup_recommendation && <InfoBlock text="Local pickup recommended for this item" type="tip" />}
+        </>
+      )}
+
+      {(hd.practical_recommendation || hd.care_tip) && (
+        <>
+          <Divider />
+          <SectionLabel text="Tips & Care" />
+          {hd.practical_recommendation && <InfoBlock text={hd.practical_recommendation} type="tip" />}
+          {hd.care_tip && <InfoBlock text={hd.care_tip} type="tip" />}
+        </>
+      )}
+
+      {(hd.budget_insight || hd.cheaper_alternative) && (
+        <>
+          <Divider />
+          <SectionLabel text="Budget Tips" />
+          {hd.budget_insight && <InfoBlock text={hd.budget_insight} type="tip" />}
+          {hd.cheaper_alternative && <InfoBlock text={`Alternative: ${hd.cheaper_alternative}`} type="warning" />}
+        </>
+      )}
+      {hd.set_or_pair_note && <InfoBlock text={hd.set_or_pair_note} type="tip" />}
+      <ChipRow items={hd.complementary_items} label="PAIRS WELL WITH" />
+      <PurposeSection purpose={hd.purpose} />
+      <ValueInsightSection insight={hd.value_insight} />
+      <NextScanSection suggestion={hd.next_scan_suggestion} />
+      <TagsRow tags={hd.tags} />
+    </>
+  );
+}
+
+export function GeneralResultSection({ result }: ResultProps) {
+  if (!result.general_details) return <EmptyFallbackSection result={result} />;
+  if (result.trustResult) {
+    return <TrustResultSection result={result} trustResult={result.trustResult} />;
+  }
+  const gd = result.general_details;
+  const safeResale = gd.estimated_resale_value ? (gd.estimated_resale_value.startsWith('
+
+export function DocumentResultSection({ result }: ResultProps) {
+  const dd = result.document_details;
+  if (!dd) {
+    return (
+      <>
+        <SectionLabel text="Content Detected" />
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{result.item_name || 'Document / Printed Content'}</Text>
+          {result.short_summary ? (
+            <Text style={s.fallbackSub}>{result.short_summary}</Text>
+          ) : null}
+        </View>
+        <Divider />
+        <InfoBlock text="This scan appears to show printed or digital reference content rather than one physical item. Try cropping a specific item for single-item identification." type="tip" />
+      </>
+    );
+  }
+
+  const docTypeLabels: Record<string, string> = {
+    infographic: 'Infographic',
+    catalog: 'Catalog / Multi-Item Page',
+    educational: 'Educational Material',
+    poster: 'Poster',
+    screenshot: 'Screenshot / Digital Content',
+    chart: 'Chart / Diagram',
+    reference: 'Reference Material',
+    other: 'Document',
+  };
+
+  return (
+    <>
+      <SectionLabel text="Content Analysis" />
+      <LineItem label="Type" value={docTypeLabels[dd.document_type] ?? 'Document'} />
+      {dd.main_topic ? <LineItem label="Topic" value={dd.main_topic} /> : null}
+
+      {dd.content_description ? (
+        <>
+          <Divider />
+          <InfoBlock text={dd.content_description} type="tip" />
+        </>
+      ) : null}
+
+      {dd.detected_items.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Items / Subjects Detected" />
+          {dd.detected_items.map((item, i) => (
+            <View key={`di-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>•</Text>
+              <Text style={s.bulletText}>{item}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.key_information.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Key Information" />
+          {dd.key_information.map((info, i) => (
+            <View key={`ki-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>✓</Text>
+              <Text style={s.bulletText}>{info}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {dd.visible_text_summary ? (
+        <>
+          <Divider />
+          <SectionLabel text="Content Summary" />
+          <View style={s.fallbackBlock}>
+            <Text style={s.fallbackSub}>{dd.visible_text_summary}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {dd.suggested_actions.length > 0 && (
+        <>
+          <Divider />
+          <SectionLabel text="Suggested Next Steps" />
+          {dd.suggested_actions.map((action, i) => (
+            <View key={`sa-${i}`} style={s.bulletRow}>
+              <Text style={s.bulletChar}>→</Text>
+              <Text style={s.bulletText}>{action}</Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      <TagsRow tags={dd.tags} />
+    </>
+  );
+}
+
+export function UnknownResultSection({ result }: ResultProps) {
+  if (result.general_details != null) return <GeneralResultSection result={result} />;
+  if (result.household_details != null) return <HouseholdResultSection result={result} />;
+  if (result.furniture_details != null) return <FurnitureResultSection result={result} />;
+  if (result.food_details != null) return <FoodResultSection result={result} />;
+  if (result.grocery_details != null) return <GroceryResultSection result={result} />;
+  if (result.fashion_details != null) return <FashionResultSection result={result} />;
+  if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
+
+  const isVeryLow = result.confidence < 0.3;
+  return (
+    <>
+      <View style={s.fallbackBlock}>
+        <Text style={s.fallbackTitle}>
+          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
+        </Text>
+        {result.category && result.category !== 'unknown' ? (
+          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
+        ) : null}
+      </View>
+      <Divider />
+      {isVeryLow ? (
+        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
+      ) : (
+        <>
+          <NoPriceRow />
+          {result.short_summary ? (
+            <>
+              <Divider />
+              <InfoBlock text={result.short_summary} type="tip" />
+            </>
+          ) : null}
+        </>
+      )}
+    </>
+  );
+}
+
+const s = StyleSheet.create({
+  divider: {
+    height: 1,
+    backgroundColor: C.divider,
+    marginVertical: 12,
+  },
+  sectionLabel: {
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  sectionLabelText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+  },
+  lineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  lineItemLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '500' as const,
+  },
+  lineItemValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '600' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  lineItemBold: {
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  priceLineItem: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  priceLineLabel: {
+    fontSize: 13,
+    color: C.textSecondary,
+    fontWeight: '600' as const,
+  },
+  priceLineValue: {
+    fontSize: 16,
+    color: C.text,
+    fontWeight: '700' as const,
+  },
+  priceLargeLbl: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+  },
+  priceLargeVal: {
+    fontSize: 24,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  servingNote: {
+    fontSize: 12,
+    color: C.textMuted,
+    marginBottom: 6,
+    fontWeight: '500' as const,
+  },
+  calorieBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
+  },
+  calorieNumber: {
+    fontSize: 40,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -1,
+  },
+  calorieUnit: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    letterSpacing: 2,
+  },
+  macroGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    marginBottom: 6,
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+  },
+  macroCell: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  macroCellVal: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: C.text,
+  },
+  macroCellLabel: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+  },
+  infoBlock: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginVertical: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: C.blue,
+  },
+  infoBlockText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  chipSection: {
+    marginTop: 10,
+  },
+  chipSectionLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: C.textSecondary,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 3,
+  },
+  bulletChar: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    width: 14,
+  },
+  bulletText: {
+    fontSize: 13,
+    color: C.text,
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: '500' as const,
+  },
+  tagsRow: {
+    marginTop: 6,
+  },
+  tagsInner: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center' as const,
+  },
+  tag: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+  },
+  resalePlatform: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+    textAlign: 'right' as const,
+  },
+  resaleDisclaimer: {
+    fontSize: 10,
+    color: C.textMuted,
+    fontWeight: '400' as const,
+    marginTop: 2,
+    fontStyle: 'italic' as const,
+  },
+  fallbackBlock: {
+    alignItems: 'center' as const,
+    paddingVertical: 16,
+  },
+  fallbackTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: C.text,
+    textAlign: 'center' as const,
+  },
+  fallbackSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 17,
+    marginTop: 4,
+  },
+  noPriceRow: {
+    alignItems: 'center' as const,
+    paddingVertical: 10,
+  },
+  noPriceText: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.5,
+  },
+  noPriceSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    marginTop: 2,
+  },
+  verificationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  verificationDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  verificationBadgeText: {
+    fontSize: 9,
+    fontWeight: '700' as const,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase' as const,
+  },
+  trustLineItem: {
+    paddingVertical: 5,
+  },
+  trustLineTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trustLineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '60%' as unknown as number,
+  },
+  trustBadgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 3,
+  },
+  confirmedCard: {
+    backgroundColor: '#16A34A0D',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A25',
+    padding: 12,
+  },
+  confirmedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  confirmedLabel: {
+    fontSize: 13,
+    color: '#16A34A',
+    fontWeight: '600' as const,
+  },
+  confirmedValue: {
+    fontSize: 13,
+    color: C.text,
+    fontWeight: '700' as const,
+    maxWidth: '55%' as unknown as number,
+    textAlign: 'right' as const,
+  },
+  confirmedDivider: {
+    height: 1,
+    backgroundColor: '#16A34A15',
+    marginVertical: 4,
+  },
+  genericSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  sourceCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  sourceLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: C.textSecondary,
+    marginBottom: 6,
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '500' as const,
+    lineHeight: 16,
+    marginLeft: 4,
+  },
+  purposeText: {
+    fontSize: 13,
+    color: C.text,
+    lineHeight: 19,
+    fontWeight: '500' as const,
+  },
+  nextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+  },
+  nextScanLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.accent,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  nextScanText: {
+    fontSize: 12,
+    color: C.textSecondary,
+    lineHeight: 17,
+    fontWeight: '500' as const,
+  },
+});
+) ? gd.estimated_resale_value : `${gd.estimated_resale_value}`) : null;
+  return (
+    <>
+      {gd.item_description && <InfoBlock text={gd.item_description} />}
+      <SectionLabel text="Identification" />
+      {gd.subcategory && <LineItem label="Category" value={capitalize(gd.subcategory.replace(/_/g, ' '))} />}
+      {gd.brand && <LineItem label="Brand" value={gd.brand} bold />}
+      {gd.model && <LineItem label="Model" value={gd.model} />}
+      {gd.material && <LineItem label="Material" value={gd.material} />}
+      {gd.color && <LineItem label="Color" value={gd.color} />}
+      {gd.condition && <LineItem label="Condition" value={capitalize(gd.condition)} />}
+      {gd.age_or_era && <LineItem label="Era/Age" value={gd.age_or_era} />}
+      {gd.rarity && <LineItem label="Rarity" value={capitalize(gd.rarity.replace(/-/g, ' '))} />}
+
+      <Divider />
+      <SectionLabel text="Price & Value" />
+      {gd.estimated_retail_price ? (
+        <>
+          <PriceLineItem label="Retail Price" value={gd.estimated_retail_price} large />
+          {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
+          {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
+        </>
+      ) : <NoPriceRow />}
+      {gd.value_verdict && <LineItem label="Value Verdict" value={capitalize(gd.value_verdict)} />}
+      {gd.value_rating && <LineItem label="Value Rating" value={capitalize(gd.value_rating)} />}
+      {gd.value_reasoning && <InfoBlock text={gd.value_reasoning} type="tip" />}
+
+      {(gd.resale_demand || gd.best_selling_platform || gd.resale_suggestion) && (
+        <>
+          <Divider />
+          <SectionLabel text="Resale Intel" />
+          {gd.resale_demand && <LineItem label="Demand" value={capitalize(gd.resale_demand)} />}
+          {gd.best_selling_platform && <LineItem label="Best Platform" value={gd.best_selling_platform} bold />}
+          {gd.comparable_item && <LineItem label="Comparable" value={gd.comparable_item} />}
+          {gd.resale_suggestion && <InfoBlock text={gd.resale_suggestion} type="success" />}
+        </>
+      )}
+
+      {(gd.practical_tip || gd.care_tip || gd.fun_fact) && (
+        <>
+          <Divider />
+          <SectionLabel text="Tips & Info" />
+          {gd.practical_tip && <InfoBlock text={gd.practical_tip} type="tip" />}
+          {gd.care_tip && <InfoBlock text={gd.care_tip} type="tip" />}
+          {gd.fun_fact && <InfoBlock text={`Fun fact: ${gd.fun_fact}`} type="success" />}
+        </>
+      )}
+
+      {(gd.budget_insight || gd.cheaper_alternative) && (
+        <>
+          <Divider />
+          <SectionLabel text="Budget Tips" />
+          {gd.budget_insight && <InfoBlock text={gd.budget_insight} type="tip" />}
+          {gd.cheaper_alternative && <InfoBlock text={`Alternative: ${gd.cheaper_alternative}`} type="warning" />}
+        </>
+      )}
+      <ChipRow items={gd.complementary_items} label="GOES WELL WITH" />
       <PurposeSection purpose={gd.purpose} />
       <ValueInsightSection insight={gd.value_insight} />
       <NextScanSection suggestion={gd.next_scan_suggestion} />
