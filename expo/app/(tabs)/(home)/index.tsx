@@ -294,9 +294,9 @@ const styles = StyleSheet.create({
   headerArea: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -304,10 +304,10 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandTitle: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.8,
+    color: '#000000',
+    letterSpacing: -0.5,
   },
   streakBadge: {
     flexDirection: 'row',
