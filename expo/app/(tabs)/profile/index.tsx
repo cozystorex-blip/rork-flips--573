@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,24 +6,41 @@ import {
   Pressable,
   Alert,
   Animated,
+  TextInput,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   LogOut,
   Camera,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
+import {
+  pickAndCropAvatar,
+  uploadAvatarToSupabase,
+  PermissionDeniedError,
+  ValidationError,
+  openAppSettings,
+} from '@/services/uploadService';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
-  const { profile, saveProfile } = useProfile();
+  const { profile, saveProfile, userId } = useProfile();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -47,27 +64,108 @@ export default function ProfileScreen() {
 
   const handlePickImage = useCallback(async () => {
     void Haptics.selectionAsync();
+
+    if (Platform.OS === 'web') {
+      try {
+        const mod = await import('expo-image-picker');
+        const result = await mod.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+        if (!result.canceled && result.assets?.[0]) {
+          console.log('[Profile] Web avatar picked:', result.assets[0].uri);
+          await saveProfile({ avatar_url: result.assets[0].uri });
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } catch (e) {
+        console.log('[Profile] Web gallery pick error:', e);
+        Alert.alert('Error', 'Could not pick image.');
+      }
+      return;
+    }
+
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow access to your photo library to change your profile picture.');
+      setUploadingAvatar(true);
+      const result = await pickAndCropAvatar();
+      if (!result) {
+        setUploadingAvatar(false);
         return;
       }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets[0]?.uri) {
-        console.log('[Profile] New avatar picked:', result.assets[0].uri);
-        await saveProfile({ avatar_url: result.assets[0].uri });
+
+      if (!userId) {
+        Alert.alert('Error', 'You must be signed in to upload a photo.');
+        setUploadingAvatar(false);
+        return;
       }
-    } catch (err) {
-      console.log('[Profile] Image picker error:', err);
-      Alert.alert('Error', 'Could not change profile picture. Please try again.');
+
+      const publicUrl = await uploadAvatarToSupabase(result.uri, userId);
+      await saveProfile({ avatar_url: publicUrl });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.log('[Profile] Avatar uploaded and saved:', publicUrl);
+    } catch (e: unknown) {
+      console.log('[Profile] Avatar upload error:', e);
+      if (e instanceof PermissionDeniedError) {
+        Alert.alert(
+          'Photo Access Required',
+          'Please allow access to your photo library to change your profile picture.',
+          [
+            { text: 'Open Settings', onPress: () => openAppSettings() },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+      } else if (e instanceof ValidationError) {
+        Alert.alert('Invalid Photo', e.message);
+      } else {
+        const msg = e instanceof Error ? e.message : 'Failed to upload photo';
+        Alert.alert('Upload Failed', msg);
+      }
+    } finally {
+      setUploadingAvatar(false);
     }
-  }, [saveProfile]);
+  }, [saveProfile, userId]);
+
+  const handleStartEditName = useCallback(() => {
+    void Haptics.selectionAsync();
+    setEditedName(displayName);
+    setIsEditingName(true);
+  }, [displayName]);
+
+  const handleCancelEditName = useCallback(() => {
+    void Haptics.selectionAsync();
+    setIsEditingName(false);
+    setEditedName('');
+  }, []);
+
+  const handleSaveName = useCallback(async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed) {
+      Alert.alert('Name Required', 'Please enter a display name.');
+      return;
+    }
+    if (trimmed.length < 2) {
+      Alert.alert('Name Too Short', 'Display name must be at least 2 characters.');
+      return;
+    }
+    if (trimmed.length > 30) {
+      Alert.alert('Name Too Long', 'Display name must be 30 characters or less.');
+      return;
+    }
+
+    setSavingName(true);
+    try {
+      await saveProfile({ display_name: trimmed });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.log('[Profile] Name updated to:', trimmed);
+      setIsEditingName(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to save name';
+      Alert.alert('Save Failed', msg);
+    } finally {
+      setSavingName(false);
+    }
+  }, [editedName, saveProfile]);
 
   const handleSignOut = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -93,7 +191,11 @@ export default function ProfileScreen() {
         <View style={styles.profileSection}>
           <View style={styles.avatarOuter}>
             <View style={styles.avatar}>
-              {profile?.avatar_url ? (
+              {uploadingAvatar ? (
+                <View style={styles.avatarLoading}>
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                </View>
+              ) : profile?.avatar_url ? (
                 <Image
                   source={{ uri: profile.avatar_url }}
                   style={styles.avatarImage}
@@ -109,12 +211,52 @@ export default function ProfileScreen() {
               style={styles.cameraBtn}
               hitSlop={6}
               onPress={() => { void handlePickImage(); }}
+              disabled={uploadingAvatar}
             >
               <Camera size={14} color="#16A34A" strokeWidth={2} />
             </Pressable>
           </View>
 
-          <Text style={styles.nameText}>{displayName}</Text>
+          {isEditingName ? (
+            <View style={styles.nameEditRow}>
+              <TextInput
+                style={styles.nameInput}
+                value={editedName}
+                onChangeText={setEditedName}
+                maxLength={30}
+                autoFocus
+                selectTextOnFocus
+                placeholder="Your name"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                testID="profile-name-edit-input"
+              />
+              <Pressable
+                style={styles.nameActionBtn}
+                onPress={handleCancelEditName}
+                disabled={savingName}
+              >
+                <X size={18} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+              <Pressable
+                style={[styles.nameActionBtn, styles.nameSaveBtn]}
+                onPress={() => { void handleSaveName(); }}
+                disabled={savingName}
+              >
+                {savingName ? (
+                  <ActivityIndicator size="small" color="#16A34A" />
+                ) : (
+                  <Check size={18} color="#16A34A" />
+                )}
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={handleStartEditName} style={styles.nameRow}>
+              <Text style={styles.nameText}>{displayName}</Text>
+              <View style={styles.editNameIcon}>
+                <Pencil size={13} color="rgba(255,255,255,0.6)" />
+              </View>
+            </Pressable>
+          )}
           <Text style={styles.memberText}>Member since {memberSince}</Text>
           {user?.email && (
             <Text style={styles.emailText}>{user.email}</Text>
@@ -207,6 +349,13 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
+  avatarLoading: {
+    width: 130,
+    height: 130,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
   cameraBtn: {
     position: 'absolute',
     bottom: 0,
@@ -223,11 +372,54 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   nameText: {
     fontSize: 30,
     fontWeight: '700' as const,
     color: '#FFFFFF',
     letterSpacing: -0.4,
+  },
+  editNameIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  nameEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  nameInput: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  nameActionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  nameSaveBtn: {
+    backgroundColor: '#FFFFFF',
   },
   memberText: {
     fontSize: 14,
