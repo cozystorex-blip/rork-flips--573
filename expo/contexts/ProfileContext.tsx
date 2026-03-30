@@ -9,6 +9,7 @@ import { CategoryType } from '@/types';
 export interface MyProfile {
   id: string;
   display_name: string;
+  username: string;
   bio: string;
   avatar_url: string;
   style_tag: CategoryType;
@@ -29,6 +30,7 @@ function makeDefaultProfile(userId: string): MyProfile {
   return {
     id: userId,
     display_name: '',
+    username: '',
     bio: '',
     avatar_url: '',
     style_tag: 'budget',
@@ -216,6 +218,7 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
 
       const now = new Date().toISOString();
       const displayName = (p.display_name ?? '').trim() || 'User';
+      const username = (p.username ?? '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
       const bio = (p.bio ?? '').trim();
       const avatarUrl = (p.avatar_url ?? '').trim();
       const styleTag = p.style_tag ?? 'budget';
@@ -225,6 +228,7 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
       const payload = {
         id: userId,
         display_name: displayName,
+        username,
         bio,
         avatar_url: avatarUrl,
         style_tag: styleTag,
@@ -263,6 +267,7 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
         savedProfile = {
           id: userId,
           display_name: displayName,
+          username,
           bio,
           avatar_url: avatarUrl,
           style_tag: styleTag,
