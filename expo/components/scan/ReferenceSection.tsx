@@ -1,13 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Animated,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { Link2, Wrench, Sparkles } from 'lucide-react-native';
+import { Link2, Wrench, Sparkles, RefreshCw } from 'lucide-react-native';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
@@ -27,35 +28,73 @@ interface ReferenceSectionProps {
   visible: boolean;
 }
 
+function getComplementaryItems(result: SmartScanResult): string[] {
+  if (result.furniture_details?.complementary_items?.length) return result.furniture_details.complementary_items;
+  if (result.fashion_details?.complementary_items?.length) return result.fashion_details.complementary_items;
+  if (result.electronics_details?.complementary_items?.length) return result.electronics_details.complementary_items;
+  if (result.household_details?.complementary_items?.length) return result.household_details.complementary_items;
+  if (result.grocery_details?.complementary_items?.length) return result.grocery_details.complementary_items;
+  if (result.food_details?.complementary_items?.length) return result.food_details.complementary_items;
+  if (result.general_details?.complementary_items?.length) return result.general_details.complementary_items;
+  return [];
+}
+
+function getToolsNeeded(result: SmartScanResult): string[] {
+  if (result.furniture_details?.likely_tools_needed?.length) return result.furniture_details.likely_tools_needed;
+  if (result.furniture_details?.extra_purchase_items?.length) {
+    return result.furniture_details.extra_purchase_items.map(i => i.item);
+  }
+  if (result.grocery_details?.what_else_needed?.length) return result.grocery_details.what_else_needed;
+  return [];
+}
+
+function buildFallbackFromResult(result: SmartScanResult): ReferenceData | null {
+  const complementary = getComplementaryItems(result);
+  const tools = getToolsNeeded(result);
+
+  if (complementary.length === 0 && tools.length === 0) {
+    return null;
+  }
+
+  return {
+    goes_with: complementary.slice(0, 2),
+    you_may_need: tools.length > 0 ? tools.slice(0, 5) : complementary.slice(2, 7),
+    ai_reference_description: result.short_summary ?? `${result.item_name} reference`,
+  };
+}
+
 function useReferenceData(result: SmartScanResult, visible: boolean) {
   const [data, setData] = useState<ReferenceData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
+  const [hasAttempted, setHasAttempted] = useState<boolean>(false);
   const fetchedRef = useRef<string | null>(null);
+  const retryCountRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (!visible) return;
+  const fetchData = useCallback((force?: boolean) => {
     const key = result.item_name + result.item_type;
-    if (fetchedRef.current === key) return;
+
+    if (!force && fetchedRef.current === key && data !== null) {
+      console.log('[Reference] Already have data for:', key);
+      return;
+    }
+
     fetchedRef.current = key;
+    retryCountRef.current = force ? retryCountRef.current + 1 : 0;
+
+    const fallback = buildFallbackFromResult(result);
+    if (fallback) {
+      console.log('[Reference] Using existing scan data for reference');
+      setData(fallback);
+      setLoading(false);
+      setError(false);
+      setHasAttempted(true);
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
     setError(false);
-
-    const existingComplementary = getComplementaryItems(result);
-    const existingTools = getToolsNeeded(result);
-
-    if (existingComplementary.length > 0 || existingTools.length > 0) {
-      console.log('[Reference] Using existing scan data for reference');
-      setData({
-        goes_with: existingComplementary.slice(0, 2),
-        you_may_need: existingTools.length > 0 ? existingTools.slice(0, 5) : existingComplementary.slice(2, 7),
-        ai_reference_description: result.short_summary ?? `${result.item_name} reference`,
-      });
-      setLoading(false);
-      return;
-    }
 
     void (async () => {
       try {
@@ -79,44 +118,45 @@ Be practical and specific. No marketing language.`,
         if (!cancelled) {
           console.log('[Reference] AI reference data received');
           setData(generated);
+          setError(false);
         }
       } catch (err) {
         console.log('[Reference] Failed to generate reference data:', err);
-        if (!cancelled) setError(true);
+        if (!cancelled) {
+          setError(true);
+          const basicFallback: ReferenceData = {
+            goes_with: [],
+            you_may_need: [],
+            ai_reference_description: result.short_summary ?? `${result.item_name} — ${result.category ?? 'item'}`,
+          };
+          setData(basicFallback);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setHasAttempted(true);
+        }
       }
     })();
 
     return () => { cancelled = true; };
-  }, [visible, result]);
+  }, [result, data]);
 
-  return { data, loading, error };
-}
+  useEffect(() => {
+    if (!visible) return;
 
-function getComplementaryItems(result: SmartScanResult): string[] {
-  if (result.furniture_details?.complementary_items?.length) return result.furniture_details.complementary_items;
-  if (result.fashion_details?.complementary_items?.length) return result.fashion_details.complementary_items;
-  if (result.electronics_details?.complementary_items?.length) return result.electronics_details.complementary_items;
-  if (result.household_details?.complementary_items?.length) return result.household_details.complementary_items;
-  if (result.grocery_details?.complementary_items?.length) return result.grocery_details.complementary_items;
-  if (result.food_details?.complementary_items?.length) return result.food_details.complementary_items;
-  if (result.general_details?.complementary_items?.length) return result.general_details.complementary_items;
-  return [];
-}
+    const key = result.item_name + result.item_type;
+    if (fetchedRef.current === key && data !== null) return;
 
-function getToolsNeeded(result: SmartScanResult): string[] {
-  if (result.furniture_details?.likely_tools_needed?.length) return result.furniture_details.likely_tools_needed;
-  if (result.furniture_details?.extra_purchase_items?.length) {
-    return result.furniture_details.extra_purchase_items.map(i => i.item);
-  }
-  if (result.grocery_details?.what_else_needed?.length) return result.grocery_details.what_else_needed;
-  return [];
+    fetchData();
+  }, [visible, result, fetchData, data]);
+
+  return { data, loading, error, hasAttempted, retry: () => fetchData(true) };
 }
 
 const ReferenceSection = React.memo(function ReferenceSection({ result, referenceImageUrl, visible }: ReferenceSectionProps) {
   const expandAnim = useRef(new Animated.Value(0)).current;
-  const { data, loading, error } = useReferenceData(result, visible);
+  const { data, loading, error, hasAttempted, retry } = useReferenceData(result, visible);
 
   useEffect(() => {
     Animated.timing(expandAnim, {
@@ -126,11 +166,11 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
     }).start();
   }, [visible, expandAnim]);
 
-  if (error || (!loading && !data)) return null;
+  if (!visible && !hasAttempted) return null;
 
   const maxHeight = expandAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 600],
+    outputRange: [0, 900],
   });
   const opacity = expandAnim.interpolate({
     inputRange: [0, 0.3, 1],
@@ -140,6 +180,8 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
   const hasGosWith = data && data.goes_with.length > 0;
   const hasYouMayNeed = data && data.you_may_need.length > 0;
   const hasRefImage = !!referenceImageUrl;
+  const hasDescription = data && data.ai_reference_description && data.ai_reference_description.length > 0;
+  const hasAnyContent = hasGosWith || hasYouMayNeed || hasRefImage || hasDescription || loading;
 
   return (
     <Animated.View style={[st.wrapper, { maxHeight, opacity }]}>
@@ -149,6 +191,12 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
             <Sparkles size={14} color="#3B82F6" />
           </View>
           <Text style={st.headerTitle}>Reference</Text>
+          {error && !loading && (
+            <Pressable onPress={retry} hitSlop={10} style={st.retryBtn}>
+              <RefreshCw size={12} color={ScannerColors.accent} />
+              <Text style={st.retryText}>Retry</Text>
+            </Pressable>
+          )}
         </View>
 
         {loading && (
@@ -158,8 +206,14 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
           </View>
         )}
 
-        {data && (
+        {!loading && data && (
           <View style={st.content}>
+            {hasDescription && !hasGosWith && !hasYouMayNeed && !hasRefImage && (
+              <View style={st.section}>
+                <Text style={st.descriptionText}>{data.ai_reference_description}</Text>
+              </View>
+            )}
+
             {hasGosWith && (
               <View style={st.section}>
                 <View style={st.sectionHeader}>
@@ -204,11 +258,23 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
                     cachePolicy="memory-disk"
                   />
                 </View>
-                {data.ai_reference_description ? (
+                {hasDescription && (hasGosWith || hasYouMayNeed) ? (
                   <Text style={st.refCaption}>{data.ai_reference_description}</Text>
                 ) : null}
               </View>
             )}
+
+            {hasDescription && (hasGosWith || hasYouMayNeed) && !hasRefImage && (
+              <View style={st.descriptionCard}>
+                <Text style={st.descriptionText}>{data.ai_reference_description}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {!loading && !hasAnyContent && visible && (
+          <View style={st.loadingWrap}>
+            <Text style={st.loadingText}>No reference data available</Text>
           </View>
         )}
 
@@ -224,7 +290,7 @@ export default ReferenceSection;
 
 const st = StyleSheet.create({
   wrapper: {
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
     marginBottom: ScannerSpacing.md,
   },
   container: {
@@ -236,8 +302,8 @@ const st = StyleSheet.create({
     marginTop: ScannerSpacing.sm,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 8,
     marginBottom: ScannerSpacing.md,
   },
@@ -246,21 +312,36 @@ const st = StyleSheet.create({
     height: 28,
     borderRadius: ScannerRadius.sm,
     backgroundColor: '#3B82F618',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   headerTitle: {
     fontSize: 15,
     fontWeight: '700' as const,
     color: ScannerColors.text,
     letterSpacing: -0.3,
+    flex: 1,
+  },
+  retryBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: ScannerRadius.sm,
+    backgroundColor: ScannerColors.accentSoft,
+  },
+  retryText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: ScannerColors.accent,
   },
   loadingWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 10,
     paddingVertical: ScannerSpacing.lg,
-    justifyContent: 'center',
+    justifyContent: 'center' as const,
   },
   loadingText: {
     fontSize: 13,
@@ -274,8 +355,8 @@ const st = StyleSheet.create({
     gap: 6,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 6,
     marginBottom: 4,
   },
@@ -287,8 +368,8 @@ const st = StyleSheet.create({
     textTransform: 'uppercase' as const,
   },
   itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     gap: 8,
     paddingVertical: 3,
     paddingLeft: 4,
@@ -306,13 +387,13 @@ const st = StyleSheet.create({
   },
   refImageWrap: {
     borderRadius: ScannerRadius.lg,
-    overflow: 'hidden',
+    overflow: 'hidden' as const,
     backgroundColor: ScannerColors.surface,
     borderWidth: 1,
     borderColor: ScannerColors.divider,
   },
   refImage: {
-    width: '100%',
+    width: '100%' as const,
     height: 160,
     borderRadius: ScannerRadius.lg,
   },
@@ -322,6 +403,19 @@ const st = StyleSheet.create({
     fontWeight: '500' as const,
     marginTop: 6,
     lineHeight: 17,
+  },
+  descriptionCard: {
+    backgroundColor: ScannerColors.surface,
+    borderRadius: ScannerRadius.lg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: ScannerColors.divider,
+  },
+  descriptionText: {
+    fontSize: 13,
+    color: ScannerColors.textSecondary,
+    fontWeight: '500' as const,
+    lineHeight: 19,
   },
   disclaimer: {
     marginTop: ScannerSpacing.md,
