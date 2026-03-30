@@ -707,6 +707,59 @@ export function GroceryResultSection({ result }: ResultProps) {
   );
 }
 
+function IkeaMatchBadge({ confidence }: { confidence: string }) {
+  const configs: Record<string, { label: string; color: string; bg: string }> = {
+    exact: { label: 'Exact IKEA Match', color: '#0058A3', bg: '#0058A312' },
+    strong: { label: 'Strong IKEA Match', color: '#2D8C3C', bg: '#2D8C3C12' },
+    possible: { label: 'Possible IKEA Match', color: '#C27800', bg: '#C2780012' },
+    weak: { label: 'Might Be IKEA', color: '#888888', bg: '#88888812' },
+  };
+  const cfg = configs[confidence] ?? configs.possible;
+  return (
+    <View style={[s.ikeaMatchBadge, { backgroundColor: cfg.bg }]}>
+      <View style={[s.ikeaMatchDot, { backgroundColor: cfg.color }]} />
+      <Text style={[s.ikeaMatchText, { color: cfg.color }]}>{cfg.label}</Text>
+    </View>
+  );
+}
+
+function IkeaCluesSection({ clues }: { clues: string[] }) {
+  if (!clues || clues.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <SectionLabel text="IKEA Clues Detected" />
+      <View style={s.ikeaCluesCard}>
+        {clues.map((clue, i) => (
+          <View key={`clue-${i}`} style={s.bulletRow}>
+            <Text style={s.bulletChar}>{"\u2713"}</Text>
+            <Text style={s.bulletText}>{clue}</Text>
+          </View>
+        ))}
+      </View>
+    </>
+  );
+}
+
+function BestNextScanSection({ suggestions }: { suggestions: string[] }) {
+  if (!suggestions || suggestions.length === 0) return null;
+  return (
+    <>
+      <Divider />
+      <SectionLabel text="Best Next Scan" />
+      <View style={s.bestNextScanCard}>
+        <Text style={s.bestNextScanIntro}>For better accuracy, try scanning:</Text>
+        {suggestions.map((sug, i) => (
+          <View key={`bns-${i}`} style={s.bulletRow}>
+            <Text style={s.bulletChar}>{"\u25CE"}</Text>
+            <Text style={s.bulletText}>{sug}</Text>
+          </View>
+        ))}
+      </View>
+    </>
+  );
+}
+
 export function FurnitureResultSection({ result }: ResultProps) {
   if (!result.furniture_details) {
     if (result.general_details) return <GeneralResultSection result={result} />;
@@ -717,17 +770,41 @@ export function FurnitureResultSection({ result }: ResultProps) {
   }
   const fd = result.furniture_details;
   const safeResale = safeDollar(fd.estimated_resale_value);
+  const isIkea = fd.is_likely_ikea === true;
+  const hasIkeaId = !!(fd.ikea_article_number || fd.ikea_product_name);
+
   return (
     <>
+      {isIkea && fd.ikea_match_confidence && (
+        <IkeaMatchBadge confidence={fd.ikea_match_confidence} />
+      )}
+
       {fd.item_type_specific && <InfoBlock text={fd.item_type_specific} />}
 
-      <SectionLabel text="Product Details" />
+      {hasIkeaId && (
+        <>
+          <SectionLabel text="Identified Product" />
+          {fd.ikea_product_name && <LineItem label="Product" value={fd.ikea_product_name} bold />}
+          {fd.ikea_article_number && <LineItem label="Article No." value={fd.ikea_article_number} bold />}
+          {fd.ikea_product_family && <LineItem label="Family" value={fd.ikea_product_family} />}
+          {fd.ikea_variant && <LineItem label="Variant" value={fd.ikea_variant} />}
+          {fd.ikea_category && <LineItem label="Category" value={fd.ikea_category} />}
+          {fd.packaging_type && fd.packaging_type !== 'unknown' && <LineItem label="Packaging" value={capitalize(fd.packaging_type.replace(/-/g, ' '))} />}
+          {fd.packaging_count && <LineItem label="Packages" value={fd.packaging_count} />}
+          {fd.manual_detected && <InfoBlock text="Assembly manual detected in scan" type="success" />}
+          {fd.label_detected && <InfoBlock text="Product label detected in scan" type="success" />}
+          <Divider />
+        </>
+      )}
+
+      <SectionLabel text="Key Details" />
       {fd.material && <LineItem label="Material" value={fd.material} />}
       {fd.finish_color && <LineItem label="Color/Finish" value={fd.finish_color} />}
       {fd.style && <LineItem label="Style" value={fd.style} />}
       {fd.estimated_dimensions && <LineItem label="Dimensions" value={fd.estimated_dimensions} />}
       {fd.value_level && <LineItem label="Tier" value={capitalize(fd.value_level)} />}
-      {fd.mounting_type && <LineItem label="Mount" value={capitalize(fd.mounting_type.replace(/-/g, ' '))} />}
+      {fd.mounting_type && fd.mounting_type !== 'unknown' && <LineItem label="Mount" value={capitalize(fd.mounting_type.replace(/-/g, ' '))} />}
+      {fd.condition_estimate && <LineItem label="Condition" value={capitalize(fd.condition_estimate.replace(/-/g, ' '))} />}
       {fd.use_case && <LineItem label="Use" value={fd.use_case} />}
       {fd.room_fit && <LineItem label="Room" value={fd.room_fit} />}
 
@@ -735,7 +812,7 @@ export function FurnitureResultSection({ result }: ResultProps) {
       <SectionLabel text="Price & Value" />
       {fd.estimated_retail_price ? (
         <>
-          <PriceLineItem label="Est. Price" value={fd.estimated_retail_price} large />
+          <PriceLineItem label={isIkea ? 'IKEA Price' : 'Est. Price'} value={fd.estimated_retail_price} large />
           {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
           {fd.estimated_price_range && <LineItem label="Range" value={fd.estimated_price_range} />}
         </>
@@ -754,9 +831,20 @@ export function FurnitureResultSection({ result }: ResultProps) {
       {fd.value_reasoning && <InfoBlock text={fd.value_reasoning} type="tip" />}
       {fd.worth_it_verdict && <InfoBlock text={`Verdict: ${fd.worth_it_verdict}`} type="success" />}
 
-      {(fd.resale_demand || fd.best_selling_platform || fd.resale_suggestion) && (
+      {fd.resale_title_suggestion && (
         <>
           <Divider />
+          <SectionLabel text="Resale View" />
+          <View style={s.resaleTitleCard}>
+            <Text style={s.resaleTitleLabel}>Suggested Listing Title</Text>
+            <Text style={s.resaleTitleValue}>{fd.resale_title_suggestion}</Text>
+          </View>
+        </>
+      )}
+
+      {(fd.resale_demand || fd.best_selling_platform || fd.resale_suggestion) && (
+        <>
+          {!fd.resale_title_suggestion && <Divider />}
           <SectionLabel text="Resale Intel" />
           {fd.resale_demand && <LineItem label="Demand" value={capitalize(fd.resale_demand)} />}
           {fd.best_selling_platform && <LineItem label="Best Platform" value={fd.best_selling_platform} bold />}
@@ -804,11 +892,14 @@ export function FurnitureResultSection({ result }: ResultProps) {
         </>
       )}
 
+      <IkeaCluesSection clues={fd.ikea_clues} />
+
       <ChipRow items={fd.room_fit_labels} label="FITS IN" />
       <ChipRow items={fd.matching_products} label="MATCHES WITH" />
       <ChipRow items={fd.complementary_items} label="PAIRS WELL WITH" />
       <PurposeSection purpose={fd.purpose} />
       <ValueInsightSection insight={fd.value_insight} />
+      <BestNextScanSection suggestions={fd.best_next_scan} />
       <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
@@ -1682,5 +1773,68 @@ const s = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600' as const,
     color: C.textSecondary,
+  },
+  ikeaMatchBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginBottom: 10,
+    alignSelf: 'flex-start' as const,
+  },
+  ikeaMatchDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  ikeaMatchText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    letterSpacing: 0.2,
+  },
+  ikeaCluesCard: {
+    backgroundColor: '#0058A308',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#0058A318',
+    padding: 12,
+    gap: 2,
+  },
+  bestNextScanCard: {
+    backgroundColor: C.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.cardBorder,
+    padding: 12,
+    gap: 2,
+  },
+  bestNextScanIntro: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: C.textSecondary,
+    marginBottom: 4,
+  },
+  resaleTitleCard: {
+    backgroundColor: '#2D8C3C08',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2D8C3C18',
+    padding: 12,
+  },
+  resaleTitleLabel: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: C.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  resaleTitleValue: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: C.text,
+    lineHeight: 20,
   },
 });

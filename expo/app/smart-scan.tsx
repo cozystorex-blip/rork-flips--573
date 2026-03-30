@@ -66,16 +66,16 @@ import ReferenceSection from '@/components/scan/ReferenceSection';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 
 export const TYPE_CONFIG: Record<SmartScanItemType, { label: string; color: string; bg: string; Icon: React.ComponentType<{ size: number; color: string }> }> = {
-  food: { label: 'Food Item', color: '#16A34A', bg: '#16A34A18', Icon: Flame },
-  grocery: { label: 'Grocery Product', color: '#2563EB', bg: '#2563EB18', Icon: Package },
-  household: { label: 'Home / Household', color: '#7C3AED', bg: '#7C3AED18', Icon: Lamp },
-  furniture: { label: 'Furniture', color: '#0058A3', bg: '#0058A318', Icon: Sofa },
-  fashion: { label: 'Fashion Item', color: '#E11D48', bg: '#E11D4818', Icon: Shirt },
-  electronics: { label: 'Electronics', color: '#0284C7', bg: '#0284C718', Icon: Smartphone },
-  general: { label: 'Item Identified', color: '#0D9488', bg: '#0D948818', Icon: Scan },
-  receipt: { label: 'Receipt Detected', color: '#DC2626', bg: '#DC262618', Icon: Receipt },
-  document: { label: 'Document / Content', color: '#8B5CF6', bg: '#8B5CF618', Icon: ImageIcon },
-  unknown: { label: 'Unknown Item', color: '#6B7280', bg: '#6B728018', Icon: HelpCircle },
+  food: { label: 'Food Item', color: '#2D8C3C', bg: '#2D8C3C14', Icon: Flame },
+  grocery: { label: 'Grocery Product', color: '#2563EB', bg: '#2563EB14', Icon: Package },
+  household: { label: 'Home / Household', color: '#7C3AED', bg: '#7C3AED14', Icon: Lamp },
+  furniture: { label: 'IKEA / Furniture', color: '#0058A3', bg: '#0058A314', Icon: Sofa },
+  fashion: { label: 'Fashion Item', color: '#E11D48', bg: '#E11D4814', Icon: Shirt },
+  electronics: { label: 'Electronics', color: '#0284C7', bg: '#0284C714', Icon: Smartphone },
+  general: { label: 'Item Identified', color: '#0D9488', bg: '#0D948814', Icon: Scan },
+  receipt: { label: 'Receipt Detected', color: '#DC2626', bg: '#DC262614', Icon: Receipt },
+  document: { label: 'Document / Content', color: '#8B5CF6', bg: '#8B5CF614', Icon: ImageIcon },
+  unknown: { label: 'Unknown Item', color: '#6B7280', bg: '#6B728014', Icon: HelpCircle },
 };
 
 
@@ -251,7 +251,7 @@ export default function SmartScanScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScannerTopBar
-        title="Smart Scanner"
+        title="IKEA Scanner"
         onClose={() => router.back()}
         paddingTop={insets.top}
         testID="close-smart-scan"
@@ -630,8 +630,8 @@ const st = StyleSheet.create({
   typeBadge: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: ScannerRadius.sm },
   typeBadgeText: { fontSize: 12, fontWeight: '600' as const },
 
-  summaryCard: { backgroundColor: '#F0FDF4', borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: '#BBF7D0' },
-  summaryText: { fontSize: 14, color: '#166534', lineHeight: 20 },
+  summaryCard: { backgroundColor: '#EFF6FF', borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: '#BFDBFE' },
+  summaryText: { fontSize: 14, color: '#1E3A5F', lineHeight: 20 },
 
   detailsSection: { backgroundColor: '#FFFFFF', borderRadius: ScannerRadius.xxl, padding: ScannerSpacing.lg, marginBottom: ScannerSpacing.lg, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
 

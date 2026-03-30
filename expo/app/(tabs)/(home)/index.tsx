@@ -290,7 +290,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FAFAFA',
   },
   headerArea: {
     backgroundColor: '#FFFFFF',
@@ -314,18 +314,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFDA1A18',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: '#FFDA1A40',
     marginRight: 6,
   },
   streakText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: '#EA580C',
+    color: '#8B6914',
   },
   headerIconBtn: {
     width: 36,

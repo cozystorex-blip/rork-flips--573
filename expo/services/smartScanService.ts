@@ -362,6 +362,21 @@ const furnitureDetailsSchema = z.object({
   purpose: z.string().nullable(),
   value_insight: z.string().nullable(),
   next_scan_suggestion: z.string().nullable(),
+  ikea_article_number: z.string().nullable(),
+  ikea_product_name: z.string().nullable(),
+  ikea_product_family: z.string().nullable(),
+  ikea_variant: z.string().nullable(),
+  ikea_category: z.string().nullable(),
+  packaging_type: z.enum(['flat-pack', 'assembled', 'boxed', 'unpackaged', 'unknown']).nullable(),
+  packaging_count: z.string().nullable(),
+  is_likely_ikea: z.boolean().nullable(),
+  ikea_match_confidence: z.enum(['exact', 'strong', 'possible', 'weak']).nullable(),
+  manual_detected: z.boolean().nullable(),
+  label_detected: z.boolean().nullable(),
+  ikea_clues: z.array(z.string()),
+  resale_title_suggestion: z.string().nullable(),
+  condition_estimate: z.enum(['new-sealed', 'new-open', 'like-new', 'good', 'fair', 'worn', 'damaged']).nullable(),
+  best_next_scan: z.array(z.string()),
 });
 
 const documentDetailsSchema = z.object({
@@ -893,23 +908,45 @@ DO NOT fill furniture_details, fashion_details, food_details, grocery_details, h
     case 'furniture':
       return base + `Analyze this FURNITURE item like an IKEA expert, interior designer, and resale consultant combined. Fill furniture_details ONLY. Set all other detail fields to null.
 
-You are a FURNITURE GENIE. The user scanned furniture and wants the COMPLETE breakdown — what it is, what it costs, how to build it, what goes with it, and whether it's worth buying. Think IKEA product page meets interior design consultation.
+You are an IKEA FURNITURE EXPERT. This app is specifically optimized for IKEA items. The user is most likely scanning IKEA furniture, flat-pack boxes, shelf labels, instruction manuals, or room scenes with IKEA items.
+
+IKEA IDENTIFICATION (THIS IS THE #1 PRIORITY):
+- ALWAYS check if this is an IKEA product FIRST before anything else.
+- Look for these IKEA-specific visual cues:
+  * Article numbers (8-digit format like 302.758.75 or 10-digit format)
+  * Product labels with "IKEA" text
+  * Flat-pack packaging with IKEA sticker labels
+  * Characteristic cam lock holes, dowel patterns, hex key assembly points
+  * IKEA-specific design signatures: KALLAX cube proportions, BILLY shelf spacing, MALM drawer fronts, LACK simple edges, HEMNES traditional style, BESTA modular shapes, PAX wardrobe frames, ALEX drawer units, DETOLF glass cabinets, POANG bent wood, EKTORP slipcover style, MICKE desk design, LINNMON tabletops, FJALKINGE shelving
+  * Assembly instruction booklet style (IKEA's distinctive wordless cartoon format)
+  * Swedish product naming pattern (single Swedish word in CAPS)
+
+- is_likely_ikea: Set true if there is ANY indication this could be IKEA
+- ikea_match_confidence: exact (article number found or product clearly identified) / strong (design matches known IKEA product) / possible (looks like IKEA style) / weak (could be IKEA or similar)
+- ikea_article_number: Extract ANY visible article number. Check labels, stickers, manual pages. Format: XXX.XXX.XX
+- ikea_product_name: The EXACT IKEA product name if recognized (e.g. "KALLAX", "BILLY", "MALM", "LACK", "HEMNES")
+- ikea_product_family: The product family/series if known (e.g. "KALLAX", "BESTA", "PAX")
+- ikea_variant: Color/size/finish variant (e.g. "White, 2x4", "Black-brown, 77x147 cm", "Oak effect")
+- ikea_category: IKEA department category (e.g. "Storage & Organisation", "Desks", "Bookcases", "Bedroom furniture", "Living room storage")
+- packaging_type: flat-pack / assembled / boxed / unpackaged / unknown
+- packaging_count: Number of packages if visible (e.g. "2 of 3", "1 box")
+- manual_detected: true if an instruction manual or assembly guide is visible
+- label_detected: true if a product label, sticker, or tag is visible
+- ikea_clues: List ALL visual clues that suggest this is IKEA — specific things you see (e.g. "Article number 302.758.75 visible on sticker", "KALLAX cube proportions match", "Cam lock assembly holes visible", "IKEA logo on box")
+- resale_title_suggestion: Suggested marketplace listing title (e.g. "IKEA KALLAX 4x2 Shelf Unit - White")
+- condition_estimate: new-sealed / new-open / like-new / good / fair / worn / damaged
+- best_next_scan: 2-4 suggestions for what to scan next for better accuracy (e.g. ["Scan the box sticker label", "Scan the instruction manual page 1", "Scan the article number on the back"])
 
 IDENTIFICATION:
 - item_type_specific: Be very specific (e.g. "4-cube storage shelving unit", "L-shaped corner desk with cable management", "mid-century modern accent chair")
 - material: Identify from image — "Engineered wood with oak veneer", "Solid pine", "Powder-coated steel frame with MDF shelves", "likely particle board with melamine finish"
 - finish_color, style: Describe precisely what you see
-- estimated_dimensions: Estimate if you can based on proportions and known products. For IKEA items, use real dimensions.
-
-BRAND IDENTIFICATION (CRITICAL):
-- If you recognize this as an IKEA product (KALLAX, BILLY, MALM, LACK, HEMNES, EXPEDIT, BESTA, PAX, ALEX, DETOLF, POANG, EKTORP, etc.), identify it by EXACT product name and use REAL IKEA pricing.
-- Look for IKEA design signatures: cam lock holes, specific leg styles, dowel patterns, characteristic shapes
-- For non-IKEA: identify brand from any visible labels, hardware style, or design signatures (West Elm, CB2, Wayfair, Target/Threshold, etc.)
+- estimated_dimensions: Estimate if you can based on proportions and known products. For IKEA items, use REAL IKEA dimensions.
 
 PRICE & VALUE:
-- estimated_retail_price: Real price for identified products. Best estimate for unidentified.
+- estimated_retail_price: For IKEA items, use the REAL current IKEA price. For non-IKEA, best estimate.
 - estimated_price_range: Always provide a realistic range
-- estimated_resale_value: What this sells for on Facebook Marketplace, Craigslist, OfferUp
+- estimated_resale_value: What this sells for on Facebook Marketplace, Craigslist, OfferUp. IKEA furniture typically resells at 30-60% of retail.
 - value_level: budget/mid-range/premium
 - value_rating, value_verdict: Always assess
 - worth_it_verdict: Give an honest "is it worth the money" assessment
@@ -949,6 +986,10 @@ CARE:
 - purpose: Detailed description of what this furniture is for and who it's ideal for
 - value_insight: Key insight about quality, durability, and value proposition
 - next_scan_suggestion: Where to find model info (back sticker, underside label, instruction booklet)
+
+IKEA-SPECIFIC CATEGORIES TO PRIORITIZE:
+shelving units, desks, office chairs, dining tables, coffee tables, bed frames, dressers, storage boxes, wardrobes, bookcases, lamps, wall shelves, TV stands, kids furniture, kitchen carts, drawer systems, plant stands, mirrors, small decor and organizers
+
 DO NOT fill fashion_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'general':
@@ -1912,6 +1953,15 @@ function normalizeFullResult(result: SmartScanResult): SmartScanResult {
     fd.wall_anchor_note = normalizeTextField(fd.wall_anchor_note);
     fd.long_term_value = normalizeTextField(fd.long_term_value);
     fd.worth_it_verdict = normalizeTextField(fd.worth_it_verdict);
+    fd.ikea_article_number = normalizeTextField(fd.ikea_article_number);
+    fd.ikea_product_name = normalizeTextField(fd.ikea_product_name);
+    fd.ikea_product_family = normalizeTextField(fd.ikea_product_family);
+    fd.ikea_variant = normalizeTextField(fd.ikea_variant);
+    fd.ikea_category = normalizeTextField(fd.ikea_category);
+    fd.packaging_count = normalizeTextField(fd.packaging_count);
+    fd.resale_title_suggestion = normalizeTextField(fd.resale_title_suggestion);
+    fd.ikea_clues = normalizeStringArray(fd.ikea_clues);
+    fd.best_next_scan = normalizeStringArray(fd.best_next_scan);
     n.furniture_details = fd;
   }
 

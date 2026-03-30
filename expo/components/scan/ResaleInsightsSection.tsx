@@ -27,7 +27,7 @@ interface ResaleCategory {
 }
 
 const RESALE_CATEGORY_MAP: Record<string, ResaleCategory> = {
-  furniture: { label: 'Furniture', color: '#0058A3' },
+  furniture: { label: 'IKEA / Furniture', color: '#0058A3' },
   household: { label: 'Home & Household', color: '#7C3AED' },
   fashion: { label: 'Fashion & Apparel', color: '#E11D48' },
   electronics: { label: 'Electronics', color: '#0284C7' },

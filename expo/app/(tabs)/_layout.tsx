@@ -64,10 +64,10 @@ const scanStyles = StyleSheet.create({
     width: SCAN_SIZE,
     height: SCAN_SIZE,
     borderRadius: SCAN_SIZE / 2,
-    backgroundColor: "#16A34A",
+    backgroundColor: "#0058A3",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#0D7A2F",
+    shadowColor: "#003E75",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 14,
@@ -87,7 +87,7 @@ const scanStyles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: "600" as const,
-    color: "#16A34A",
+    color: "#0058A3",
     marginTop: 2,
     letterSpacing: 0.2,
   },
@@ -156,7 +156,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#16A34A",
+        tabBarActiveTintColor: "#0058A3",
         tabBarInactiveTintColor: "#8E8E93",
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
