@@ -17,7 +17,6 @@ import {
   Heart,
   Camera,
   Search,
-  ChevronDown,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -26,7 +25,7 @@ import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext'
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import type { SmartScanResult } from '@/services/smartScanService';
 
-const GRID_GAP = 12;
+const GRID_GAP = 10;
 const H_PAD = 16;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -87,7 +86,6 @@ export default function SavedScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
-
 
   const unifiedItems = useMemo<UnifiedItem[]>(() => {
     const scanItems: UnifiedItem[] = scanEntries.map((e) => {
@@ -170,12 +168,13 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.bubbleSearchBar}>
-          <Search size={18} color="#8E8E93" strokeWidth={1.8} />
+      <View style={[styles.headerArea, { paddingTop: insets.top + 10 }]}>
+        <Text style={styles.headerTitle}>Saved</Text>
+        <View style={styles.searchBar}>
+          <Search size={16} color="#8E8E93" strokeWidth={1.8} />
           <TextInput
-            style={styles.bubbleSearchInput}
-            placeholder="Search saved items..."
+            style={styles.searchInput}
+            placeholder="Search items..."
             placeholderTextColor="#AEAEB2"
             value={searchText}
             onChangeText={setSearchText}
@@ -197,31 +196,35 @@ export default function SavedScreen() {
           </View>
         ) : filteredItems.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Heart size={32} color="#C7C7CC" strokeWidth={1.3} />
-            <Text style={styles.emptyTitle}>Nothing saved yet</Text>
-            <Text style={styles.emptySubtitle}>Scan items or save deals to build your collection</Text>
-            <View style={styles.emptyActions}>
+            <View style={styles.emptyIconWrap}>
+              <Heart size={28} color="#16A34A" strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {searchText.trim() ? 'No results found' : 'Nothing saved yet'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {searchText.trim()
+                ? 'Try a different search term'
+                : 'Scan items or save deals to build your collection'}
+            </Text>
+            {!searchText.trim() && (
               <Pressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/smart-scan');
                 }}
-                style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
+                style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
               >
                 <Camera size={15} color="#FFFFFF" strokeWidth={2} />
                 <Text style={styles.emptyBtnText}>Scan an Item</Text>
               </Pressable>
-            </View>
+            )}
           </View>
         ) : (
           <View>
-            <View style={styles.countRow}>
-              <Text style={styles.countLabel}>{filteredItems.length} items saved</Text>
-              <Pressable style={styles.sortBtn}>
-                <Text style={styles.sortText}>Recently Added</Text>
-                <ChevronDown size={12} color="#8E8E93" strokeWidth={1.5} />
-              </Pressable>
-            </View>
+            <Text style={styles.countLabel}>
+              {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
+            </Text>
 
             <View style={styles.grid}>
               {filteredItems.map((item) => (
@@ -231,26 +234,31 @@ export default function SavedScreen() {
                   style={({ pressed }) => [
                     styles.gridCard,
                     { width: cardWidth },
-                    pressed && { opacity: 0.88, transform: [{ scale: 0.97 }] },
+                    pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
                   ]}
                   testID={`saved-card-${item.id}`}
                 >
-                  <View style={[styles.gridImageWrap, { width: cardWidth, height: cardWidth }]}>
+                  <View style={[styles.gridImageWrap, { width: cardWidth, height: cardWidth * 0.9 }]}>
                     {item.imageUri ? (
                       <Image
                         source={{ uri: item.imageUri }}
-                        style={[styles.gridImage, { width: cardWidth, height: cardWidth }]}
+                        style={[styles.gridImage, { width: cardWidth, height: cardWidth * 0.9 }]}
                         contentFit="cover"
                         cachePolicy="memory-disk"
                         recyclingKey={`saved-${item.id}`}
                       />
                     ) : (
-                      <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth }]}>
+                      <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth * 0.9 }]}>
                         {item.type === 'deal' ? (
-                          <Tag size={28} color="#C7C7CC" strokeWidth={1.5} />
+                          <Tag size={24} color="#D1D1D6" strokeWidth={1.5} />
                         ) : (
-                          <Package size={28} color="#C7C7CC" strokeWidth={1.5} />
+                          <Package size={24} color="#D1D1D6" strokeWidth={1.5} />
                         )}
+                      </View>
+                    )}
+                    {item.badge && (
+                      <View style={[styles.cardBadge, { backgroundColor: item.badgeColor }]}>
+                        <Text style={styles.cardBadgeText}>{item.badge}</Text>
                       </View>
                     )}
                   </View>
@@ -259,11 +267,7 @@ export default function SavedScreen() {
                     {item.price && (
                       <Text style={styles.gridCardPrice}>{item.price}</Text>
                     )}
-                    {item.badge && (
-                      <View style={[styles.gridBadge, { backgroundColor: item.badgeColor + '18' }]}>
-                        <Text style={[styles.gridBadgeText, { color: item.badgeColor }]}>{item.badge}</Text>
-                      </View>
-                    )}
+                    <Text style={styles.gridCardSource} numberOfLines={1}>{item.source}</Text>
                   </View>
                 </Pressable>
               ))}
@@ -282,61 +286,45 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  screenHeader: {
+  headerArea: {
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: H_PAD,
-    paddingBottom: 10,
-    backgroundColor: 'transparent',
-    position: 'absolute' as const,
-    left: 0,
-    right: 0,
-    zIndex: 10,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
+    gap: 12,
   },
-  bubbleSearchBar: {
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.8,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    height: 50,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 40,
+    gap: 8,
   },
-  bubbleSearchInput: {
+  searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: '#1C1C1E',
-    height: 50,
+    height: 40,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
-    paddingTop: 72,
-  },
-  countRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingTop: 14,
   },
   countLabel: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-  },
-  sortBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  sortText: {
     fontSize: 13,
     fontWeight: '500' as const,
     color: '#8E8E93',
+    marginBottom: 12,
+    paddingHorizontal: 2,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -345,42 +333,47 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 32,
+    borderRadius: 16,
+    padding: 36,
     alignItems: 'center',
     gap: 8,
+    marginTop: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 1,
+  },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
     color: '#1C1C1E',
-    marginTop: 4,
   },
   emptySubtitle: {
     fontSize: 14,
     color: '#8E8E93',
-    textAlign: 'center' as const,
+    textAlign: 'center',
     lineHeight: 20,
     maxWidth: 260,
-  },
-  emptyActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
   },
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#16A34A',
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    marginTop: 12,
   },
   emptyBtnText: {
     fontSize: 15,
@@ -398,13 +391,13 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   gridImageWrap: {
     backgroundColor: '#F2F2F7',
@@ -418,9 +411,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
   },
+  cardBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  cardBadgeText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
   gridCardBody: {
-    padding: 12,
-    gap: 3,
+    padding: 10,
+    gap: 2,
   },
   gridCardTitle: {
     fontSize: 14,
@@ -434,15 +440,10 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     marginTop: 2,
   },
-  gridBadge: {
-    alignSelf: 'flex-start' as const,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  gridBadgeText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
+  gridCardSource: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+    marginTop: 2,
   },
 });

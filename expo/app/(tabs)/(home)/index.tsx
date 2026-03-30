@@ -16,12 +16,15 @@ import {
   Bell,
   Flame,
   Scan,
+  Clock,
+  ChevronRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { generateBrandLogo, getCachedBrandLogo } from '@/services/brandLogoService';
+import { useExpenses } from '@/contexts/ExpenseContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -133,27 +136,41 @@ function BrandLogoIcon({ entry, size }: BrandLogoIconProps) {
 
 const logoStyles = StyleSheet.create({
   container: {
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#F2F2F7',
   },
   fallback: {
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: '#F0FDF4',
     justifyContent: 'center',
     alignItems: 'center',
   },
   fallbackText: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700' as const,
     color: '#16A34A',
   },
 });
 
+function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { entries: scanEntries } = useScanHistory();
+  const { expenses } = useExpenses();
 
   const streakDays = useMemo(() => {
     if (scanEntries.length === 0) return 0;
@@ -173,6 +190,15 @@ export default function HomeScreen() {
     return [...scanEntries]
       .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime());
   }, [scanEntries]);
+
+  const latestScan = allScans.length > 0 ? allScans[0] : null;
+  const recentScans = allScans.slice(1, 5);
+
+  const recentReceipts = useMemo(() => {
+    return [...expenses]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 3);
+  }, [expenses]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
@@ -198,7 +224,7 @@ export default function HomeScreen() {
           {streakDays > 0 && (
             <View style={styles.streakBadge}>
               <Flame size={12} color="#FF9500" strokeWidth={2.5} fill="#FF9500" />
-              <Text style={styles.streakText}>{streakDays}-day streak</Text>
+              <Text style={styles.streakText}>{streakDays}</Text>
             </View>
           )}
           <Pressable
@@ -217,80 +243,167 @@ export default function HomeScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          {allScans.length > 0 ? (
-            <View style={styles.section}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Scanned Items</Text>
-                <Pressable
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    router.push('/(tabs)/saved');
-                  }}
-                  hitSlop={8}
-                  style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-                >
-                  <Text style={styles.seeAllText}>See All</Text>
-                </Pressable>
-              </View>
+          {latestScan ? (
+            <>
+              <Pressable
+                onPress={() => handleScanItemPress(latestScan)}
+                style={({ pressed }) => [
+                  styles.featuredCard,
+                  pressed && { opacity: 0.95, transform: [{ scale: 0.985 }] },
+                ]}
+                testID="featured-scan-card"
+              >
+                <View style={styles.featuredImageWrap}>
+                  {latestScan.imageUri ? (
+                    <Image
+                      source={{ uri: latestScan.imageUri }}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={styles.featuredImagePlaceholder}>
+                      <Package size={36} color="#C7C7CC" strokeWidth={1.3} />
+                    </View>
+                  )}
+                  {getScanBadge(latestScan) && (
+                    <View style={[styles.featuredBadge, { backgroundColor: getScanBadge(latestScan)!.color }]}>
+                      <Text style={styles.featuredBadgeText}>{getScanBadge(latestScan)!.label}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.featuredInfo}>
+                  <View style={styles.featuredTopRow}>
+                    <BrandLogoIcon entry={latestScan} size={24} />
+                    <Text style={styles.featuredBrand} numberOfLines={1}>
+                      {getBrandFromEntry(latestScan)}
+                    </Text>
+                  </View>
+                  <Text style={styles.featuredName} numberOfLines={2}>
+                    {latestScan.result.item_name || 'Scanned Item'}
+                  </Text>
+                  {getScanPrice(latestScan) && (
+                    <Text style={styles.featuredPrice}>{getScanPrice(latestScan)}</Text>
+                  )}
+                  <Text style={styles.featuredTime}>
+                    {formatTimeAgo(latestScan.scannedAt)}
+                  </Text>
+                </View>
+              </Pressable>
 
-              <View style={styles.gridContainer}>
-                {allScans.map((entry, index) => {
-                  const price = getScanPrice(entry);
-                  const badge = getScanBadge(entry);
-                  const isLarge = index === 0 || index === 3;
-                  return (
+              {recentScans.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitle}>Recent Scans</Text>
                     <Pressable
-                      key={entry.id}
-                      onPress={() => handleScanItemPress(entry)}
-                      style={({ pressed }) => [
-                        styles.gridItem,
-                        isLarge ? styles.gridItemLarge : styles.gridItemSmall,
-                        pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
-                      ]}
+                      onPress={() => {
+                        void Haptics.selectionAsync();
+                        router.push('/(tabs)/saved');
+                      }}
+                      hitSlop={8}
+                      style={({ pressed }) => [pressed && { opacity: 0.6 }]}
                     >
-                      <View style={[styles.gridImageWrap, isLarge ? styles.gridImageLarge : styles.gridImageSmall]}>
-                        {entry.imageUri ? (
-                          <Image
-                            source={{ uri: entry.imageUri }}
-                            style={StyleSheet.absoluteFill}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                          />
-                        ) : (
-                          <View style={styles.gridImagePlaceholder}>
-                            <Package size={28} color="#C7C7CC" strokeWidth={1.3} />
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.gridItemInfo}>
-                        <View style={styles.gridItemHeader}>
-                          <BrandLogoIcon entry={entry} size={28} />
-                          <Text style={styles.gridItemBrand} numberOfLines={1}>
-                            {getBrandFromEntry(entry)}
+                      <Text style={styles.seeAllText}>See All</Text>
+                    </Pressable>
+                  </View>
+
+                  {recentScans.map((entry) => {
+                    const price = getScanPrice(entry);
+                    return (
+                      <Pressable
+                        key={entry.id}
+                        onPress={() => handleScanItemPress(entry)}
+                        style={({ pressed }) => [
+                          styles.listCard,
+                          pressed && { opacity: 0.92, backgroundColor: '#F8F8FA' },
+                        ]}
+                      >
+                        <View style={styles.listImageWrap}>
+                          {entry.imageUri ? (
+                            <Image
+                              source={{ uri: entry.imageUri }}
+                              style={StyleSheet.absoluteFill}
+                              contentFit="cover"
+                              cachePolicy="memory-disk"
+                            />
+                          ) : (
+                            <View style={styles.listImagePlaceholder}>
+                              <Package size={18} color="#C7C7CC" strokeWidth={1.3} />
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.listInfo}>
+                          <Text style={styles.listItemName} numberOfLines={1}>
+                            {entry.result.item_name || 'Scanned Item'}
+                          </Text>
+                          <Text style={styles.listItemMeta} numberOfLines={1}>
+                            {getBrandFromEntry(entry)} · {formatTimeAgo(entry.scannedAt)}
                           </Text>
                         </View>
-                        <Text style={styles.gridItemName} numberOfLines={1}>
-                          {entry.result.item_name || 'Scanned Item'}
-                        </Text>
                         {price && (
-                          <Text style={styles.gridItemPrice}>{price}</Text>
+                          <Text style={styles.listItemPrice}>{price}</Text>
                         )}
-                        {badge && (
-                          <View style={[styles.gridBadgePill, { backgroundColor: badge.color + '15' }]}>
-                            <Text style={[styles.gridBadgeLabel, { color: badge.color }]}>{badge.label}</Text>
-                          </View>
-                        )}
+                        <ChevronRight size={16} color="#C7C7CC" strokeWidth={1.5} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+
+              {recentReceipts.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitle}>Recent Receipts</Text>
+                  </View>
+                  {recentReceipts.map((expense) => (
+                    <View key={expense.id} style={styles.receiptRow}>
+                      <View style={styles.receiptIconWrap}>
+                        <Clock size={14} color="#8E8E93" strokeWidth={1.5} />
                       </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+                      <View style={styles.receiptInfo}>
+                        <Text style={styles.receiptTitle} numberOfLines={1}>{expense.title}</Text>
+                        <Text style={styles.receiptMeta}>
+                          {new Date(expense.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </Text>
+                      </View>
+                      <Text style={styles.receiptAmount}>${expense.amount.toFixed(2)}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {scanEntries.length > 0 && (
+                <View style={styles.summaryStrip}>
+                  <Text style={styles.summaryText}>
+                    {scanEntries.length} item{scanEntries.length !== 1 ? 's' : ''} scanned
+                  </Text>
+                  {streakDays > 1 && (
+                    <Text style={styles.summaryText}>
+                      · {streakDays}-day streak
+                    </Text>
+                  )}
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.emptyState}>
-              <Scan size={32} color="#C7C7CC" strokeWidth={1.3} />
-              <Text style={styles.emptyTitle}>No scanned items yet</Text>
-              <Text style={styles.emptySubtext}>Tap the scan button to start scanning products</Text>
+              <View style={styles.emptyIconWrap}>
+                <Scan size={28} color="#16A34A" strokeWidth={1.5} />
+              </View>
+              <Text style={styles.emptyTitle}>Start scanning</Text>
+              <Text style={styles.emptySubtext}>
+                Tap the scan button below to identify products, compare prices, and track your finds
+              </Text>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.push('/smart-scan');
+                }}
+                style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+              >
+                <Scan size={16} color="#FFFFFF" strokeWidth={2} />
+                <Text style={styles.emptyBtnText}>Scan an Item</Text>
+              </Pressable>
             </View>
           )}
 
@@ -309,7 +422,7 @@ const styles = StyleSheet.create({
   headerArea: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E5EA',
   },
@@ -319,7 +432,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandTitle: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.8,
@@ -327,14 +440,14 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#FFF7ED',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FED7AA',
-    marginRight: 6,
+    marginRight: 4,
   },
   streakText: {
     fontSize: 12,
@@ -351,8 +464,82 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 16,
   },
+
+  featuredCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  featuredImageWrap: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#F2F2F7',
+  },
+  featuredImagePlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  featuredBadgeText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  featuredInfo: {
+    padding: 14,
+    gap: 4,
+  },
+  featuredTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2,
+  },
+  featuredBrand: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    flex: 1,
+  },
+  featuredName: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
+    lineHeight: 22,
+  },
+  featuredPrice: {
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  featuredTime: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+    marginTop: 2,
+  },
+
   section: {
     marginBottom: 20,
   },
@@ -361,127 +548,167 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
+    paddingHorizontal: 2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
+    fontSize: 16,
+    fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.2,
   },
   seeAllText: {
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: '500' as const,
     color: '#16A34A',
   },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  gridItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    overflow: 'hidden' as const,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  gridItemLarge: {
-    width: '100%' as unknown as number,
-    flexDirection: 'row' as const,
-  },
-  gridItemSmall: {
-    width: '47.5%' as unknown as number,
-    flexBasis: '47.5%' as unknown as number,
-    flexGrow: 1,
-  },
-  gridImageWrap: {
-    backgroundColor: '#F2F2F7',
-    overflow: 'hidden' as const,
-  },
-  gridImageLarge: {
-    width: 110,
-    height: 110,
-    borderTopLeftRadius: 14,
-    borderBottomLeftRadius: 14,
-  },
-  gridImageSmall: {
-    width: '100%' as unknown as number,
-    height: 120,
-  },
-  gridImagePlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    backgroundColor: '#F2F2F7',
-  },
-  gridItemInfo: {
-    flex: 1,
-    padding: 10,
-    gap: 3,
-  },
-  gridItemHeader: {
+
+  listCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 8,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  gridItemBrand: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
+  listImageWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#F2F2F7',
+    overflow: 'hidden',
+  },
+  listImagePlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listInfo: {
     flex: 1,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.4,
+    gap: 2,
   },
-  gridItemName: {
-    fontSize: 14,
+  listItemName: {
+    fontSize: 15,
     fontWeight: '600' as const,
     color: '#1C1C1E',
     letterSpacing: -0.1,
   },
-  gridItemPrice: {
+  listItemMeta: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+  },
+  listItemPrice: {
     fontSize: 15,
-    fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  gridBadgePill: {
-    alignSelf: 'flex-start' as const,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 2,
-  },
-  gridBadgeLabel: {
-    fontSize: 10,
     fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
   },
+
+  receiptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 6,
+    gap: 10,
+  },
+  receiptIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receiptInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  receiptTitle: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#1C1C1E',
+  },
+  receiptMeta: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+  },
+  receiptAmount: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+  },
+
+  summaryStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 4,
+  },
+  summaryText: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+  },
+
   emptyState: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 48,
-    paddingHorizontal: 20,
+    borderRadius: 16,
+    paddingVertical: 44,
+    paddingHorizontal: 28,
     alignItems: 'center',
-    gap: 8,
-    marginTop: 20,
+    gap: 10,
+    marginTop: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 1,
   },
+  emptyIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
+    fontSize: 20,
+    fontWeight: '700' as const,
     color: '#1C1C1E',
   },
   emptySubtext: {
     fontSize: 14,
     fontWeight: '400' as const,
     color: '#8E8E93',
-    textAlign: 'center' as const,
+    textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 260,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  emptyBtnText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });
