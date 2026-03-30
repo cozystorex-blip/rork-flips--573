@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
-import { X, Check, User, FileText, Camera, AtSign } from 'lucide-react-native';
+import { X, Check, User, FileText, Camera } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useProfile } from '@/contexts/ProfileContext';
@@ -50,7 +50,6 @@ export default function EditProfileScreen() {
   const { profile, saveProfile, userId } = useProfile();
 
   const [name, setName] = useState(profile?.display_name ?? '');
-  const [username, setUsername] = useState(profile?.username ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [avatar, setAvatar] = useState(profile?.avatar_url ?? AVATAR_PRESETS[0]);
   const [dominantStyle, setDominantStyle] = useState<CategoryType>(
@@ -148,20 +147,9 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      const trimmedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-      if (trimmedUsername && trimmedUsername.length < 3) {
-        Alert.alert('Username Too Short', 'Username must be at least 3 characters.');
-        return;
-      }
-      if (trimmedUsername && trimmedUsername.length > 20) {
-        Alert.alert('Username Too Long', 'Username must be 20 characters or less.');
-        return;
-      }
-
       console.log('[EditProfile] Saving profile for user:', userId);
       await saveProfile({
         display_name: trimmedName,
-        username: trimmedUsername,
         bio: bio.trim(),
         avatar_url: avatar || AVATAR_PRESETS[0],
         style_tag: dominantStyle,
@@ -182,7 +170,7 @@ export default function EditProfileScreen() {
     } finally {
       setSaving(false);
     }
-  }, [name, username, bio, avatar, dominantStyle, saveProfile, router, userId]);
+  }, [name, bio, avatar, dominantStyle, saveProfile, router, userId]);
 
   return (
     <View style={styles.container}>
@@ -287,24 +275,6 @@ export default function EditProfileScreen() {
                 onChangeText={setName}
                 maxLength={30}
                 testID="profile-name-input"
-              />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>USERNAME</Text>
-            <View style={styles.inputRow}>
-              <AtSign size={16} color={Colors.textTertiary} />
-              <TextInput
-                style={styles.input}
-                placeholder="username (3–20 chars, letters & numbers)"
-                placeholderTextColor={Colors.textTertiary}
-                value={username}
-                onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                maxLength={20}
-                autoCapitalize="none"
-                autoCorrect={false}
-                testID="profile-username-input"
               />
             </View>
           </View>

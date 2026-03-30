@@ -15,7 +15,7 @@ import {
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { Plus, BadgeCheck, User, ImageIcon, Layers, SquarePen, DoorOpen, Grid3X3, X, Tag, Heart, Share2, ChevronDown, UserPlus, UserCheck } from 'lucide-react-native';
+import { Plus, BadgeCheck, User, ImageIcon, Layers, SquarePen, DoorOpen, Grid3X3, X, Tag, Heart, Share2, ChevronDown } from 'lucide-react-native';
 import { BlockTagLeft, CategoryLabels, CategoryType, UserProfileBlock } from '@/types';
 import Colors, { CategoryColors } from '@/constants/colors';
 import CategoryIcon from '@/components/CategoryIcon';
@@ -29,7 +29,6 @@ import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
-import { useConnections } from '@/contexts/ConnectionsContext';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 import AdBlockTile from '@/components/ads/AdBlockTile';
 
@@ -390,7 +389,6 @@ export default function ProfileScreen() {
   const { totalCount: scanCount } = useScanHistory();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const connectionsCtx = useConnections();
   const [followedCount, setFollowedCount] = useState(0);
   const [previewPost, setPreviewPost] = useState<PreviewPost | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -726,38 +724,6 @@ export default function ProfileScreen() {
             {otherProfile.bio ? (
               <Text style={styles.bio}>{otherProfile.bio}</Text>
             ) : null}
-
-            {(() => {
-              const isFollowingThem = connectionsCtx.isFollowing(profileUserId);
-              return (
-                <Pressable
-                  style={({ pressed }) => [
-                    isFollowingThem ? styles.followingBtn : styles.followBtn,
-                    pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-                  ]}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    if (isFollowingThem) {
-                      connectionsCtx.unfollowUser(profileUserId);
-                    } else {
-                      connectionsCtx.followUser({
-                        user_id: profileUserId,
-                        display_name: otherProfile.display_name,
-                        username: '',
-                        avatar_url: otherProfile.avatar_url,
-                        bio: otherProfile.bio,
-                      });
-                    }
-                  }}
-                >
-                  {isFollowingThem ? (
-                    <><UserCheck size={14} color="#1C1C1E" /><Text style={styles.followingBtnText}>Following</Text></>
-                  ) : (
-                    <><UserPlus size={14} color="#FFFFFF" /><Text style={styles.followBtnText}>Follow</Text></>
-                  )}
-                </Pressable>
-              );
-            })()}
           </Animated.View>
 
           <Animated.View style={[styles.statsContainer, { opacity: fadeAnim }]}>
@@ -770,12 +736,7 @@ export default function ProfileScreen() {
 
               <View style={styles.statBlock}>
                 <Text style={styles.statBlockValue}>0</Text>
-                <Text style={styles.statBlockLabel}>Followers</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statBlock}>
-                <Text style={styles.statBlockValue}>0</Text>
-                <Text style={styles.statBlockLabel}>Following</Text>
+                <Text style={styles.statBlockLabel}>Saved</Text>
               </View>
             </View>
           </Animated.View>
@@ -1450,37 +1411,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#FF3B30',
-  },
-  followBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 28,
-    paddingVertical: 10,
-    borderRadius: 22,
-    backgroundColor: '#1C1C1E',
-    marginTop: 12,
-  },
-  followBtnText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
-  followingBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 28,
-    paddingVertical: 10,
-    borderRadius: 22,
-    backgroundColor: '#F2F2F7',
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E5',
-  },
-  followingBtnText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
   },
 });
