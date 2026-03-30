@@ -1,14 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
 
 export default function ScanPlaceholder() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/smart-scan');
-  }, [router]);
-
   return <View style={styles.root} />;
 }
 
