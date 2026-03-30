@@ -6,7 +6,6 @@ import {
   Pressable,
   Alert,
   Animated,
-  TextInput,
   Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -15,12 +14,8 @@ import { Image } from 'expo-image';
 import {
   LogOut,
   Camera,
-  Pencil,
-  Check,
-  X,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { Video, ResizeMode } from 'expo-av';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import {
@@ -36,8 +31,6 @@ export default function ProfileScreen() {
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -126,46 +119,71 @@ export default function ProfileScreen() {
     }
   }, [saveProfile, userId]);
 
-  const handleStartEditName = useCallback(() => {
+  const handleTapName = useCallback(() => {
     void Haptics.selectionAsync();
-    setEditedName(displayName);
-    setIsEditingName(true);
-  }, [displayName]);
 
-  const handleCancelEditName = useCallback(() => {
-    void Haptics.selectionAsync();
-    setIsEditingName(false);
-    setEditedName('');
-  }, []);
-
-  const handleSaveName = useCallback(async () => {
-    const trimmed = editedName.trim();
-    if (!trimmed) {
-      Alert.alert('Name Required', 'Please enter a display name.');
+    if (Platform.OS === 'web') {
+      const newName = window.prompt('Enter your display name', displayName);
+      if (newName !== null) {
+        const trimmed = newName.trim();
+        if (!trimmed || trimmed.length < 2) {
+          Alert.alert('Invalid Name', 'Display name must be at least 2 characters.');
+          return;
+        }
+        if (trimmed.length > 30) {
+          Alert.alert('Name Too Long', 'Display name must be 30 characters or less.');
+          return;
+        }
+        setSavingName(true);
+        saveProfile({ display_name: trimmed })
+          .then(() => {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            console.log('[Profile] Name updated to:', trimmed);
+          })
+          .catch((e: unknown) => {
+            const msg = e instanceof Error ? e.message : 'Failed to save name';
+            Alert.alert('Save Failed', msg);
+          })
+          .finally(() => setSavingName(false));
+      }
       return;
     }
-    if (trimmed.length < 2) {
-      Alert.alert('Name Too Short', 'Display name must be at least 2 characters.');
-      return;
-    }
-    if (trimmed.length > 30) {
-      Alert.alert('Name Too Long', 'Display name must be 30 characters or less.');
-      return;
-    }
 
-    setSavingName(true);
-    try {
-      await saveProfile({ display_name: trimmed });
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      console.log('[Profile] Name updated to:', trimmed);
-      setIsEditingName(false);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to save name';
-      Alert.alert('Save Failed', msg);
-    } finally {
-      setSavingName(false);
-    }
-  }, [editedName, saveProfile]);
+    Alert.prompt(
+      'Change Name',
+      'Enter your display name',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Save',
+          onPress: (value?: string) => {
+            const trimmed = (value ?? '').trim();
+            if (!trimmed || trimmed.length < 2) {
+              Alert.alert('Invalid Name', 'Display name must be at least 2 characters.');
+              return;
+            }
+            if (trimmed.length > 30) {
+              Alert.alert('Name Too Long', 'Display name must be 30 characters or less.');
+              return;
+            }
+            setSavingName(true);
+            saveProfile({ display_name: trimmed })
+              .then(() => {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                console.log('[Profile] Name updated to:', trimmed);
+              })
+              .catch((e: unknown) => {
+                const msg = e instanceof Error ? e.message : 'Failed to save name';
+                Alert.alert('Save Failed', msg);
+              })
+              .finally(() => setSavingName(false));
+          },
+        },
+      ],
+      'plain-text',
+      displayName
+    );
+  }, [displayName, saveProfile]);
 
   const handleSignOut = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -217,67 +235,25 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {isEditingName ? (
-            <View style={styles.nameEditRow}>
-              <TextInput
-                style={styles.nameInput}
-                value={editedName}
-                onChangeText={setEditedName}
-                maxLength={30}
-                autoFocus
-                selectTextOnFocus
-                placeholder="Your name"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                testID="profile-name-edit-input"
-              />
-              <Pressable
-                style={styles.nameActionBtn}
-                onPress={handleCancelEditName}
-                disabled={savingName}
-              >
-                <X size={18} color="rgba(255,255,255,0.7)" />
-              </Pressable>
-              <Pressable
-                style={[styles.nameActionBtn, styles.nameSaveBtn]}
-                onPress={() => { void handleSaveName(); }}
-                disabled={savingName}
-              >
-                {savingName ? (
-                  <ActivityIndicator size="small" color="#16A34A" />
-                ) : (
-                  <Check size={18} color="#16A34A" />
-                )}
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable onPress={handleStartEditName} style={styles.nameRow}>
+          <Pressable
+            onPress={handleTapName}
+            disabled={savingName}
+            style={({ pressed }) => [styles.nameRow, pressed && { opacity: 0.7 }]}
+            testID="profile-name-tap"
+          >
+            {savingName ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
               <Text style={styles.nameText}>{displayName}</Text>
-              <View style={styles.editNameIcon}>
-                <Pencil size={13} color="rgba(255,255,255,0.6)" />
-              </View>
-            </Pressable>
-          )}
+            )}
+          </Pressable>
           <Text style={styles.memberText}>Member since {memberSince}</Text>
           {user?.email && (
             <Text style={styles.emailText}>{user.email}</Text>
           )}
         </View>
 
-        <View style={styles.mediaRow}>
-          <View style={styles.videoCard}>
-            <Video
-              source={{ uri: 'https://assets.mixkit.co/videos/607/607-720.mp4' }}
-              style={styles.video}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay
-              isLooping
-              isMuted
-            />
-            <View style={styles.videoOverlay}>
-              <Text style={styles.videoLabel}>Featured</Text>
-            </View>
-          </View>
-        </View>
+
 
         <View style={styles.spacer} />
 
@@ -383,44 +359,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.4,
   },
-  editNameIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  nameEditRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
-  },
-  nameInput: {
-    flex: 1,
-    fontSize: 22,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  nameActionBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nameSaveBtn: {
-    backgroundColor: '#FFFFFF',
-  },
+
   memberText: {
     fontSize: 14,
     fontWeight: '500' as const,
