@@ -15,7 +15,6 @@ import {
   Package,
   Heart,
   Camera,
-
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -51,6 +50,15 @@ function getDetailsRecord(r: SmartScanResult): Record<string, unknown> | null {
   if (r.household_details) return r.household_details as unknown as Record<string, unknown>;
   if (r.furniture_details) return r.furniture_details as unknown as Record<string, unknown>;
   return null;
+}
+
+function getBrandFromResult(r: SmartScanResult): string {
+  const details = getDetailsRecord(r);
+  if (details) {
+    if (details.brand && typeof details.brand === 'string') return details.brand;
+    if (details.manufacturer && typeof details.manufacturer === 'string') return details.manufacturer;
+  }
+  return r.category || r.item_type || 'Item';
 }
 
 function getScanPrice(entry: ScanHistoryEntry): string | null {
@@ -238,6 +246,16 @@ export default function SavedScreen() {
                     )}
                   </View>
                   <View style={styles.gridCardBody}>
+                    {item.type === 'scan' && (
+                      <Text style={styles.gridCardBrand} numberOfLines={1}>
+                        {getBrandFromResult((item.raw as ScanHistoryEntry).result)}
+                      </Text>
+                    )}
+                    {item.type === 'deal' && (
+                      <Text style={styles.gridCardBrand} numberOfLines={1}>
+                        {item.source}
+                      </Text>
+                    )}
                     <Text style={styles.gridCardTitle} numberOfLines={2}>{item.title}</Text>
                     {item.price && (
                       <Text style={styles.gridCardPrice}>{item.price}</Text>
@@ -378,8 +396,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F7',
   },
   gridCardBody: {
-    padding: 12,
+    padding: 10,
     gap: 3,
+  },
+  gridCardBrand: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.4,
   },
   gridCardTitle: {
     fontSize: 14,
