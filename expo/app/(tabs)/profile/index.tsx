@@ -10,7 +10,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
-  Settings,
   LogOut,
   Camera,
 } from 'lucide-react-native';
@@ -91,13 +90,6 @@ export default function ProfileScreen() {
       <View style={[styles.greenFull, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 }]}>
         <View style={styles.topBar}>
           <Text style={styles.topBarTitle}>Profile</Text>
-          <Pressable
-            style={styles.settingsBtn}
-            hitSlop={8}
-            onPress={() => { void Haptics.selectionAsync(); }}
-          >
-            <Settings size={20} color="#FFFFFF" strokeWidth={1.5} />
-          </Pressable>
         </View>
 
         <View style={styles.profileSection}>
@@ -187,14 +179,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.2,
   },
-  settingsBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
