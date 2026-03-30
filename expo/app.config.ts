@@ -2,9 +2,9 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Item Scanner",
+  name: "Flip",
   slug: "grocery-tracker-map-clone-cl-v42ss0s",
-  version: "1.2.10",
+  version: "1.10.2",
   sdkVersion: "54.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: false,
-    buildNumber: "9",
+    buildNumber: "10",
     bundleIdentifier: "app.rork.grocery-tracker-map-clone-cl-v42ss0s",
     infoPlist: {
       NSCameraUsageDescription:
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    versionCode: 9,
+    versionCode: 10,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
