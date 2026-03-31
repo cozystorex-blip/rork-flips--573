@@ -1147,6 +1147,51 @@ function fixItemType(classification: z.infer<typeof classificationSchema>): z.in
     }
   }
 
+  if (fixed.item_type === 'general') {
+    const generalFoodCount = countSignals(FOOD_SIGNALS);
+    const generalFashionCount = countSignals(FASHION_SIGNALS);
+    const generalElectronicsCount = countSignals(ELECTRONICS_SIGNALS);
+    const generalFitnessCount = countSignals(FITNESS_SIGNALS);
+    const generalFurnitureCount = countSignals(FURNITURE_SIGNALS);
+    const generalHouseholdCount = countSignals(HOUSEHOLD_GENERAL_SIGNALS);
+    const generalBeautyCount = countSignals(BEAUTY_SIGNALS);
+
+    const bestCount = Math.max(generalFoodCount, generalFashionCount, generalElectronicsCount, generalFitnessCount, generalFurnitureCount, generalHouseholdCount, generalBeautyCount);
+    if (bestCount >= 1) {
+      if (generalFashionCount === bestCount) {
+        console.log('[SmartScan] Upgrading general -> fashion (' + generalFashionCount + ' signals)');
+        fixed.item_type = 'fashion';
+        fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.75);
+        return fixed;
+      }
+      if (generalElectronicsCount === bestCount) {
+        console.log('[SmartScan] Upgrading general -> electronics (' + generalElectronicsCount + ' signals)');
+        fixed.item_type = 'electronics';
+        fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.75);
+        return fixed;
+      }
+      if (generalFoodCount === bestCount) {
+        const hasPackaging = combined.includes('package') || combined.includes('box') || combined.includes('can') || combined.includes('bottle') || combined.includes('jar') || combined.includes('barcode') || combined.includes('nutrition');
+        console.log('[SmartScan] Upgrading general -> ' + (hasPackaging ? 'grocery' : 'food') + ' (' + generalFoodCount + ' signals)');
+        fixed.item_type = hasPackaging ? 'grocery' : 'food';
+        fixed.confidence = Math.min(Math.max(fixed.confidence, 0.50), 0.70);
+        return fixed;
+      }
+      if (generalFurnitureCount === bestCount) {
+        console.log('[SmartScan] Upgrading general -> furniture (' + generalFurnitureCount + ' signals)');
+        fixed.item_type = 'furniture';
+        fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.75);
+        return fixed;
+      }
+      if (generalFitnessCount === bestCount || generalBeautyCount === bestCount || generalHouseholdCount === bestCount) {
+        console.log('[SmartScan] Upgrading general -> household (' + Math.max(generalFitnessCount, generalBeautyCount, generalHouseholdCount) + ' signals)');
+        fixed.item_type = 'household';
+        fixed.confidence = Math.min(Math.max(fixed.confidence, 0.55), 0.75);
+        return fixed;
+      }
+    }
+  }
+
   return fixed;
 }
 
@@ -1773,6 +1818,78 @@ function applyIkeaBrandDetection(classification: z.infer<typeof classificationSc
   return fixed;
 }
 
+const SCAN_MODE_TO_TYPE: Record<string, SmartScanItemType> = {
+  food_scan: 'food',
+  fashion_scan: 'fashion',
+  electronics_scan: 'electronics',
+  household_scan: 'household',
+  assembled: 'furniture',
+};
+
+const SCAN_MODE_COMPATIBLE_TYPES: Record<string, SmartScanItemType[]> = {
+  food_scan: ['food', 'grocery'],
+  fashion_scan: ['fashion'],
+  electronics_scan: ['electronics'],
+  household_scan: ['household'],
+  assembled: ['furniture'],
+  general_scan: ['food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general', 'receipt', 'document', 'unknown'],
+  product_tag: ['receipt', 'food', 'grocery', 'household', 'furniture', 'fashion', 'electronics', 'general'],
+};
+
+function applyScanModeEnforcement(
+  classification: z.infer<typeof classificationSchema>,
+  scanMode: IkeaScanMode
+): z.infer<typeof classificationSchema> {
+  if (!scanMode || scanMode === 'general_scan' || scanMode === 'product_tag') return classification;
+  if (classification.item_type === 'receipt' || classification.item_type === 'document') return classification;
+
+  const compatible = SCAN_MODE_COMPATIBLE_TYPES[scanMode] ?? [];
+  if (compatible.includes(classification.item_type)) {
+    console.log('[SmartScan] Scan mode', scanMode, 'compatible with classified type', classification.item_type);
+    return classification;
+  }
+
+  const targetType = SCAN_MODE_TO_TYPE[scanMode];
+  if (!targetType) return classification;
+
+  const combined = (
+    (classification.item_name ?? '') + ' ' +
+    (classification.category ?? '') + ' ' +
+    (classification.visual_cues ?? []).join(' ') + ' ' +
+    (classification.image_description ?? '')
+  ).toLowerCase();
+
+  const strongCounterSignals: Record<string, RegExp> = {
+    food: /\b(shoe|sneaker|laptop|phone|headphone|chair|desk|table|sofa|couch|bed|shelf|cabinet|shirt|pants|jacket|dress|bag|watch|bracelet|necklace|earring|sunglasses|hat|belt|wallet|purse|backpack|monitor|keyboard|speaker|charger|controller|console|camera|drone)\b/,
+    fashion: /\b(pasta|rice|cereal|bread|chips|cookie|milk|juice|soda|pizza|burger|taco|steak|chicken|sushi|apple|banana|chair|desk|table|sofa|couch|bed|shelf|laptop|phone|headphone|speaker|monitor|keyboard|blender|toaster|vacuum|pan|pot|skillet|knife|sponge|detergent)\b/,
+    electronics: /\b(shoe|sneaker|shirt|pants|dress|jacket|bag|hat|chair|desk|table|sofa|bed|shelf|pasta|rice|bread|chips|pizza|burger|apple|banana|pan|pot|knife|sponge|candle|vase|pillow|rug|curtain)\b/,
+    household: /\b(shoe|sneaker|shirt|pants|dress|jacket|laptop|phone|headphone|speaker|chair|desk|table|sofa|couch|bed|shelf|pasta|rice|bread|pizza|burger|steak|sushi)\b/,
+    furniture: /\b(shoe|sneaker|shirt|pants|dress|jacket|laptop|phone|headphone|speaker|pasta|rice|bread|pizza|pan|pot|knife|sponge|candle|moisturizer|shampoo)\b/,
+  };
+
+  const counterSignal = strongCounterSignals[targetType];
+  if (counterSignal && counterSignal.test(combined)) {
+    console.log('[SmartScan] Scan mode', scanMode, 'overridden — strong counter-signals in content for target', targetType);
+    return classification;
+  }
+
+  console.log('[SmartScan] ENFORCING scan mode:', scanMode, '| Overriding', classification.item_type, '->', targetType, '(was:', classification.item_name, ')');
+  const fixed = { ...classification };
+  fixed.item_type = targetType;
+
+  const categoryMap: Record<string, string> = {
+    food: 'Food',
+    grocery: 'Grocery',
+    fashion: 'Fashion',
+    electronics: 'Electronics',
+    household: 'Household',
+    furniture: 'Furniture',
+  };
+  fixed.category = categoryMap[targetType] ?? fixed.category;
+  fixed.confidence = Math.max(Math.min(fixed.confidence, 0.75), 0.55);
+  return fixed;
+}
+
 export async function runSmartScan(imageUri: string, scanMode?: IkeaScanMode): Promise<SmartScanResult> {
   console.log('[SmartScan] Starting scan for:', imageUri.substring(0, 60), 'mode:', scanMode ?? 'auto');
 
@@ -1833,6 +1950,7 @@ export async function runSmartScan(imageUri: string, scanMode?: IkeaScanMode): P
   classification = applyIkeaBrandDetection(classification, scanMode ?? null);
   classification = fixItemType(classification);
   classification = crossValidateClassification(classification);
+  classification = applyScanModeEnforcement(classification, scanMode ?? null);
 
   if (classification.confidence < 0.25) {
     classification.confidence = 0.25;
@@ -1843,29 +1961,44 @@ export async function runSmartScan(imageUri: string, scanMode?: IkeaScanMode): P
 
   const fullPrompt = `${detailPrompt}
 
-The item has been identified as: ${classification.item_name} (${classification.category}).${scanMode ? `\nScan mode hint: User selected "${scanMode.replace(/_/g, ' ')}" mode — use this context for better accuracy.` : ''}
-Visual description: ${classification.image_description || 'N/A'}.
-Visual cues observed: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
-item_type MUST be "${classification.item_type}". Do NOT change it. is_receipt must be false.
-confidence should be ${classification.confidence.toFixed(2)}.
-Keep item_name EXACTLY as "${classification.item_name}" — do NOT rename or replace the item.
-CRITICAL: ONLY populate the ${classification.item_type}_details field. ALL other detail fields (*_details) MUST be null.
-Be ACCURATE: real prices for recognized products, realistic ranges for unrecognized ones. Do not hallucinate brand names, model numbers, or prices.
-CONSISTENCY: For the same item scanned multiple times, return essentially the same details. Be deterministic.
-FORMATTING: Prices must start with $. Tags must be lowercase. Arrays ordered by relevance. Use null instead of "n/a" or "none".
+IMPORTANT: You MUST re-examine the image carefully. Do NOT rely solely on the pre-classification text below — use it as a starting hint but VERIFY everything against what you actually see in the photo.
+
+Pre-classification result: ${classification.item_name} (${classification.category}).${scanMode ? `\nUser selected scan mode: "${scanMode.replace(/_/g, ' ')}" — this strongly suggests the item is in this category.` : ''}
+Visual description from step 1: ${classification.image_description || 'N/A'}.
+Visual cues from step 1: ${(classification.visual_cues ?? []).join(', ') || 'none'}.
+
+RULES:
+- item_type MUST be "${classification.item_type}". Do NOT change it. is_receipt must be false.
+- confidence should be ${classification.confidence.toFixed(2)}.
+- Keep item_name as "${classification.item_name}" unless you can clearly see it should be more specific (e.g. you can now read a brand label). Never make it MORE generic.
+- ONLY populate the ${classification.item_type}_details field. ALL other detail fields (*_details) MUST be null.
+- LOOK AT THE IMAGE AGAIN: verify colors, materials, brand markings, condition, and size against what is actually visible.
+- Be ACCURATE: real prices for recognized products, realistic ranges for unrecognized ones. Do not hallucinate brand names, model numbers, or prices.
+- CONSISTENCY: For the same item scanned multiple times, return essentially the same details. Be deterministic.
+- FORMATTING: Prices must start with $. Tags must be lowercase. Arrays ordered by relevance. Use null instead of "n/a" or "none".
 
 ACCURACY OVER COMPLETENESS — TRUST IS THE #1 PRIORITY:
 You are a product expert. The user needs ACCURATE, TRUSTWORTHY information — not filler.
 
-RULES:
+IMAGE RE-EXAMINATION (CRITICAL):
+Before filling ANY field, LOOK AT THE IMAGE AGAIN and answer these questions:
+1. What EXACT object do I see? Describe its shape, size, color, texture.
+2. Can I read ANY text, labels, logos, or brand markings?
+3. What material is this made of based on visual texture?
+4. What condition is it in based on visible wear/damage?
+5. What color is the DOMINANT visible surface?
+Use ONLY these observations to fill the detail fields below.
+
+FIELD RULES:
 - Fill fields ONLY when you have genuine knowledge or strong visual evidence.
 - It is MUCH better to return null for a field than to fabricate a value.
 - brand: ONLY if visible on the item or you can confidently identify from distinctive design features. Use "Likely [Brand]" only if you have strong visual evidence. Otherwise null.
+- color: ALWAYS describe the actual dominant color you see in the image. Never guess.
+- material: State ONLY what you can visually determine (e.g. "leather" if you see leather texture, "mesh" if you see mesh). null if not determinable.
+- condition: ONLY assess based on visible wear signs. null if you can't tell.
 - estimated_retail_price / estimated_price: Provide ranges when uncertain. Only give specific prices for products you recognize.
 - estimated_resale_value: Only provide for items with real secondhand markets AND when you can make a reasonable estimate. null is fine.
 - comparable_model / comparable_item: Only name REAL products you know exist. null is better than a made-up comparable.
-- condition: Only assess if you can see enough of the item. null if uncertain.
-- material: Only state if visually determinable. null if not.
 - value_verdict / value_rating: Only rate when you have enough data. null otherwise.
 - tags: Provide 6-10 relevant tags based on what you actually see.
 - complementary_items: Suggest 3-6 items that genuinely pair with this.
