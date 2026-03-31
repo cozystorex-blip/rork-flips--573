@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   Animated,
-  Pressable,
+  Platform,
+  Linking,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable, showInterstitialIfReady } from '@/services/adService';
+import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable } from '@/services/adService';
 import { usePremium } from '@/contexts/PremiumContext';
 
 let BannerAd: any = null;
@@ -18,6 +18,48 @@ try {
   BannerAdSize = mod.BannerAdSize ?? {};
 } catch (e) {
   console.warn('[AdMobBanner] react-native-google-mobile-ads not available:', e);
+}
+
+let WebView: any = null;
+try {
+  WebView = require('react-native-webview').default;
+} catch {
+  console.warn('[AdMobBanner] react-native-webview not available');
+}
+
+const AD_CLIENT = 'ca-pub-3643873601626975';
+const IOS_AD_SLOT = '1979589861';
+const ANDROID_AD_SLOT = '9727556676';
+
+function getAdSlot(): string {
+  if (Platform.OS === 'ios') return IOS_AD_SLOT;
+  return ANDROID_AD_SLOT;
+}
+
+function buildAdHtml(): string {
+  const slot = getAdSlot();
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #F2F2F7; }
+    .ad-wrap { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: 4px 0; }
+    ins.adsbygoogle { display: block; width: 320px; height: 50px; }
+  </style>
+</head>
+<body>
+  <div class="ad-wrap">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CLIENT}" crossorigin="anonymous"></script>
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:320px;height:50px"
+         data-ad-client="${AD_CLIENT}"
+         data-ad-slot="${slot}"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+</body>
+</html>`;
 }
 
 const MAX_RETRY_ATTEMPTS = 3;
@@ -35,13 +77,18 @@ export default function AdMobBanner() {
 
   useEffect(() => {
     mountedRef.current = true;
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
     return () => {
       mountedRef.current = false;
       if (retryTimerRef.current) {
         clearTimeout(retryTimerRef.current);
       }
     };
-  }, []);
+  }, [fadeAnim]);
 
   useEffect(() => {
     if (!isAdModuleAvailable() || !BannerAd) return;
@@ -58,16 +105,6 @@ export default function AdMobBanner() {
     return unsub;
   }, []);
 
-  useEffect(() => {
-    if (adReady || !isAdModuleAvailable() || !BannerAd) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [adReady, fadeAnim]);
-
   const handleAdLoaded = useCallback(() => {
     console.log('[AdMobBanner] Banner ad loaded successfully');
     if (mountedRef.current) {
@@ -80,9 +117,7 @@ export default function AdMobBanner() {
   const handleAdFailed = useCallback((error: Error) => {
     console.log('[AdMobBanner] Banner ad failed:', error.message);
     if (!mountedRef.current) return;
-
     setAdReady(false);
-
     setRetryCount((prev) => {
       const next = prev + 1;
       if (next < MAX_RETRY_ATTEMPTS) {
@@ -94,78 +129,108 @@ export default function AdMobBanner() {
           }
         }, RETRY_DELAY_MS);
       } else {
-        console.log('[AdMobBanner] Max retries reached, hiding banner');
+        console.log('[AdMobBanner] Max retries reached');
       }
       return next;
     });
-
     setAdError(true);
   }, []);
 
   if (isPremium) return null;
 
-  const handleAdPress = useCallback(async () => {
-    console.log('[AdMobBanner] Ad placeholder tapped, showing interstitial');
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const shown = await showInterstitialIfReady();
-    if (!shown) {
-      console.log('[AdMobBanner] Interstitial not ready yet');
-    }
-  }, []);
+  const useNativeSDK = isAdModuleAvailable() && BannerAd;
 
-  if (!isAdModuleAvailable() || !BannerAd) {
+  if (useNativeSDK) {
+    if (!sdkReady) return null;
+    if (adError && retryCount >= MAX_RETRY_ATTEMPTS) return null;
+    if (adError) return null;
+
+    const unitId = getBannerUnitId();
+    console.log('[AdMobBanner] Rendering native banner with unit ID:', unitId);
+
     return (
-      <Animated.View
-        style={[styles.wrapper, { opacity: fadeAnim }]}
-        testID="ad-banner-placeholder"
-      >
-        <Pressable
-          style={({ pressed }) => [styles.container, pressed && { opacity: 0.85 }]}
-          onPress={handleAdPress}
-          accessibilityRole="button"
-          accessibilityLabel="Advertisement - tap to view"
-        >
-          <View style={styles.placeholderInner}>
-            <Text style={styles.placeholderText}>Sponsored</Text>
-            <Text style={styles.placeholderSubtext}>Tap to view ad</Text>
-          </View>
-          <View style={styles.adLabel}>
-            <Text style={styles.adLabelText}>Ad</Text>
-          </View>
-        </Pressable>
+      <Animated.View style={[styles.wrapper, { opacity: fadeAnim }]}>
+        <View style={styles.container} pointerEvents="box-none">
+          <BannerAd
+            unitId={unitId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+            onAdLoaded={handleAdLoaded}
+            onAdFailedToLoad={handleAdFailed}
+          />
+          {adReady && (
+            <View style={styles.adLabel} pointerEvents="none">
+              <Text style={styles.adLabelText}>Ad</Text>
+            </View>
+          )}
+        </View>
       </Animated.View>
     );
   }
 
-  if (!sdkReady) return null;
-  if (adError && retryCount >= MAX_RETRY_ATTEMPTS) return null;
-  if (adError) return null;
-
-  const unitId = getBannerUnitId();
-  console.log('[AdMobBanner] Rendering banner with unit ID:', unitId);
-
-  return (
-    <Animated.View
-      style={[
-        styles.wrapper,
-        { opacity: fadeAnim },
-      ]}
-    >
-      <View style={styles.container} pointerEvents="box-none">
-        <BannerAd
-          unitId={unitId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-          onAdLoaded={handleAdLoaded}
-          onAdFailedToLoad={handleAdFailed}
-        />
-        {adReady && (
+  if (WebView) {
+    return (
+      <Animated.View
+        style={[styles.wrapper, { opacity: fadeAnim }]}
+        testID="ad-banner-webview"
+      >
+        <View style={styles.container}>
+          <View style={styles.webviewWrap}>
+            <WebView
+              source={{ html: buildAdHtml() }}
+              style={styles.webview}
+              scrollEnabled={false}
+              bounces={false}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              allowsInlineMediaPlayback={true}
+              mixedContentMode="always"
+              originWhitelist={['*']}
+              setSupportMultipleWindows={false}
+              onShouldStartLoadWithRequest={(request: { url: string }) => {
+                const url = request.url;
+                if (
+                  url === 'about:blank' ||
+                  url.includes('pagead2.googlesyndication.com') ||
+                  url.includes('googleads') ||
+                  url.includes('doubleclick.net') ||
+                  url.includes('google.com/aclk') ||
+                  url.includes('tpc.googlesyndication.com') ||
+                  url.startsWith('data:')
+                ) {
+                  return true;
+                }
+                if (url.startsWith('http')) {
+                  console.log('[AdMobBanner] Ad clicked, opening externally:', url);
+                  void Linking.openURL(url);
+                  return false;
+                }
+                return true;
+              }}
+              onError={(e: any) => console.warn('[AdMobBanner] WebView error:', e.nativeEvent?.description)}
+              onLoadEnd={() => console.log('[AdMobBanner] WebView ad loaded')}
+            />
+          </View>
           <View style={styles.adLabel} pointerEvents="none">
             <Text style={styles.adLabelText}>Ad</Text>
           </View>
-        )}
+        </View>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View
+      style={[styles.wrapper, { opacity: fadeAnim }]}
+      testID="ad-banner-placeholder"
+    >
+      <View style={styles.container}>
+        <View style={styles.placeholderInner}>
+          <Text style={styles.placeholderText}>Sponsored</Text>
+        </View>
+        <View style={styles.adLabel}>
+          <Text style={styles.adLabelText}>Ad</Text>
+        </View>
       </View>
     </Animated.View>
   );
@@ -179,9 +244,22 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#F2F2F7',
     width: '100%',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  webviewWrap: {
+    width: '100%',
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webview: {
+    width: 320,
+    height: 50,
+    backgroundColor: 'transparent',
   },
   placeholderInner: {
     paddingVertical: 16,
@@ -195,17 +273,11 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     letterSpacing: 0.3,
   },
-  placeholderSubtext: {
-    fontSize: 11,
-    fontWeight: '400' as const,
-    color: '#636366',
-    marginTop: 2,
-  },
   adLabel: {
     position: 'absolute' as const,
     top: 4,
     left: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.04)',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 4,
