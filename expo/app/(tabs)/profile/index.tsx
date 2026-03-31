@@ -18,11 +18,19 @@ import {
   Camera,
   Wifi,
   WifiOff,
+  Scan,
+  Bookmark,
+  Clock,
+  Eye,
+  ShoppingBag,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { useOnlinePeople, OnlineUser } from '@/contexts/OnlinePeopleContext';
+import { useOnlinePeople, OnlineUser, UserActivity } from '@/contexts/OnlinePeopleContext';
+import { useScanHistory } from '@/contexts/ScanHistoryContext';
+import { useSavedItems } from '@/contexts/SavedItemsContext';
+import SyncBadge from '@/components/SyncBadge';
 
 import {
   pickAndCropAvatar,
@@ -32,22 +40,36 @@ import {
   openAppSettings,
 } from '@/services/uploadService';
 
+const ACTIVITY_LABELS: Record<UserActivity, string> = {
+  scanning: 'Scanning items',
+  browsing: 'Browsing',
+  saving: 'Saving deals',
+  idle: 'Idle',
+};
+
+const ACTIVITY_COLORS: Record<UserActivity, string> = {
+  scanning: '#16A34A',
+  browsing: '#007AFF',
+  saving: '#FF9500',
+  idle: '#AEAEB2',
+};
+
 function OnlineUserCard({ user, index }: { user: OnlineUser; index: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 350,
-        delay: index * 80,
+        duration: 300,
+        delay: index * 60,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 350,
-        delay: index * 80,
+        duration: 300,
+        delay: index * 60,
         useNativeDriver: true,
       }),
     ]).start();
@@ -69,8 +91,20 @@ function OnlineUserCard({ user, index }: { user: OnlineUser; index: number }) {
       </View>
       <View style={styles.userInfo}>
         <Text style={styles.userName} numberOfLines={1}>{user.name}</Text>
-        <Text style={styles.userJoined}>Joined {timeSinceJoin}</Text>
+        <View style={styles.userActivityRow}>
+          <View style={[styles.activityDot, { backgroundColor: ACTIVITY_COLORS[user.activity] }]} />
+          <Text style={[styles.userActivity, { color: ACTIVITY_COLORS[user.activity] }]}>
+            {ACTIVITY_LABELS[user.activity]}
+          </Text>
+          <Text style={styles.userJoined}> · {timeSinceJoin}</Text>
+        </View>
       </View>
+      {user.scanCount > 0 && (
+        <View style={styles.userScanBadge}>
+          <Scan size={10} color="#8E8E93" strokeWidth={2} />
+          <Text style={styles.userScanCount}>{user.scanCount}</Text>
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -81,7 +115,9 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
-  const { goOnline, goOffline, isUserOnline, onlineUsers } = useOnlinePeople();
+  const { goOnline, goOffline, isUserOnline, onlineUsers, activeCount } = useOnlinePeople();
+  const { entries: scanEntries } = useScanHistory();
+  const { savedDeals } = useSavedItems();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
@@ -89,6 +125,7 @@ export default function ProfileScreen() {
   const [goingOnline, setGoingOnline] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const onlineListFade = useRef(new Animated.Value(0)).current;
+  const onlineDotPulse = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -105,6 +142,21 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, [isUserOnline, onlineListFade]);
+
+  useEffect(() => {
+    if (!isUserOnline) {
+      onlineDotPulse.setValue(0.4);
+      return;
+    }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(onlineDotPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(onlineDotPulse, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [isUserOnline, onlineDotPulse]);
 
   const handleGoOnline = useCallback(async () => {
     if (goingOnline) return;
@@ -146,6 +198,9 @@ export default function ProfileScreen() {
   const displayName = profile?.display_name && profile.display_name !== 'User'
     ? profile.display_name
     : user?.email?.split('@')[0] || 'Flip User';
+
+  const totalScans = scanEntries.length;
+  const totalSaved = savedDeals.length;
 
   const handlePickImage = useCallback(async () => {
     void Haptics.selectionAsync();
@@ -315,6 +370,9 @@ export default function ProfileScreen() {
               >
                 <Camera size={14} color="#16A34A" strokeWidth={2} />
               </Pressable>
+              {isUserOnline && (
+                <Animated.View style={[styles.onlineRing, { opacity: onlineDotPulse }]} />
+              )}
             </View>
 
             <Pressable
@@ -329,10 +387,44 @@ export default function ProfileScreen() {
                 <Text style={styles.nameText}>{displayName}</Text>
               )}
             </Pressable>
+
+            {isUserOnline && (
+              <View style={styles.onlineTagRow}>
+                <View style={styles.onlineTagDot} />
+                <Text style={styles.onlineTagText}>Online</Text>
+              </View>
+            )}
+
             <Text style={styles.memberText}>Member since {memberSince}</Text>
             {user?.email && (
               <Text style={styles.emailText}>{user.email}</Text>
             )}
+
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <View style={styles.statIconWrap}>
+                  <Scan size={16} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <Text style={styles.statValue}>{totalScans}</Text>
+                <Text style={styles.statLabel}>Scans</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <View style={styles.statIconWrap}>
+                  <Bookmark size={16} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <Text style={styles.statValue}>{totalSaved}</Text>
+                <Text style={styles.statLabel}>Saved</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <View style={styles.statIconWrap}>
+                  <Eye size={16} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <Text style={styles.statValue}>{isUserOnline ? activeCount : 0}</Text>
+                <Text style={styles.statLabel}>Active</Text>
+              </View>
+            </View>
 
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <Pressable
@@ -373,6 +465,12 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
+          {isUserOnline && (
+            <View style={styles.syncStatusRow}>
+              <SyncBadge itemCount={totalScans + totalSaved} />
+            </View>
+          )}
+
           {isUserOnline && onlineUsers.length > 0 && (
             <Animated.View style={[styles.onlineSection, { opacity: onlineListFade }]}>
               <View style={styles.onlineHeader}>
@@ -400,6 +498,39 @@ export default function ProfileScreen() {
               <Text style={styles.offlineSubtitle}>
                 Tap "Go Online" to instantly connect with other users in the app
               </Text>
+            </View>
+          )}
+
+          {(totalScans > 0 || totalSaved > 0) && (
+            <View style={styles.activitySection}>
+              <Text style={styles.activityTitle}>Your Activity</Text>
+              <View style={styles.activityGrid}>
+                {totalScans > 0 && (
+                  <View style={styles.activityCard}>
+                    <View style={[styles.activityCardIcon, { backgroundColor: 'rgba(22,163,74,0.1)' }]}>
+                      <Scan size={18} color="#16A34A" strokeWidth={2} />
+                    </View>
+                    <Text style={styles.activityCardValue}>{totalScans}</Text>
+                    <Text style={styles.activityCardLabel}>Items Scanned</Text>
+                  </View>
+                )}
+                {totalSaved > 0 && (
+                  <View style={styles.activityCard}>
+                    <View style={[styles.activityCardIcon, { backgroundColor: 'rgba(255,149,0,0.1)' }]}>
+                      <ShoppingBag size={18} color="#FF9500" strokeWidth={2} />
+                    </View>
+                    <Text style={styles.activityCardValue}>{totalSaved}</Text>
+                    <Text style={styles.activityCardLabel}>Deals Saved</Text>
+                  </View>
+                )}
+                <View style={styles.activityCard}>
+                  <View style={[styles.activityCardIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
+                    <Clock size={18} color="#007AFF" strokeWidth={2} />
+                  </View>
+                  <Text style={styles.activityCardValue}>{memberSince.split(' ')[0]}</Text>
+                  <Text style={styles.activityCardLabel}>Joined</Text>
+                </View>
+              </View>
             </View>
           )}
 
@@ -489,6 +620,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  onlineRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 59,
+    borderWidth: 2.5,
+    borderColor: '#34C759',
+  },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -500,17 +641,80 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.4,
   },
+  onlineTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+    backgroundColor: 'rgba(52,199,89,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  onlineTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#34C759',
+  },
+  onlineTagText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
   memberText: {
     fontSize: 13,
     fontWeight: '500' as const,
     color: 'rgba(255,255,255,0.6)',
-    marginTop: 4,
+    marginTop: 6,
   },
   emailText: {
     fontSize: 13,
     fontWeight: '400' as const,
     color: 'rgba(255,255,255,0.5)',
     marginTop: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 0,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: 4,
   },
   onlineBadgeRow: {
     flexDirection: 'row',
@@ -556,6 +760,11 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     minHeight: 300,
   },
+  syncStatusRow: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+  },
   onlineSection: {
     marginHorizontal: 16,
     backgroundColor: '#FFFFFF',
@@ -566,6 +775,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+    marginBottom: 12,
   },
   onlineHeader: {
     flexDirection: 'row',
@@ -646,11 +856,39 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     letterSpacing: -0.2,
   },
-  userJoined: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
+  userActivityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 2,
+  },
+  activityDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    marginRight: 5,
+  },
+  userActivity: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+  },
+  userJoined: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+  },
+  userScanBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  userScanCount: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
   },
   offlineHint: {
     alignItems: 'center',
@@ -667,9 +905,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400' as const,
     color: '#AEAEB2',
-    textAlign: 'center',
+    textAlign: 'center' as const,
     marginTop: 6,
     lineHeight: 20,
+  },
+  activitySection: {
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  activityTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
+    marginBottom: 12,
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  activityCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  activityCardIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  activityCardValue: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  activityCardLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+    marginTop: 2,
+    textAlign: 'center' as const,
   },
   bottomArea: {
     paddingTop: 16,
