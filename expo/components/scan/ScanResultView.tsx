@@ -117,7 +117,7 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     chips.push({ label: 'Material', value: fd.material && fd.material !== 'Mixed' ? fd.material : 'Synthetic' });
     chips.push({ label: 'Condition', value: fd.condition ? fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1) : 'Good' });
     chips.push({ label: 'Brand', value: fd.brand && fd.brand !== 'Unbranded' ? fd.brand : 'Unknown' });
-    chips.push({ label: 'For', value: fd.style && fd.style !== 'Casual' ? fd.style : (fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : 'Casual Wear') });
+    chips.push({ label: 'For', value: fd.style && fd.style !== 'Casual' ? fd.style.split(' ')[0] : (fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : 'Casual') });
   } else if (result.electronics_details) {
     const ed = result.electronics_details;
     chips.push({ label: 'Type', value: ed.product_type ?? 'Electronics' });
@@ -125,7 +125,7 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     chips.push({ label: 'Material', value: 'Plastic' });
     chips.push({ label: 'Condition', value: ed.condition ? ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1) : 'Good' });
     chips.push({ label: 'Brand', value: ed.brand ?? 'Unknown' });
-    chips.push({ label: 'For', value: ed.purpose ? ed.purpose.split('.')[0].substring(0, 30) : (ed.product_type ? `${ed.product_type} Use` : 'Personal Use') });
+    chips.push({ label: 'For', value: ed.purpose ? ed.purpose.split('.')[0].split(' ')[0].substring(0, 20) : (ed.product_type ?? 'Personal') });
   } else if (result.furniture_details) {
     const fd = result.furniture_details;
     chips.push({ label: 'Type', value: fd.item_type_specific ?? 'Furniture' });
@@ -133,7 +133,7 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     chips.push({ label: 'Material', value: fd.material && fd.material !== 'Mixed' ? fd.material : 'Wood' });
     chips.push({ label: 'Condition', value: fd.condition_estimate ? fd.condition_estimate.replace(/-/g, ' ').charAt(0).toUpperCase() + fd.condition_estimate.replace(/-/g, ' ').slice(1) : 'Good' });
     chips.push({ label: 'Brand', value: fd.resale_title_suggestion ? fd.resale_title_suggestion.split(' ')[0] : 'Unknown' });
-    chips.push({ label: 'For', value: fd.use_case ?? fd.room_fit ?? 'Home' });
+    chips.push({ label: 'For', value: (fd.use_case ? fd.use_case.split(' ')[0] : null) ?? (fd.room_fit ? fd.room_fit.split(' ')[0] : null) ?? 'Home' });
   } else if (result.household_details) {
     const hd = result.household_details;
     const subcatMap: Record<string, string> = { tools: 'Tools', fitness: 'Fitness', kitchenware: 'Kitchenware', cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor', garden: 'Garden', storage: 'Storage', lighting: 'Lighting', small_appliance: 'Appliance', other: 'Household' };
@@ -142,7 +142,7 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     chips.push({ label: 'Material', value: hd.material && hd.material !== 'Mixed' ? hd.material : 'Plastic' });
     chips.push({ label: 'Condition', value: hd.condition ? hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1) : 'Good' });
     chips.push({ label: 'Brand', value: hd.brand && hd.brand !== 'Generic' ? hd.brand : 'Unknown' });
-    chips.push({ label: 'For', value: hd.purpose ? hd.purpose.split('.')[0].substring(0, 30) : (subcatMap[hd.subcategory] ? `${subcatMap[hd.subcategory]}` : 'Home Use') });
+    chips.push({ label: 'For', value: hd.purpose ? hd.purpose.split('.')[0].split(' ')[0].substring(0, 20) : (subcatMap[hd.subcategory] ?? 'Home') });
   } else if (result.general_details) {
     const gd = result.general_details;
     chips.push({ label: 'Type', value: gd.subcategory ? gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' ') : 'Item' });
@@ -150,7 +150,7 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     chips.push({ label: 'Material', value: gd.material && gd.material !== 'Mixed' ? gd.material : 'Unknown' });
     chips.push({ label: 'Condition', value: gd.condition ? gd.condition.charAt(0).toUpperCase() + gd.condition.slice(1) : 'Good' });
     chips.push({ label: 'Brand', value: gd.brand && gd.brand !== 'Unbranded' ? gd.brand : 'Unknown' });
-    chips.push({ label: 'For', value: gd.purpose ? gd.purpose.split('.')[0].substring(0, 30) : 'Personal Use' });
+    chips.push({ label: 'For', value: gd.purpose ? gd.purpose.split('.')[0].split(' ')[0].substring(0, 20) : 'Personal' });
   } else if (result.food_details) {
     chips.push({ label: 'Calories', value: `${result.food_details.calories}` });
     chips.push({ label: 'Protein', value: `${result.food_details.protein_g}g` });
