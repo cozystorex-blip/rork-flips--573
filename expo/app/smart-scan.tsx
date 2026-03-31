@@ -525,7 +525,7 @@ export default function SmartScanScreen() {
 
             <View style={st.resultHeader}>
               <Text style={st.resultItemName}>
-                {confidenceInfo.isVeryLow ? 'Item Not Confidently Identified' : result.item_name}
+                {result.item_name}
               </Text>
               {result.trustResult && result.trustResult.title.verificationStatus !== 'confirmed' && !isLowConfidence && (
                 <View style={st.unverifiedTitleBadge}>
@@ -538,7 +538,7 @@ export default function SmartScanScreen() {
                   <View style={[st.typeBadge, { backgroundColor: typeConfig.bg }]}>
                     <typeConfig.Icon size={12} color={typeConfig.color} />
                     <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>
-                      {confidenceInfo.isVeryLow ? 'Low Confidence Scan' : typeConfig.label}
+                      {typeConfig.label}
                     </Text>
                   </View>
                 )}

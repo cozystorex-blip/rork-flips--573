@@ -242,24 +242,21 @@ export function getConfidenceInfo(confidence: number) {
   let label: string;
   let color: string;
 
-  if (confidence >= 0.82) {
-    label = 'High confidence';
+  if (confidence >= 0.70) {
+    label = 'High Confidence Match';
     color = '#059669';
-  } else if (confidence >= 0.65) {
-    label = 'Good match';
-    color = '#3B82F6';
-  } else if (confidence >= 0.45) {
-    label = 'Likely match';
+  } else if (confidence >= 0.40) {
+    label = 'Likely Match';
     color = '#D97706';
-  } else if (confidence >= 0.3) {
-    label = 'Low confidence';
+  } else if (confidence >= 0.20) {
+    label = 'Best Match (Low Confidence)';
     color = '#F97316';
   } else {
-    label = 'Very low confidence';
+    label = 'Showing Closest Matches';
     color = '#EF4444';
   }
 
-  return { label, color, isLow: confidence < 0.45, isVeryLow: confidence < 0.3 };
+  return { label, color, isLow: confidence < 0.40, isVeryLow: confidence < 0.20 };
 }
 
 export function ConfidenceBadge({ confidence }: ConfidenceDisplayProps) {

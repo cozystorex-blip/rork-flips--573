@@ -96,7 +96,15 @@ interface ResaleEstimate {
   confidence: 'high' | 'moderate' | 'low';
 }
 
-function computeResaleEstimate(result: SmartScanResult): ResaleEstimate | null {
+const CATEGORY_FALLBACK_ESTIMATE: Record<string, { low: number; typical: number; high: number }> = {
+  fashion: { low: 5, typical: 20, high: 50 },
+  electronics: { low: 10, typical: 45, high: 120 },
+  furniture: { low: 15, typical: 60, high: 200 },
+  household: { low: 3, typical: 15, high: 45 },
+  general: { low: 3, typical: 15, high: 40 },
+};
+
+function computeResaleEstimate(result: SmartScanResult): ResaleEstimate {
   let retailVal: number | null = null;
   let resaleVal: number | null = null;
   let rangeVal: number | null = null;
@@ -129,7 +137,17 @@ function computeResaleEstimate(result: SmartScanResult): ResaleEstimate | null {
   }
 
   const basePrice = retailVal ?? resaleVal ?? rangeVal;
-  if (!basePrice || basePrice < 2) return null;
+
+  if (!basePrice || basePrice < 2) {
+    const catFallback = CATEGORY_FALLBACK_ESTIMATE[result.item_type] ?? CATEGORY_FALLBACK_ESTIMATE.general;
+    console.log('[ResaleInsights] No price data, using category fallback for', result.item_type);
+    return {
+      low: `${catFallback.low}`,
+      typical: `${catFallback.typical}`,
+      high: `${catFallback.high}`,
+      confidence: 'low',
+    };
+  }
 
   let lowMult = 0.25;
   let typMult = 0.45;
@@ -165,9 +183,9 @@ function computeResaleEstimate(result: SmartScanResult): ResaleEstimate | null {
   const high = Math.max(Math.round(refPrice * highMult), typical + 1);
 
   return {
-    low: `$${low}`,
-    typical: `$${typical}`,
-    high: `$${high}`,
+    low: `${low}`,
+    typical: `${typical}`,
+    high: `${high}`,
     confidence,
   };
 }
@@ -382,7 +400,7 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
           </View>
 
           <SectionHeader icon={DollarSign} title="Estimated Resale Value" color="#10B981" />
-          {estimate ? (
+          {estimate && (
             <View style={st.estimateCard}>
               <View style={st.estimateRow}>
                 <View style={st.estimateCol}>
@@ -409,16 +427,10 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
                 <View style={st.lowConfNotice}>
                   <AlertTriangle size={11} color={ScannerColors.amber} />
                   <Text style={st.lowConfText}>
-                    Low confidence estimate — scanning a single item, label, or brand tag will improve accuracy.
+                    Estimated from category — scan labels or tags for more accurate pricing.
                   </Text>
                 </View>
               )}
-            </View>
-          ) : (
-            <View style={st.noEstimateCard}>
-              <Text style={st.noEstimateText}>
-                Not enough data to estimate resale value. Try scanning the item closer with visible labels.
-              </Text>
             </View>
           )}
 

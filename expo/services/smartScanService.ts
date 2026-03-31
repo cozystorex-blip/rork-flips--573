@@ -1865,12 +1865,166 @@ The goal: leave NO field empty unless truly impossible. Every scan should feel l
   stabilized.scanned_image_uri = imageUri;
 
   const normalized = normalizeFullResult(stabilized);
+  const withResale = ensureResaleData(normalized);
 
   const { buildScanTrustResult } = await import('@/services/scanTrustEngine');
-  normalized.trustResult = buildScanTrustResult(normalized, classification.visual_cues ?? []);
+  withResale.trustResult = buildScanTrustResult(withResale, classification.visual_cues ?? []);
 
-  console.log('[SmartScan] Done:', normalized.item_name, 'type:', normalized.item_type, 'conf:', normalized.confidence);
-  return normalized;
+  console.log('[SmartScan] Done:', withResale.item_name, 'type:', withResale.item_type, 'conf:', withResale.confidence);
+  return withResale;
+}
+
+const CATEGORY_FALLBACK_RANGES: Record<string, { low: number; high: number; demand: string }> = {
+  shoes: { low: 10, high: 60, demand: 'medium' },
+  footwear: { low: 10, high: 60, demand: 'medium' },
+  clothing: { low: 5, high: 40, demand: 'medium' },
+  outerwear: { low: 15, high: 80, demand: 'medium' },
+  accessories: { low: 5, high: 50, demand: 'low' },
+  bags: { low: 10, high: 80, demand: 'medium' },
+  jewelry: { low: 5, high: 100, demand: 'low' },
+  activewear: { low: 5, high: 40, demand: 'medium' },
+  fashion: { low: 5, high: 40, demand: 'medium' },
+  electronics: { low: 15, high: 150, demand: 'medium' },
+  furniture: { low: 20, high: 250, demand: 'medium' },
+  household: { low: 5, high: 60, demand: 'low' },
+  kitchenware: { low: 5, high: 40, demand: 'low' },
+  tools: { low: 10, high: 80, demand: 'low' },
+  fitness: { low: 10, high: 100, demand: 'medium' },
+  cleaning: { low: 3, high: 20, demand: 'low' },
+  decor: { low: 5, high: 60, demand: 'low' },
+  storage: { low: 5, high: 30, demand: 'low' },
+  lighting: { low: 5, high: 50, demand: 'low' },
+  small_appliance: { low: 10, high: 80, demand: 'medium' },
+  garden: { low: 5, high: 40, demand: 'low' },
+  bathroom: { low: 3, high: 25, demand: 'low' },
+  general: { low: 5, high: 50, demand: 'low' },
+  other: { low: 5, high: 50, demand: 'low' },
+};
+
+function getCategoryFallbackRange(result: SmartScanResult): { low: number; high: number; demand: string } {
+  const sub = result.fashion_details?.subcategory
+    ?? result.household_details?.subcategory
+    ?? result.electronics_details?.product_type?.toLowerCase()
+    ?? result.general_details?.subcategory
+    ?? null;
+
+  if (sub) {
+    const subLower = sub.toLowerCase();
+    for (const [key, val] of Object.entries(CATEGORY_FALLBACK_RANGES)) {
+      if (subLower.includes(key)) return val;
+    }
+  }
+
+  const typeKey = result.item_type as string;
+  if (CATEGORY_FALLBACK_RANGES[typeKey]) return CATEGORY_FALLBACK_RANGES[typeKey];
+  return CATEGORY_FALLBACK_RANGES.general;
+}
+
+function ensureResaleData(result: SmartScanResult): SmartScanResult {
+  const r = { ...result };
+  const CONSUMABLE: SmartScanItemType[] = ['food', 'grocery', 'receipt', 'document'];
+  if (CONSUMABLE.includes(r.item_type)) return r;
+
+  const fallback = getCategoryFallbackRange(r);
+
+  if (r.fashion_details) {
+    const fd = { ...r.fashion_details };
+    if (!fd.estimated_retail_price) fd.estimated_retail_price = `${fallback.low} - ${fallback.high}`;
+    if (!fd.estimated_resale_value) {
+      const fResLow = Math.round(fallback.low * 0.4);
+      const fResHigh = Math.round(fallback.high * 0.6);
+      fd.estimated_resale_value = `${Math.max(fResLow, 1)}`;
+      if (!fd.price_range) fd.price_range = `${fResLow} - ${fResHigh}`;
+    }
+    if (!fd.resale_demand) fd.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
+    if (!fd.best_selling_platform) fd.best_selling_platform = fd.subcategory === 'shoes' ? 'eBay, StockX, Mercari' : 'Poshmark, Mercari, Depop';
+    if (!fd.value_verdict) fd.value_verdict = 'fair';
+    if (!fd.value_rating) fd.value_rating = 'average';
+    if (!fd.value_reasoning) fd.value_reasoning = 'Estimated based on visual category match. Scan labels or tags for more accurate pricing.';
+    if (!fd.resale_suggestion) fd.resale_suggestion = 'Take clear photos of labels, tags, and any brand markings for best resale results.';
+    if (!fd.comparable_model) fd.comparable_model = 'Similar items in this category';
+    r.fashion_details = fd;
+  }
+
+  if (r.electronics_details) {
+    const ed = { ...r.electronics_details };
+    if (!ed.estimated_retail_price) ed.estimated_retail_price = `${fallback.low} - ${fallback.high}`;
+    if (!ed.estimated_resale_value) {
+      const eResLow = Math.round(fallback.low * 0.3);
+      const eResHigh = Math.round(fallback.high * 0.5);
+      ed.estimated_resale_value = `${Math.max(eResLow, 1)}`;
+      if (!ed.price_range) ed.price_range = `${eResLow} - ${eResHigh}`;
+    }
+    if (!ed.resale_demand) ed.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
+    if (!ed.best_selling_platform) ed.best_selling_platform = 'eBay, Facebook Marketplace, Swappa';
+    if (!ed.value_verdict) ed.value_verdict = 'fair';
+    if (!ed.value_rating) ed.value_rating = 'average';
+    if (!ed.value_reasoning) ed.value_reasoning = 'Estimated based on product category. Scan model numbers or serial labels for precise valuation.';
+    if (!ed.resale_suggestion) ed.resale_suggestion = 'Include all accessories and show the device powered on for best resale results.';
+    if (!ed.comparable_model) ed.comparable_model = 'Similar devices in this category';
+    r.electronics_details = ed;
+  }
+
+  if (r.furniture_details) {
+    const fd = { ...r.furniture_details };
+    if (!fd.estimated_retail_price && !fd.estimated_price_range) {
+      fd.estimated_price_range = `${fallback.low} - ${fallback.high}`;
+    }
+    if (!fd.estimated_resale_value) {
+      const fuResLow = Math.round(fallback.low * 0.3);
+      fd.estimated_resale_value = `${Math.max(fuResLow, 5)}`;
+    }
+    if (!fd.resale_demand) fd.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
+    if (!fd.best_selling_platform) fd.best_selling_platform = 'Facebook Marketplace, Craigslist, OfferUp';
+    if (!fd.value_verdict) fd.value_verdict = 'fair';
+    if (!fd.value_rating) fd.value_rating = 'average';
+    if (!fd.value_reasoning) fd.value_reasoning = 'Estimated from visual category. Check underside labels for brand and model details.';
+    if (!fd.resale_suggestion) fd.resale_suggestion = 'Photograph all sides including brand labels. Note any damage or missing hardware.';
+    if (!fd.comparable_model) fd.comparable_model = 'Similar furniture items in this style';
+    if (!fd.resale_title_suggestion) fd.resale_title_suggestion = r.item_name;
+    r.furniture_details = fd;
+  }
+
+  if (r.household_details) {
+    const hd = { ...r.household_details };
+    if (!hd.estimated_price) hd.estimated_price = `${fallback.low} - ${fallback.high}`;
+    if (!hd.estimated_resale_value) {
+      const hResLow = Math.round(fallback.low * 0.3);
+      const hResHigh = Math.round(fallback.high * 0.5);
+      hd.estimated_resale_value = `${Math.max(hResLow, 1)}`;
+      if (!hd.price_range) hd.price_range = `${hResLow} - ${hResHigh}`;
+    }
+    if (!hd.resale_potential) hd.resale_potential = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
+    if (!hd.best_selling_platform) hd.best_selling_platform = 'Facebook Marketplace, OfferUp, Mercari';
+    if (!hd.value_verdict) hd.value_verdict = 'fair';
+    if (!hd.value_rating) hd.value_rating = 'average';
+    if (!hd.value_reasoning) hd.value_reasoning = 'Estimated from item category. Scan labels or packaging for more accurate pricing.';
+    if (!hd.resale_suggestion) hd.resale_suggestion = 'Clean the item and photograph any brand markings or labels for best listing results.';
+    if (!hd.comparable_model) hd.comparable_model = 'Similar household items';
+    r.household_details = hd;
+  }
+
+  if (r.general_details) {
+    const gd = { ...r.general_details };
+    if (!gd.estimated_retail_price) gd.estimated_retail_price = `${fallback.low} - ${fallback.high}`;
+    if (!gd.estimated_resale_value) {
+      const gResLow = Math.round(fallback.low * 0.3);
+      const gResHigh = Math.round(fallback.high * 0.5);
+      gd.estimated_resale_value = `${Math.max(gResLow, 1)}`;
+      if (!gd.price_range) gd.price_range = `${gResLow} - ${gResHigh}`;
+    }
+    if (!gd.resale_demand) gd.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
+    if (!gd.best_selling_platform) gd.best_selling_platform = 'eBay, Facebook Marketplace, Mercari';
+    if (!gd.value_verdict) gd.value_verdict = 'fair';
+    if (!gd.value_rating) gd.value_rating = 'average';
+    if (!gd.value_reasoning) gd.value_reasoning = 'Estimated from visual category. Scan labels or barcodes for more accurate pricing.';
+    if (!gd.resale_suggestion) gd.resale_suggestion = 'Photograph all identifying marks and include accurate descriptions for best resale results.';
+    if (!gd.comparable_item) gd.comparable_item = 'Similar items in this category';
+    r.general_details = gd;
+  }
+
+  console.log('[SmartScan] ensureResaleData: guaranteed resale fields for', r.item_type);
+  return r;
 }
 
 function normalizeFullResult(result: SmartScanResult): SmartScanResult {
