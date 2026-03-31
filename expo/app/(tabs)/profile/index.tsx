@@ -446,7 +446,11 @@ export default function ProfileScreen() {
                       <WifiOff size={16} color="rgba(255,255,255,0.7)" strokeWidth={2} />
                     )}
                     <Text style={styles.onlineBadgeLabel}>
-                      {isUserOnline ? `Online · ${onlineUsers.length} nearby` : 'Go Online'}
+                      {isUserOnline
+                        ? onlineUsers.length > 0
+                          ? `Online · ${onlineUsers.length} nearby`
+                          : 'Online · Connected'
+                        : 'Go Online'}
                     </Text>
                   </>
                 )}
@@ -471,7 +475,7 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {isUserOnline && onlineUsers.length > 0 && (
+          {isUserOnline && (
             <Animated.View style={[styles.onlineSection, { opacity: onlineListFade }]}>
               <View style={styles.onlineHeader}>
                 <View style={styles.onlineHeaderLeft}>
@@ -481,13 +485,21 @@ export default function ProfileScreen() {
                 <Text style={styles.onlineCount}>{onlineUsers.length}</Text>
               </View>
 
-              <FlatList
-                data={onlineUsers}
-                renderItem={renderOnlineUser}
-                keyExtractor={keyExtractor}
-                scrollEnabled={false}
-                contentContainerStyle={styles.usersList}
-              />
+              {onlineUsers.length > 0 ? (
+                <FlatList
+                  data={onlineUsers}
+                  renderItem={renderOnlineUser}
+                  keyExtractor={keyExtractor}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.usersList}
+                />
+              ) : (
+                <View style={styles.noUsersHint}>
+                  <Wifi size={20} color="#AEAEB2" strokeWidth={1.5} />
+                  <Text style={styles.noUsersText}>No other users online right now</Text>
+                  <Text style={styles.noUsersSubtext}>When others go online, they'll appear here</Text>
+                </View>
+              )}
             </Animated.View>
           )}
 
@@ -496,7 +508,7 @@ export default function ProfileScreen() {
               <WifiOff size={32} color="#C7C7CC" strokeWidth={1.5} />
               <Text style={styles.offlineTitle}>You're Offline</Text>
               <Text style={styles.offlineSubtitle}>
-                Tap "Go Online" to instantly connect with other users in the app
+                Tap "Go Online" to connect with other Flips users in real time
               </Text>
             </View>
           )}
@@ -976,5 +988,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#FF3B30',
+  },
+  noUsersHint: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 6,
+  },
+  noUsersText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    marginTop: 4,
+  },
+  noUsersSubtext: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+    textAlign: 'center' as const,
   },
 });
