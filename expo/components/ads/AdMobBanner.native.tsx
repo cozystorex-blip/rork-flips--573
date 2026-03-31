@@ -4,8 +4,6 @@ import {
   Text,
   StyleSheet,
   Animated,
-  Platform,
-  Linking,
 } from 'react-native';
 import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable } from '@/services/adService';
 import { usePremium } from '@/contexts/PremiumContext';
@@ -16,50 +14,9 @@ try {
   const mod = require('react-native-google-mobile-ads');
   BannerAd = mod.BannerAd;
   BannerAdSize = mod.BannerAdSize ?? {};
-} catch (e) {
-  console.warn('[AdMobBanner] react-native-google-mobile-ads not available:', e);
-}
-
-let WebView: any = null;
-try {
-  WebView = require('react-native-webview').default;
+  console.log('[AdMobBanner] Native BannerAd component loaded');
 } catch {
-  console.warn('[AdMobBanner] react-native-webview not available');
-}
-
-const AD_CLIENT = 'ca-pub-3643873601626975';
-const IOS_AD_SLOT = '1979589861';
-const ANDROID_AD_SLOT = '9727556676';
-
-function getAdSlot(): string {
-  if (Platform.OS === 'ios') return IOS_AD_SLOT;
-  return ANDROID_AD_SLOT;
-}
-
-function buildAdHtml(): string {
-  const slot = getAdSlot();
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #F2F2F7; }
-    .ad-wrap { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: 4px 0; }
-    ins.adsbygoogle { display: block; width: 320px; height: 50px; }
-  </style>
-</head>
-<body>
-  <div class="ad-wrap">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CLIENT}" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle"
-         style="display:inline-block;width:320px;height:50px"
-         data-ad-client="${AD_CLIENT}"
-         data-ad-slot="${slot}"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
-</body>
-</html>`;
+  console.warn('[AdMobBanner] react-native-google-mobile-ads not available — real ads require a production build (EAS/TestFlight)');
 }
 
 const MAX_RETRY_ATTEMPTS = 3;
@@ -91,7 +48,10 @@ export default function AdMobBanner() {
   }, [fadeAnim]);
 
   useEffect(() => {
-    if (!isAdModuleAvailable() || !BannerAd) return;
+    if (!isAdModuleAvailable() || !BannerAd) {
+      console.log('[AdMobBanner] Native SDK not available, showing placeholder');
+      return;
+    }
     if (isAdsInitialized()) {
       setSdkReady(true);
       return;
@@ -149,11 +109,11 @@ export default function AdMobBanner() {
     console.log('[AdMobBanner] Rendering native banner with unit ID:', unitId);
 
     return (
-      <Animated.View style={[styles.wrapper, { opacity: fadeAnim }]}>
-        <View style={styles.container} pointerEvents="box-none">
+      <Animated.View style={[styles.wrapper, { opacity: fadeAnim }]} testID="ad-banner-native">
+        <View style={styles.nativeContainer} pointerEvents="box-none">
           <BannerAd
             unitId={unitId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER ?? BannerAdSize.BANNER}
             requestOptions={{ requestNonPersonalizedAdsOnly: true }}
             onAdLoaded={handleAdLoaded}
             onAdFailedToLoad={handleAdFailed}
@@ -168,57 +128,6 @@ export default function AdMobBanner() {
     );
   }
 
-  if (WebView) {
-    return (
-      <Animated.View
-        style={[styles.wrapper, { opacity: fadeAnim }]}
-        testID="ad-banner-webview"
-      >
-        <View style={styles.container}>
-          <View style={styles.webviewWrap}>
-            <WebView
-              source={{ html: buildAdHtml() }}
-              style={styles.webview}
-              scrollEnabled={false}
-              bounces={false}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              allowsInlineMediaPlayback={true}
-              mixedContentMode="always"
-              originWhitelist={['*']}
-              setSupportMultipleWindows={false}
-              onShouldStartLoadWithRequest={(request: { url: string }) => {
-                const url = request.url;
-                if (
-                  url === 'about:blank' ||
-                  url.includes('pagead2.googlesyndication.com') ||
-                  url.includes('googleads') ||
-                  url.includes('doubleclick.net') ||
-                  url.includes('google.com/aclk') ||
-                  url.includes('tpc.googlesyndication.com') ||
-                  url.startsWith('data:')
-                ) {
-                  return true;
-                }
-                if (url.startsWith('http')) {
-                  console.log('[AdMobBanner] Ad clicked, opening externally:', url);
-                  void Linking.openURL(url);
-                  return false;
-                }
-                return true;
-              }}
-              onError={(e: any) => console.warn('[AdMobBanner] WebView error:', e.nativeEvent?.description)}
-              onLoadEnd={() => console.log('[AdMobBanner] WebView ad loaded')}
-            />
-          </View>
-          <View style={styles.adLabel} pointerEvents="none">
-            <Text style={styles.adLabelText}>Ad</Text>
-          </View>
-        </View>
-      </Animated.View>
-    );
-  }
-
   return (
     <Animated.View
       style={[styles.wrapper, { opacity: fadeAnim }]}
@@ -226,9 +135,10 @@ export default function AdMobBanner() {
     >
       <View style={styles.container}>
         <View style={styles.placeholderInner}>
-          <Text style={styles.placeholderText}>Sponsored</Text>
+          <Text style={styles.placeholderTitle}>Ad Space</Text>
+          <Text style={styles.placeholderText}>Real ads appear in production builds</Text>
         </View>
-        <View style={styles.adLabel}>
+        <View style={styles.adLabel} pointerEvents="none">
           <Text style={styles.adLabelText}>Ad</Text>
         </View>
       </View>
@@ -241,6 +151,12 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     alignItems: 'center',
   },
+  nativeContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    width: '100%',
+    alignItems: 'center',
+  },
   container: {
     borderRadius: 12,
     overflow: 'hidden',
@@ -250,28 +166,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
-  webviewWrap: {
-    width: '100%',
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  webview: {
-    width: 320,
-    height: 50,
-    backgroundColor: 'transparent',
-  },
   placeholderInner: {
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: 'center',
     width: '100%',
   },
-  placeholderText: {
-    fontSize: 14,
+  placeholderTitle: {
+    fontSize: 13,
     fontWeight: '600' as const,
     color: '#8E8E93',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+  },
+  placeholderText: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    color: '#AEAEB2',
+    marginTop: 2,
   },
   adLabel: {
     position: 'absolute' as const,
