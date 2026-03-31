@@ -1817,28 +1817,14 @@ export async function runSmartScan(imageUri: string, scanMode?: IkeaScanMode): P
   }
 
   const contentType = classification.image_content_type;
-  const detectedItemCount = classification.detected_items_list?.length ?? 0;
-  console.log('[SmartScan] Content type:', contentType, 'detected_items:', detectedItemCount);
+  console.log('[SmartScan] Content type:', contentType, 'detected_items:', classification.detected_items_list?.length ?? 0);
 
-  const isDocumentContentType = contentType === 'printed_material' || contentType === 'multi_item_page' || contentType === 'screenshot' || contentType === 'document';
-  const isExplicitDocument = classification.item_type === 'document';
-
-  if (isDocumentContentType || isExplicitDocument) {
-    const hasStrongSingleItem = classification.item_type !== 'document' && classification.item_type !== 'unknown' && classification.confidence >= 0.45;
-    const hasSpecificName = classification.item_name && classification.item_name.length > 3 && !['document', 'screenshot', 'catalog', 'page', 'poster', 'infographic', 'reference', 'content'].some(w => classification.item_name.toLowerCase().includes(w));
-    const isScreenshotWithItem = contentType === 'screenshot' && hasStrongSingleItem && hasSpecificName;
-    const isSingleItemReference = detectedItemCount <= 2 && hasStrongSingleItem && hasSpecificName;
-
-    if (isScreenshotWithItem || isSingleItemReference) {
-      console.log('[SmartScan] Single-item detected in reference/screenshot — routing through normal item pipeline instead of document flow');
-      console.log('[SmartScan] Reason: item_type=', classification.item_type, 'name=', classification.item_name, 'conf=', classification.confidence);
-    } else {
-      console.log('[SmartScan] Document/printed content detected — using document flow');
-      const docResult = buildDocumentResult(classification, imageUri);
-      lastProcessedBase64 = processed.base64;
-      docResult.scanned_image_uri = imageUri;
-      return docResult;
-    }
+  if (contentType === 'printed_material' || contentType === 'multi_item_page' || contentType === 'screenshot' || contentType === 'document' || classification.item_type === 'document') {
+    console.log('[SmartScan] Document/printed content detected — using document flow');
+    const docResult = buildDocumentResult(classification, imageUri);
+    lastProcessedBase64 = processed.base64;
+    docResult.scanned_image_uri = imageUri;
+    return docResult;
   }
 
   classification = recoverUnknown(classification);
