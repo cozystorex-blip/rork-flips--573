@@ -18,12 +18,14 @@ import {
   Bookmark,
   Clock,
   ShoppingBag,
+  Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
+import { pickAndCropAvatar, uploadAvatarToSupabase } from '@/services/uploadService';
 
 
 export default function ProfileScreen() {
@@ -35,6 +37,7 @@ export default function ProfileScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
 
   useEffect(() => {
@@ -60,6 +63,41 @@ export default function ProfileScreen() {
   const totalSaved = savedDeals.length;
 
 
+
+  const handleTapAvatar = useCallback(async () => {
+    if (savingAvatar) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    console.log('[Profile] Avatar tapped, opening image picker');
+
+    try {
+      setSavingAvatar(true);
+      const picked = await pickAndCropAvatar();
+      if (!picked) {
+        console.log('[Profile] User cancelled avatar picker');
+        setSavingAvatar(false);
+        return;
+      }
+
+      console.log('[Profile] Avatar picked, persisting...');
+      const userId = user?.id ?? 'anonymous';
+      const persistedUri = await uploadAvatarToSupabase(picked.uri, userId);
+
+      console.log('[Profile] Avatar persisted, saving to profile:', persistedUri.substring(0, 60));
+      await saveProfile({ avatar_url: persistedUri });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.log('[Profile] Avatar saved successfully');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to update profile picture';
+      console.log('[Profile] Avatar update error:', msg);
+      if (msg.includes('Permission') || msg.includes('permission')) {
+        Alert.alert('Permission Needed', msg);
+      } else {
+        Alert.alert('Update Failed', msg);
+      }
+    } finally {
+      setSavingAvatar(false);
+    }
+  }, [savingAvatar, user, saveProfile]);
 
   const handleTapName = useCallback(() => {
     void Haptics.selectionAsync();
@@ -142,9 +180,16 @@ export default function ProfileScreen() {
       >
         <View style={[styles.greenHeader, { paddingTop: insets.top + 12 }]}>
           <View style={styles.profileSection}>
-            <View style={styles.avatarOuter}>
+            <Pressable
+              onPress={handleTapAvatar}
+              disabled={savingAvatar}
+              style={({ pressed }) => [styles.avatarOuter, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
+              testID="profile-avatar-tap"
+            >
               <View style={styles.avatar}>
-                {profile?.avatar_url ? (
+                {savingAvatar ? (
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                ) : profile?.avatar_url ? (
                   <Image
                     source={{ uri: profile.avatar_url }}
                     style={styles.avatarImage}
@@ -156,7 +201,10 @@ export default function ProfileScreen() {
                   </Text>
                 )}
               </View>
-            </View>
+              <View style={styles.avatarCameraBadge}>
+                <Camera size={12} color="#FFFFFF" strokeWidth={2.5} />
+              </View>
+            </Pressable>
 
             <Pressable
               onPress={handleTapName}
@@ -302,9 +350,24 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
-
-
-
+  avatarCameraBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#16A34A',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
