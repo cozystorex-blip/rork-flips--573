@@ -11,10 +11,9 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image as ExpoImage } from 'expo-image';
+
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import {
-  Camera,
   Flame,
   Package,
   Sofa,
@@ -29,11 +28,8 @@ import {
   Smartphone,
   Scan,
   Lamp,
-  Sparkles,
-  ShieldCheck,
-  Info,
-  Image as ImageIcon,
   Trash2,
+  Image as ImageIcon,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -43,29 +39,13 @@ import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { usePremium } from '@/contexts/PremiumContext';
 import { useScanProcess, PHASE_MESSAGES } from '@/contexts/ScanProcessContext';
 import {
-  FoodResultSection,
-  GroceryResultSection,
-  FurnitureResultSection,
-  FashionResultSection,
-  ElectronicsResultSection,
-  HouseholdResultSection,
-  GeneralResultSection,
-  UnknownResultSection,
-  ReceiptResultSection,
-  DocumentResultSection,
-} from '@/components/scan/ScanResultRenderers';
-import {
   ScannerTopBar,
   ScannerActionButtons,
   ScannerProgressCard,
-  ScannerResultActions,
-  ConfidenceBadge,
   getConfidenceInfo,
 } from '@/components/scan/ScannerComponents';
-import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
-import ReferenceSection from '@/components/scan/ReferenceSection';
+import ScanResultView from '@/components/scan/ScanResultView';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
-import { getScanHealthLabel } from '@/services/scanValidator';
 
 const SCAN_MODE_OPTIONS: { mode: IkeaScanMode; label: string; icon: string }[] = [
   { mode: 'general_scan', label: 'Anything', icon: 'general' },
@@ -144,7 +124,6 @@ export const TYPE_CONFIG: Record<SmartScanItemType, { label: string; color: stri
   unknown: { label: 'Unknown Item', color: '#6B7280', bg: '#6B728014', Icon: HelpCircle },
 };
 
-
 function getTimeAgo(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -170,11 +149,11 @@ export default function SmartScanScreen() {
     result,
     referenceImageUrl,
     scannedImageUri,
-    generatingImage,
+    generatingImage: _generatingImage,
     viewingEntryId,
     pendingReceiptNav,
     scanMode,
-    lastValidation,
+    lastValidation: _lastValidation,
     handleCapture,
     resetScan,
     loadHistoryEntry,
@@ -182,7 +161,6 @@ export default function SmartScanScreen() {
     setScanMode,
   } = useScanProcess();
 
-  const [showReferenceSection, setShowReferenceSection] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const hasAutoLaunched = useRef(false);
@@ -296,34 +274,12 @@ export default function SmartScanScreen() {
 
   const handleResetScan = useCallback(() => {
     resetScan();
-    setShowReferenceSection(false);
     hasNavigatedRef.current = false;
   }, [resetScan]);
 
-  const typeConfig = result ? TYPE_CONFIG[result.item_type] : null;
-
-  const confidenceInfo = useMemo(() => {
-    if (!result) return { label: '', color: '#6B7280', isLow: false, isVeryLow: false };
-    return getConfidenceInfo(result.confidence);
-  }, [result]);
-
-  const { isLow: isLowConfidence } = confidenceInfo;
-
-  const resultSection = useMemo(() => {
-    if (!result) return null;
-    switch (result.item_type) {
-      case 'food': return <FoodResultSection result={result} />;
-      case 'grocery': return <GroceryResultSection result={result} />;
-      case 'household': return <HouseholdResultSection result={result} />;
-      case 'furniture': return <FurnitureResultSection result={result} />;
-      case 'fashion': return <FashionResultSection result={result} />;
-      case 'electronics': return <ElectronicsResultSection result={result} />;
-      case 'general': return <GeneralResultSection result={result} />;
-      case 'receipt': return <ReceiptResultSection result={result} />;
-      case 'document': return <DocumentResultSection result={result} />;
-      case 'unknown': return <UnknownResultSection result={result} />;
-      default: return <UnknownResultSection result={result} />;
-    }
+  const isLowConfidence = useMemo(() => {
+    if (!result) return false;
+    return getConfidenceInfo(result.confidence).isLow;
   }, [result]);
 
   return (
@@ -465,160 +421,34 @@ export default function SmartScanScreen() {
         )}
 
         {result && (
-          <Animated.View style={{ opacity: resultFade }}>
-            <View style={st.imageGallery}>
-              {scannedImageUri && (
-                <Pressable
-                  style={st.scannedImageContainer}
-                  onPress={() => {
-                    void Haptics.selectionAsync();
-                    setShowReferenceSection(prev => !prev);
-                    console.log('[SmartScan] Photo tapped, toggling reference section');
-                  }}
-                  testID="scan-photo-tap"
-                >
-                  <ExpoImage
-                    source={{ uri: scannedImageUri }}
-                    style={st.scannedImage}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                  />
-                  <View style={st.scannedImageBadge}>
-                    <Camera size={10} color="#FFFFFF" />
-                    <Text style={st.scannedImageBadgeText}>Your Scan</Text>
-                  </View>
-                  <View style={st.tapHintBadge}>
-                    <Text style={st.tapHintText}>{showReferenceSection ? 'Tap to close' : 'Tap for reference'}</Text>
-                  </View>
-                </Pressable>
-              )}
-              {(referenceImageUrl || generatingImage) && (
-                <View style={st.referenceImageContainer}>
-                  {referenceImageUrl ? (
-                    <ExpoImage
-                      source={{ uri: referenceImageUrl }}
-                      style={scannedImageUri ? st.referenceImageSmall : st.referenceImage}
-                      contentFit="contain"
-                      cachePolicy="memory-disk"
-                    />
-                  ) : (
-                    <View style={scannedImageUri ? st.referenceImagePlaceholderSmall : st.referenceImagePlaceholder}>
-                      <ActivityIndicator size="small" color="#3B82F6" />
-                      <Text style={st.referenceImageLoadingText}>Creating reference...</Text>
-                    </View>
-                  )}
-                  <View style={st.referenceImageBadge}>
-                    <Sparkles size={10} color="#3B82F6" />
-                    <Text style={st.referenceImageBadgeText}>AI Reference</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            {result && (
-              <ReferenceSection
-                result={result}
-                referenceImageUrl={referenceImageUrl}
-                visible={showReferenceSection}
-              />
-            )}
-
-            <View style={st.resultHeader}>
-              <Text style={st.resultItemName}>
-                {result.item_name}
-              </Text>
-              {result.trustResult && result.trustResult.title.verificationStatus !== 'confirmed' && !isLowConfidence && (
-                <View style={st.unverifiedTitleBadge}>
-                  <Info size={10} color={ScannerColors.amber} />
-                  <Text style={st.unverifiedTitleText}>Exact product unverified</Text>
-                </View>
-              )}
-              <View style={st.resultMetaRow}>
-                {typeConfig && (
-                  <View style={[st.typeBadge, { backgroundColor: typeConfig.bg }]}>
-                    <typeConfig.Icon size={12} color={typeConfig.color} />
-                    <Text style={[st.typeBadgeText, { color: typeConfig.color }]}>
-                      {typeConfig.label}
-                    </Text>
-                  </View>
-                )}
-                <ConfidenceBadge confidence={result.confidence} />
-              </View>
-              {result.trustResult && (
-                <View style={st.verificationSummaryRow}>
-                  <ShieldCheck size={12} color={ScannerColors.textMuted} />
-                  <Text style={st.verificationSummaryText}>{result.trustResult.verificationSummary}</Text>
-                </View>
-              )}
-            </View>
-
-            {isLowConfidence && (
-              <View style={st.lowConfidenceCard}>
-                <Text style={st.lowConfidenceTitle}>Why this result may be inaccurate</Text>
-                <Text style={st.lowConfidenceText}>
-                  {result.confidence < 0.3
-                    ? 'The image was too unclear, dark, or ambiguous to identify with confidence. Try scanning again with better lighting or a closer angle.'
-                    : 'This scan had limited visual information. The result is a best guess — details may not be fully accurate.'}
-                </Text>
-              </View>
-            )}
-
-            {result.short_summary ? (
-              <View style={st.summaryCard}>
-                <Text style={st.summaryText}>{result.short_summary}</Text>
-              </View>
-            ) : null}
-
-            <View style={st.detailsSection}>
-              {resultSection}
-            </View>
-
-            {lastValidation && (
-              <View style={st.validationBadge}>
-                <View style={[st.validationDot, { backgroundColor: getScanHealthLabel(lastValidation.score).color }]} />
-                <Text style={[st.validationText, { color: getScanHealthLabel(lastValidation.score).color }]}>
-                  Scan Quality: {getScanHealthLabel(lastValidation.score).label} ({lastValidation.score}%)
-                </Text>
-                <Text style={st.validationDetail}>
-                  {lastValidation.passedChecks}/{lastValidation.totalChecks} checks
-                </Text>
-                {lastValidation.errors.length > 0 && (
-                  <Text style={st.validationError}>
-                    {lastValidation.errors.length} issue{lastValidation.errors.length > 1 ? 's' : ''} found
-                  </Text>
-                )}
-              </View>
-            )}
-
-            <ResaleInsightsSection result={result} />
-
-            <ScannerResultActions
-              onScanAgain={handleResetScan}
-              onTryDifferent={() => void handleCapture('gallery')}
-              showTryDifferent={isLowConfidence}
-              onDelete={viewingEntryId ? () => {
-                Alert.alert(
-                  'Delete Scan',
-                  'Are you sure you want to delete this scan result?',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Delete',
-                      style: 'destructive',
-                      onPress: () => {
-                        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                        deleteEntry(viewingEntryId);
-                        handleResetScan();
-                      },
+          <ScanResultView
+            result={result}
+            scannedImageUri={scannedImageUri}
+            referenceImageUrl={referenceImageUrl}
+            resultFade={resultFade}
+            onScanAgain={handleResetScan}
+            onScanGallery={() => void handleCapture('gallery')}
+            isLowConfidence={isLowConfidence}
+            viewingEntryId={viewingEntryId}
+            onDelete={viewingEntryId ? () => {
+              Alert.alert(
+                'Delete Scan',
+                'Are you sure you want to delete this scan result?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => {
+                      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                      deleteEntry(viewingEntryId);
+                      handleResetScan();
                     },
-                  ]
-                );
-              } : undefined}
-              scanAgainTestID="smart-scan-again"
-              tryDifferentTestID="smart-scan-gallery-retry"
-              deleteTestID="delete-scan-result"
-            />
-          </Animated.View>
+                  },
+                ]
+              );
+            } : undefined}
+          />
         )}
 
         <View style={{ height: 60 }} />
