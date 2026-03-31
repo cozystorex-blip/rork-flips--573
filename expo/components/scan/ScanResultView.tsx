@@ -442,15 +442,7 @@ export default function ScanResultView({
   const subtleTips = useMemo(() => getSubtleTips(result), [result]);
 
 
-  const confidenceBadgeLabel = useMemo(() => {
-    if (result.confidence >= 0.70) return 'High conf.';
-    return 'Med conf.';
-  }, [result.confidence]);
 
-  const confidenceBadgeColor = useMemo(() => {
-    if (result.confidence >= 0.70) return '#059669';
-    return '#D97706';
-  }, [result.confidence]);
 
   const heroImageUri = scannedImageUri ?? referenceImageUrl;
   const isNonResale = result.item_type === 'food' || result.item_type === 'grocery' || result.item_type === 'receipt' || result.item_type === 'document';
@@ -554,10 +546,7 @@ export default function ScanResultView({
 
         <View style={st.metaRow}>
           <Text style={st.categoryText}>{categoryLabel}</Text>
-          <View style={[st.confidenceBadge, { backgroundColor: `${confidenceBadgeColor}14`, borderColor: `${confidenceBadgeColor}30` }]}>
-            <View style={[st.confidenceDot, { backgroundColor: confidenceBadgeColor }]} />
-            <Text style={[st.confidenceBadgeText, { color: confidenceBadgeColor }]}>{confidenceBadgeLabel}</Text>
-          </View>
+
         </View>
 
         {isFood && result.food_details && (
