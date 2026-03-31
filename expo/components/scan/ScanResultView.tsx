@@ -21,62 +21,59 @@ import * as Haptics from 'expo-haptics';
 import type { SmartScanResult } from '@/services/smartScanService';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 
+interface PriceInfo {
+  originalPrice: string | null;
+  valuePrice: string | null;
+  priceRange: string | null;
+  originalLabel: string;
+}
 
-function extractResaleRange(result: SmartScanResult): { low: string; high: string } | null {
-  let resaleVal: string | null = null;
+function extractPriceInfo(result: SmartScanResult): PriceInfo {
   let retailVal: string | null = null;
+  let resaleVal: string | null = null;
   let priceRange: string | null = null;
+  let originalLabel = 'Original Price';
 
   if (result.fashion_details) {
-    resaleVal = result.fashion_details.estimated_resale_value;
     retailVal = result.fashion_details.estimated_retail_price;
+    resaleVal = result.fashion_details.estimated_resale_value;
     priceRange = result.fashion_details.price_range;
+    originalLabel = 'Retail Price';
   } else if (result.electronics_details) {
-    resaleVal = result.electronics_details.estimated_resale_value;
     retailVal = result.electronics_details.estimated_retail_price;
+    resaleVal = result.electronics_details.estimated_resale_value;
     priceRange = result.electronics_details.price_range;
+    originalLabel = 'Retail Price';
   } else if (result.furniture_details) {
-    resaleVal = result.furniture_details.estimated_resale_value;
     retailVal = result.furniture_details.estimated_retail_price;
+    resaleVal = result.furniture_details.estimated_resale_value;
     priceRange = result.furniture_details.estimated_price_range;
+    originalLabel = result.furniture_details.is_likely_ikea ? 'IKEA Price' : 'Retail Price';
   } else if (result.household_details) {
-    resaleVal = result.household_details.estimated_resale_value;
     retailVal = result.household_details.estimated_price;
+    resaleVal = result.household_details.estimated_resale_value;
     priceRange = result.household_details.price_range;
+    originalLabel = 'Est. Price';
   } else if (result.general_details) {
-    resaleVal = result.general_details.estimated_resale_value;
     retailVal = result.general_details.estimated_retail_price;
+    resaleVal = result.general_details.estimated_resale_value;
     priceRange = result.general_details.price_range;
+    originalLabel = 'Retail Price';
   }
 
-  if (priceRange) {
-    const rangeMatch = priceRange.match(/\$?([\d.]+)\s*[-–—to]+\s*\$?([\d.]+)/);
-    if (rangeMatch) {
-      return { low: `$${Math.round(parseFloat(rangeMatch[1]))}`, high: `$${Math.round(parseFloat(rangeMatch[2]))}` };
-    }
-  }
-
-  const parseNum = (s: string | null): number | null => {
-    if (!s) return null;
-    const n = parseFloat(s.replace(/[^0-9.]/g, ''));
-    return isNaN(n) ? null : n;
+  const formatPrice = (val: string | null): string | null => {
+    if (!val) return null;
+    const trimmed = val.trim();
+    if (trimmed.length === 0) return null;
+    return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
   };
 
-  const resaleNum = parseNum(resaleVal);
-  const retailNum = parseNum(retailVal);
-
-  if (resaleNum && retailNum) {
-    const low = Math.round(Math.min(resaleNum, retailNum * 0.3));
-    const high = Math.round(Math.max(resaleNum, retailNum * 0.7));
-    return { low: `$${low}`, high: `$${high}` };
-  }
-  if (resaleNum) {
-    return { low: `$${Math.round(resaleNum * 0.6)}`, high: `$${Math.round(resaleNum * 1.2)}` };
-  }
-  if (retailNum) {
-    return { low: `$${Math.round(retailNum * 0.25)}`, high: `$${Math.round(retailNum * 0.65)}` };
-  }
-  return null;
+  return {
+    originalPrice: formatPrice(retailVal),
+    valuePrice: formatPrice(resaleVal),
+    priceRange: priceRange?.trim() || null,
+    originalLabel,
+  };
 }
 
 function getCategoryLabel(result: SmartScanResult): string {
@@ -292,7 +289,7 @@ export default function ScanResultView({
   onDelete,
 }: ScanResultViewProps) {
   const categoryLabel = useMemo(() => getCategoryLabel(result), [result]);
-  const resaleRange = useMemo(() => extractResaleRange(result), [result]);
+  const priceInfo = useMemo(() => extractPriceInfo(result), [result]);
   const companionItems = useMemo(() => getCompanionItems(result), [result]);
   const listingTips = useMemo(() => getListingTips(result), [result]);
   const nextScanSuggestions = useMemo(() => getNextScanSuggestions(result), [result]);
@@ -343,10 +340,29 @@ export default function ScanResultView({
           </View>
         </View>
 
-        {!isNonResale && resaleRange && (
+        {!isNonResale && (priceInfo.originalPrice || priceInfo.valuePrice) && (
           <View style={st.priceCard}>
-            <Text style={st.priceRange}>{resaleRange.low} – {resaleRange.high}</Text>
-            <Text style={st.priceLabel}>Estimated Resale Value</Text>
+            {priceInfo.originalPrice && (
+              <View style={st.priceRow}>
+                <Text style={st.priceRowLabel}>{priceInfo.originalLabel}</Text>
+                <Text style={st.priceRowOriginal}>{priceInfo.originalPrice}</Text>
+              </View>
+            )}
+            {priceInfo.originalPrice && priceInfo.valuePrice && (
+              <View style={st.priceDivider} />
+            )}
+            {priceInfo.valuePrice && (
+              <View style={st.priceRow}>
+                <Text style={st.priceRowLabel}>Value Price</Text>
+                <Text style={st.priceRowValue}>{priceInfo.valuePrice}</Text>
+              </View>
+            )}
+            {priceInfo.priceRange && (
+              <View style={st.priceRangeRow}>
+                <Text style={st.priceRangeLabel}>Range</Text>
+                <Text style={st.priceRangeText}>{priceInfo.priceRange}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -524,7 +540,7 @@ const st = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: ScannerRadius.lg,
     paddingHorizontal: ScannerSpacing.lg,
-    paddingVertical: 14,
+    paddingVertical: 12,
     marginBottom: ScannerSpacing.lg,
     borderWidth: 1,
     borderColor: '#E5E5EA',
@@ -534,16 +550,51 @@ const st = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  priceRange: {
-    fontSize: 22,
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  priceRowLabel: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  priceRowOriginal: {
+    fontSize: 20,
     fontWeight: '800' as const,
     color: '#1C1C1E',
-    letterSpacing: -0.5,
-    marginBottom: 2,
+    letterSpacing: -0.4,
   },
-  priceLabel: {
-    fontSize: 13,
+  priceRowValue: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#10B981',
+    letterSpacing: -0.4,
+  },
+  priceDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E5E5EA',
+    marginVertical: 4,
+  },
+  priceRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 6,
+    marginTop: 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#F0F0F0',
+  },
+  priceRangeLabel: {
+    fontSize: 12,
     fontWeight: '500' as const,
+    color: '#AEAEB2',
+  },
+  priceRangeText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
     color: '#8E8E93',
   },
   warningCard: {
