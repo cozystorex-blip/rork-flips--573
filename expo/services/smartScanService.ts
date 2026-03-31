@@ -668,6 +668,14 @@ NAMING — TRUTH-FIRST RULES:
 - Describe the PRIMARY distinguishing features: color, material, brand (if visible), type
 - Use descriptive names like "Barilla Spaghetti No. 5" (label visible) or "Black Mesh Running Shoes" (no label visible) — not "Item" or "Product".
 
+BANNED GENERIC NAMES (NEVER USE THESE):
+- "Detected Item", "Scanned Item", "Unknown Item", "Item", "Product", "Object", "Thing"
+- "Other", "General Item", "Unidentified", "Misc", "Miscellaneous"
+- Any name that starts with "Detected" or "Scanned"
+- If you cannot determine an exact name, ALWAYS use a descriptive broad name instead:
+  Examples: "White Knit Running Shoe", "Ceramic Dinner Plate", "Wooden Cutting Board", "Red Canvas Backpack"
+  NEVER fall back to placeholder names. Always describe what you see with [Color] [Material] [Item Type].
+
 CONFIDENCE (be strictly calibrated):
 - 0.90-0.95: Crystal clear image, visible brand/label/text, zero ambiguity about what this is, could list on eBay with this info
 - 0.80-0.89: Clear product photo, obvious what category it is, main features visible, minor details uncertain
@@ -688,6 +696,8 @@ ITEM NAMING — CONSISTENCY RULES:
 - Do NOT add unnecessary adjectives like "beautiful", "nice", "quality", "premium" unless describing material grade.
 - Do NOT add "- [Brand]" or "by [Brand]" at the end. Put brand BEFORE the product type.
 - If brand is not visible, do NOT guess. Just describe what you see.
+- ALWAYS produce a useful, descriptive item_name. Even if unsure, describe the dominant visible object.
+- A name like "Blue Ceramic Mug" is infinitely better than "Detected Item" or "Unknown".
 
 visual_cues: List 4-8 SPECIFIC things you actually see. These MUST be real observations from the image:
 - Text/labels: "brand logo Nike visible on side", "nutrition label on back", "price tag $12.99"
@@ -696,7 +706,7 @@ visual_cues: List 4-8 SPECIFIC things you actually see. These MUST be real obser
 - Context: "on white background", "held in hand", "on store shelf", "next to ruler for scale"
 Do NOT list vague observations like "product" or "item" or "object".
 
-short_summary: 1-2 sentence summary. Structure: "[What it is] used for [purpose]. [One key feature]." Keep factual and concise. No marketing language.
+short_summary: 1-2 sentence summary. Structure: "[What it is] used for [purpose]. [One key feature]." Keep factual and concise. No marketing language. NEVER use generic summaries like "An item was detected" — always describe the specific item.
 image_description: Detailed visual description — color, shape, material, texture, brand elements, notable features, approximate size. Be factual, not creative. Must be specific enough for identification.`;
 
 function getDetailPrompt(itemType: SmartScanItemType): string {
@@ -709,11 +719,19 @@ ACCURACY RULES (CRITICAL — follow these strictly):
 4. If you see NO brand/model, estimate based on the item's apparent quality, material, and size — but be honest about uncertainty.
 5. Do NOT invent specific dollar amounts like "$47.99" unless you have strong evidence. Use ranges instead.
 6. Do NOT invent specific dimensions unless visible on packaging or you recognize the exact product.
-7. Do NOT state specific brand names unless visible on the item (logo, label, text).
-8. For materials: say "likely wood" or "appears to be metal" if not 100% certain. But if you CAN tell (e.g. clearly canvas, obviously leather, visibly glass), state it.
+7. Do NOT state specific brand names unless visible on the item (logo, label, text). Use null instead of guessing.
+8. For materials: say "likely wood" or "appears to be metal" if not 100% certain. But if you CAN tell (e.g. clearly canvas, obviously leather, visibly glass), state it. NEVER use "Mixed" or "Various" as lazy defaults — always pick the dominant visible material.
 9. For assembly info: use general language like "basic assembly likely" unless you recognize the specific product.
 10. For companion/matching products: suggest item TYPES, not specific branded products, unless verified.
 11. Never use "Worth it", "Good value", "Great deal" without real comparison data. Set value_verdict and value_rating to null if uncertain.
+
+FIELD QUALITY RULES (CRITICAL — every field must be useful):
+- color: Use the PRIMARY visible color (e.g. "White", "Black", "Navy Blue"). Never use "Various" unless truly 3+ equally dominant colors.
+- material: Use the DOMINANT material you can see (e.g. "Mesh", "Leather", "Ceramic", "Stainless Steel"). Never use "Mixed" as a cop-out.
+- condition: Assess honestly from visual wear signs: "New", "Very Good", "Good", "Fair", "Used".
+- brand: Only include if clearly identifiable. Use null (not "Unbranded" or "Generic") if unknown.
+- subcategory/type: Be as specific as possible ("Running Shoe" not "Other", "Dinner Plate" not "General").
+- purpose: Describe a real use case ("Running", "Casual Wear", "Dining", "Cooking") — never use "General Use" unless no better option exists.
 
 PRICING ACCURACY RULES:
 - If you recognize the exact product, give its real retail price (or close estimate).
@@ -1336,8 +1354,11 @@ function validateResult(result: SmartScanResult, classification: z.infer<typeof 
     validated.general_details = null;
   }
 
-  if (!validated.item_name || validated.item_name.length < 3 || validated.item_name === 'Unknown') {
-    validated.item_name = classification.item_name || `${classification.category} Item`;
+  if (!validated.item_name || validated.item_name.length < 3 || validated.item_name === 'Unknown' || validated.item_name.toLowerCase() === 'detected item' || validated.item_name.toLowerCase() === 'scanned item') {
+    const fallbackName = classification.item_name && classification.item_name.length > 3 && !['unknown', 'detected item', 'scanned item', 'item', 'other'].includes(classification.item_name.toLowerCase())
+      ? classification.item_name
+      : (classification.short_summary?.split('.')[0]?.trim() || `${classification.category || 'General'} Item`);
+    validated.item_name = fallbackName;
     validated.confidence = Math.min(validated.confidence, 0.4);
   }
 
@@ -1420,8 +1441,25 @@ function recalibrateConfidence(result: SmartScanResult, _classification: z.infer
     }
   }
 
-  const name = (recalibrated.item_name ?? '').toLowerCase();
-  if (name.length < 5 || name === 'item' || name === 'product' || name === 'unknown' || name === 'scanned item') {
+  const name = (recalibrated.item_name ?? '').toLowerCase().trim();
+  const GENERIC_NAMES = ['item', 'product', 'unknown', 'scanned item', 'detected item', 'object', 'thing', 'other', 'general item', 'unidentified', 'misc', 'miscellaneous'];
+  if (name.length < 5 || GENERIC_NAMES.includes(name) || name.startsWith('detected ') || name.startsWith('scanned ')) {
+    const desc = (recalibrated.short_summary ?? '').trim();
+    const cues = (recalibrated.visual_cues ?? []).slice(0, 3).join(', ');
+    const cat = recalibrated.category ?? '';
+    if (desc && desc.length > 10) {
+      const extracted = desc.split('.')[0].trim().substring(0, 60);
+      if (extracted.length > 5) {
+        recalibrated.item_name = extracted;
+        console.log('[SmartScan] Replaced generic name with summary excerpt:', extracted);
+      }
+    } else if (cues.length > 5) {
+      recalibrated.item_name = cat ? `${cat} Item` : cues.split(',')[0].trim();
+      console.log('[SmartScan] Replaced generic name with cue/cat:', recalibrated.item_name);
+    } else if (cat && cat.length > 2 && cat.toLowerCase() !== 'other') {
+      recalibrated.item_name = `${cat} Item`;
+      console.log('[SmartScan] Replaced generic name with category:', recalibrated.item_name);
+    }
     recalibrated.confidence = Math.min(recalibrated.confidence, 0.4);
     console.log('[SmartScan] Confidence capped due to generic item name:', name);
   }
@@ -1463,7 +1501,7 @@ function repairMissingDetails(result: SmartScanResult, classification: z.infer<t
   console.log('[SmartScan] No details populated — building fallback general_details');
   repaired.item_type = 'general';
   repaired.general_details = {
-    item_description: classification.item_name || 'Scanned item',
+    item_description: classification.item_name && classification.item_name.toLowerCase() !== 'scanned item' && classification.item_name.toLowerCase() !== 'detected item' ? classification.item_name : (classification.short_summary?.split('.')[0] ?? classification.category ?? 'Unidentified Item'),
     subcategory: classification.category || 'other',
     brand: null, model: null, material: null, color: null, condition: null,
     estimated_retail_price: null, estimated_resale_value: null, price_range: null,

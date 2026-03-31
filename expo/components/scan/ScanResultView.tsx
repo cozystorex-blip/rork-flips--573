@@ -113,44 +113,44 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     const fd = result.fashion_details;
     const typeMap: Record<string, string> = { shoes: 'Footwear', clothing: 'Clothing', outerwear: 'Outerwear', accessories: 'Accessories', bags: 'Bags', jewelry: 'Jewelry', activewear: 'Activewear', other: 'Fashion' };
     chips.push({ label: 'Type', value: typeMap[fd.subcategory] ?? fd.subcategory });
-    chips.push({ label: 'Color', value: fd.color ? (fd.secondary_color ? `${fd.color} / ${fd.secondary_color}` : fd.color) : 'Not detected' });
-    chips.push({ label: 'Material', value: fd.material ?? 'Mixed' });
-    chips.push({ label: 'Style', value: fd.style ?? 'Casual' });
+    chips.push({ label: 'Color', value: fd.color ? (fd.secondary_color ? `${fd.color} / ${fd.secondary_color}` : fd.color) : 'Unknown' });
+    chips.push({ label: 'Material', value: fd.material && fd.material !== 'Mixed' ? fd.material : 'Synthetic' });
     chips.push({ label: 'Condition', value: fd.condition ? fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1) : 'Good' });
-    chips.push({ label: 'For', value: fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : 'Unisex' });
+    chips.push({ label: 'Brand', value: fd.brand && fd.brand !== 'Unbranded' ? fd.brand : 'Unknown' });
+    chips.push({ label: 'For', value: fd.style && fd.style !== 'Casual' ? fd.style : (fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : 'Casual Wear') });
   } else if (result.electronics_details) {
     const ed = result.electronics_details;
     chips.push({ label: 'Type', value: ed.product_type ?? 'Electronics' });
-    chips.push({ label: 'Brand', value: ed.brand ?? 'Unknown' });
-    chips.push({ label: 'Model', value: ed.model ?? 'Generic' });
-    chips.push({ label: 'Spec', value: ed.storage_or_spec ?? 'Standard' });
+    chips.push({ label: 'Color', value: 'Unknown' });
+    chips.push({ label: 'Material', value: 'Plastic' });
     chips.push({ label: 'Condition', value: ed.condition ? ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1) : 'Good' });
-    chips.push({ label: 'For', value: 'General Use' });
+    chips.push({ label: 'Brand', value: ed.brand ?? 'Unknown' });
+    chips.push({ label: 'For', value: ed.purpose ? ed.purpose.split('.')[0].substring(0, 30) : (ed.product_type ? `${ed.product_type} Use` : 'Personal Use') });
   } else if (result.furniture_details) {
     const fd = result.furniture_details;
     chips.push({ label: 'Type', value: fd.item_type_specific ?? 'Furniture' });
-    chips.push({ label: 'Color', value: fd.finish_color ?? 'Natural' });
-    chips.push({ label: 'Material', value: fd.material ?? 'Mixed' });
-    chips.push({ label: 'Style', value: fd.style ?? 'Modern' });
+    chips.push({ label: 'Color', value: fd.finish_color ?? 'Unknown' });
+    chips.push({ label: 'Material', value: fd.material && fd.material !== 'Mixed' ? fd.material : 'Wood' });
     chips.push({ label: 'Condition', value: fd.condition_estimate ? fd.condition_estimate.replace(/-/g, ' ').charAt(0).toUpperCase() + fd.condition_estimate.replace(/-/g, ' ').slice(1) : 'Good' });
-    chips.push({ label: 'For', value: fd.room_fit ?? 'Any Room' });
+    chips.push({ label: 'Brand', value: fd.resale_title_suggestion ? fd.resale_title_suggestion.split(' ')[0] : 'Unknown' });
+    chips.push({ label: 'For', value: fd.use_case ?? fd.room_fit ?? 'Home' });
   } else if (result.household_details) {
     const hd = result.household_details;
     const subcatMap: Record<string, string> = { tools: 'Tools', fitness: 'Fitness', kitchenware: 'Kitchenware', cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor', garden: 'Garden', storage: 'Storage', lighting: 'Lighting', small_appliance: 'Appliance', other: 'Household' };
     chips.push({ label: 'Type', value: subcatMap[hd.subcategory] ?? hd.subcategory });
-    chips.push({ label: 'Brand', value: hd.brand ?? 'Generic' });
-    chips.push({ label: 'Material', value: hd.material ?? 'Mixed' });
+    chips.push({ label: 'Color', value: 'Unknown' });
+    chips.push({ label: 'Material', value: hd.material && hd.material !== 'Mixed' ? hd.material : 'Plastic' });
     chips.push({ label: 'Condition', value: hd.condition ? hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1) : 'Good' });
-    chips.push({ label: 'Model', value: hd.model ?? 'Standard' });
-    chips.push({ label: 'For', value: 'Home Use' });
+    chips.push({ label: 'Brand', value: hd.brand && hd.brand !== 'Generic' ? hd.brand : 'Unknown' });
+    chips.push({ label: 'For', value: hd.purpose ? hd.purpose.split('.')[0].substring(0, 30) : (subcatMap[hd.subcategory] ? `${subcatMap[hd.subcategory]}` : 'Home Use') });
   } else if (result.general_details) {
     const gd = result.general_details;
-    chips.push({ label: 'Type', value: gd.subcategory ? gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' ') : 'General' });
-    chips.push({ label: 'Color', value: gd.color ?? 'Various' });
-    chips.push({ label: 'Material', value: gd.material ?? 'Mixed' });
+    chips.push({ label: 'Type', value: gd.subcategory ? gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' ') : 'Item' });
+    chips.push({ label: 'Color', value: gd.color && gd.color !== 'Various' ? gd.color : 'Unknown' });
+    chips.push({ label: 'Material', value: gd.material && gd.material !== 'Mixed' ? gd.material : 'Unknown' });
     chips.push({ label: 'Condition', value: gd.condition ? gd.condition.charAt(0).toUpperCase() + gd.condition.slice(1) : 'Good' });
-    chips.push({ label: 'Brand', value: gd.brand ?? 'Unbranded' });
-    chips.push({ label: 'For', value: 'General Use' });
+    chips.push({ label: 'Brand', value: gd.brand && gd.brand !== 'Unbranded' ? gd.brand : 'Unknown' });
+    chips.push({ label: 'For', value: gd.purpose ? gd.purpose.split('.')[0].substring(0, 30) : 'Personal Use' });
   } else if (result.food_details) {
     chips.push({ label: 'Calories', value: `${result.food_details.calories}` });
     chips.push({ label: 'Protein', value: `${result.food_details.protein_g}g` });
@@ -267,14 +267,15 @@ function getInsightText(result: SmartScanResult): { title: string; description: 
     };
   }
 
+  const insightItemName = result.item_name ?? 'This item';
   const typeInsights: Record<string, string> = {
-    fashion: 'Fashion item detected with estimated resale potential based on visual analysis.',
-    electronics: 'Electronics item identified with estimated market value.',
-    furniture: 'Furniture piece detected with estimated secondhand value.',
-    household: 'Household item identified with general market value estimate.',
+    fashion: `${insightItemName} — check brand labels, size tags, and condition details for a more accurate resale estimate.`,
+    electronics: `${insightItemName} — scan serial numbers or model stickers for exact specs and market pricing.`,
+    furniture: `${insightItemName} — check the underside for brand stamps and measure dimensions for listing.`,
+    household: `${insightItemName} — verify brand markings and test functionality for the best resale outcome.`,
     food: 'Food item identified with ingredient pairings and recipe ideas.',
     grocery: 'Grocery product identified with cooking suggestions.',
-    general: 'Item identified with best-effort value estimate.',
+    general: `${insightItemName} — photograph all sides and any labels for better identification accuracy.`,
   };
 
   return {
@@ -312,8 +313,29 @@ function getSubtleTips(result: SmartScanResult): string[] {
   if (storageTip) tips.push(storageTip);
 
   if (tips.length === 0) {
-    tips.push('Photograph all sides clearly for best results');
-    tips.push('Include brand labels or tags in photos');
+    const itemType = result.item_type;
+    const _tipItemName = (result.item_name ?? 'item').toLowerCase();
+    if (itemType === 'fashion') {
+      tips.push(`Check inside labels and size tags for brand and model info`);
+      tips.push(`Photograph sole wear, stitching, and any visible branding`);
+      tips.push(`Clean and photograph in natural light for best listing results`);
+    } else if (itemType === 'electronics') {
+      tips.push(`Look for serial numbers or model stickers on the back or bottom`);
+      tips.push(`Check power-on status and screen condition before listing`);
+      tips.push(`Include original box and accessories for higher resale value`);
+    } else if (itemType === 'furniture') {
+      tips.push(`Check the underside for manufacturer stamps or labels`);
+      tips.push(`Photograph any scratches, dents, or wear on surfaces`);
+      tips.push(`Measure dimensions and include them in your listing`);
+    } else if (itemType === 'household') {
+      tips.push(`Check the base or back for brand markings and model numbers`);
+      tips.push(`Test functionality before listing — buyers expect working items`);
+      tips.push(`Clean thoroughly and photograph from multiple angles`);
+    } else {
+      tips.push(`Look for brand labels, barcodes, or model numbers on the item`);
+      tips.push(`Photograph from multiple angles in good lighting`);
+      tips.push(`Include close-ups of any identifying marks or unique features`);
+    }
   }
 
   return tips.slice(0, 3);
@@ -528,7 +550,7 @@ export default function ScanResultView({
       )}
 
       <View style={st.contentSection}>
-        <Text style={st.itemName}>{result.item_name}</Text>
+        <Text style={st.insightItemName}>{result.item_name}</Text>
 
         <View style={st.metaRow}>
           <Text style={st.categoryText}>{categoryLabel}</Text>
@@ -851,7 +873,7 @@ const st = StyleSheet.create({
   contentSection: {
     paddingBottom: 20,
   },
-  itemName: {
+  insightItemName: {
     fontSize: 26,
     fontWeight: '800' as const,
     color: '#1C1C1E',
