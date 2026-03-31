@@ -17,6 +17,10 @@ import {
   TrendingUp,
   Info,
   Trash2,
+  Leaf,
+  UtensilsCrossed,
+  CookingPot,
+  Cherry,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -412,12 +416,54 @@ export default function ScanResultView({
   }, [result]);
 
   const [tipsExpanded, setTipsExpanded] = useState(false);
+  const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
+  const [recipesExpanded, setRecipesExpanded] = useState(false);
 
 
   const handleToggleTips = useCallback(() => {
     void Haptics.selectionAsync();
     setTipsExpanded(prev => !prev);
   }, []);
+
+  const handleToggleIngredients = useCallback(() => {
+    void Haptics.selectionAsync();
+    setIngredientsExpanded(prev => !prev);
+  }, []);
+
+  const handleToggleRecipes = useCallback(() => {
+    void Haptics.selectionAsync();
+    setRecipesExpanded(prev => !prev);
+  }, []);
+
+  const foodIngredients = useMemo(() => {
+    if (result.food_details?.ingredients?.length) return result.food_details.ingredients;
+    if (result.grocery_details?.ingredients_list?.length) return result.grocery_details.ingredients_list;
+    return [];
+  }, [result]);
+
+  const foodPairsWith = useMemo(() => {
+    const items: string[] = [];
+    if (result.food_details?.complementary_items?.length) items.push(...result.food_details.complementary_items);
+    else if (result.grocery_details?.complementary_items?.length) items.push(...result.grocery_details.complementary_items);
+    if (result.food_details?.pairs_with_drinks?.length) items.push(...result.food_details.pairs_with_drinks);
+    if (result.grocery_details?.what_else_needed?.length) items.push(...result.grocery_details.what_else_needed);
+    return [...new Set(items)].slice(0, 8);
+  }, [result]);
+
+  const foodRecipes = useMemo(() => {
+    if (result.food_details?.recipe_ideas?.length) return result.food_details.recipe_ideas;
+    if (result.grocery_details?.recipe_ideas?.length) return result.grocery_details.recipe_ideas;
+    return [];
+  }, [result]);
+
+  const foodCookingTips = useMemo(() => {
+    const tips: string[] = [];
+    if (result.food_details?.preparation_tips?.length) tips.push(...result.food_details.preparation_tips);
+    else if (result.grocery_details?.preparation_tips?.length) tips.push(...result.grocery_details.preparation_tips);
+    if (result.food_details?.storage_tip) tips.push(result.food_details.storage_tip);
+    else if (result.grocery_details?.storage_tip) tips.push(result.grocery_details.storage_tip);
+    return tips.slice(0, 5);
+  }, [result]);
 
 
 
@@ -527,7 +573,104 @@ export default function ScanResultView({
           </View>
         )}
 
+        {isFood && foodIngredients.length > 0 && (
+          <View style={st.collapsibleSection}>
+            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleIngredients}>
+              <View style={st.collapsibleHeaderLeft}>
+                <Leaf size={14} color="#16A34A" />
+                <Text style={st.collapsibleHeaderTitle}>Ingredients</Text>
+                <View style={st.foodBadgeCount}>
+                  <Text style={st.foodBadgeCountText}>{foodIngredients.length}</Text>
+                </View>
+              </View>
+              <ChevronRight
+                size={14}
+                color="#AEAEB2"
+                style={{ transform: [{ rotate: ingredientsExpanded ? '90deg' : '0deg' }] }}
+              />
+            </Pressable>
+            {ingredientsExpanded && (
+              <View style={st.collapsibleContent}>
+                {foodIngredients.map((ing, i) => (
+                  <View key={`ing-${i}`} style={st.ingredientRow}>
+                    <View style={st.ingredientDot} />
+                    <Text style={st.bulletText}>{ing}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
+        {isFood && foodPairsWith.length > 0 && (
+          <View style={st.foodPairsSection}>
+            <SectionHeader icon={Cherry} title="Foods That Go With It" color="#E11D48" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={st.foodPairsScroll}
+            >
+              {foodPairsWith.map((item, i) => (
+                <View key={`pair-${i}`} style={st.foodPairCard}>
+                  <View style={st.foodPairIconWrap}>
+                    <UtensilsCrossed size={16} color="#E11D48" />
+                  </View>
+                  <Text style={st.foodPairText} numberOfLines={2}>{item}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {isFood && foodRecipes.length > 0 && (
+          <View style={st.collapsibleSection}>
+            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleRecipes}>
+              <View style={st.collapsibleHeaderLeft}>
+                <CookingPot size={14} color="#EA580C" />
+                <Text style={st.collapsibleHeaderTitle}>What You Can Cook</Text>
+                <View style={[st.foodBadgeCount, { backgroundColor: '#EA580C14' }]}>
+                  <Text style={[st.foodBadgeCountText, { color: '#EA580C' }]}>{foodRecipes.length}</Text>
+                </View>
+              </View>
+              <ChevronRight
+                size={14}
+                color="#AEAEB2"
+                style={{ transform: [{ rotate: recipesExpanded ? '90deg' : '0deg' }] }}
+              />
+            </Pressable>
+            {recipesExpanded && (
+              <View style={st.collapsibleContent}>
+                {foodRecipes.map((recipe, i) => {
+                  const diffColor = recipe.difficulty === 'easy' ? '#16A34A' : recipe.difficulty === 'medium' ? '#D97706' : '#DC2626';
+                  const diffBg = recipe.difficulty === 'easy' ? '#16A34A14' : recipe.difficulty === 'medium' ? '#D9770614' : '#DC262614';
+                  return (
+                    <View key={`recipe-${i}`} style={st.recipeCard}>
+                      <View style={st.recipeHeader}>
+                        <Text style={st.recipeName}>{recipe.name}</Text>
+                        <View style={[st.recipeDiffBadge, { backgroundColor: diffBg }]}>
+                          <Text style={[st.recipeDiffText, { color: diffColor }]}>
+                            {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={st.recipeDesc}>{recipe.description}</Text>
+                      <Text style={st.recipeTime}>{recipe.prep_time}</Text>
+                      {recipe.key_ingredients.length > 0 && (
+                        <View style={st.recipeIngRow}>
+                          {recipe.key_ingredients.map((ing, j) => (
+                            <View key={`ring-${j}`} style={st.recipeIngChip}>
+                              <Text style={st.recipeIngText}>{ing}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
 
         <Pressable
           style={({ pressed }) => [st.scanAnotherBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
@@ -538,12 +681,12 @@ export default function ScanResultView({
           <Text style={st.scanAnotherText}>Scan Another</Text>
         </Pressable>
 
-        {subtleTips.length > 0 && (
+        {(isFood && foodCookingTips.length > 0 ? foodCookingTips : subtleTips).length > 0 && (
           <View style={st.collapsibleSection}>
             <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleTips}>
               <View style={st.collapsibleHeaderLeft}>
                 <Lightbulb size={14} color="#F59E0B" />
-                <Text style={st.collapsibleHeaderTitle}>Tips</Text>
+                <Text style={st.collapsibleHeaderTitle}>{isFood ? 'Cooking & Storage Tips' : 'Tips'}</Text>
               </View>
               <ChevronRight
                 size={14}
@@ -553,7 +696,7 @@ export default function ScanResultView({
             </Pressable>
             {tipsExpanded && (
               <View style={st.collapsibleContent}>
-                {subtleTips.map((tip, i) => (
+                {(isFood && foodCookingTips.length > 0 ? foodCookingTips : subtleTips).map((tip, i) => (
                   <View key={`tip-${i}`} style={st.bulletRow}>
                     <Text style={st.bulletChar}>→</Text>
                     <Text style={st.bulletText}>{tip}</Text>
@@ -989,5 +1132,124 @@ const st = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600' as const,
     color: '#EF4444',
+  },
+  foodBadgeCount: {
+    backgroundColor: '#16A34A14',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: ScannerRadius.sm,
+    marginLeft: 2,
+  },
+  foodBadgeCountText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+  ingredientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  ingredientDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+  },
+  foodPairsSection: {
+    marginBottom: ScannerSpacing.lg,
+  },
+  foodPairsScroll: {
+    gap: 10,
+  },
+  foodPairCard: {
+    width: 120,
+    backgroundColor: '#FFF1F2',
+    borderRadius: ScannerRadius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  foodPairIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  foodPairText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  recipeCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: ScannerRadius.lg,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  recipeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  recipeName: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    flex: 1,
+    marginRight: 8,
+  },
+  recipeDiffBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  recipeDiffText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.3,
+  },
+  recipeDesc: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    lineHeight: 17,
+    marginBottom: 6,
+  },
+  recipeTime: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    marginBottom: 6,
+  },
+  recipeIngRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  recipeIngChip: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  recipeIngText: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: '#6B7280',
   },
 });
