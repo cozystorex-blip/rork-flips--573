@@ -245,18 +245,12 @@ export function getConfidenceInfo(confidence: number) {
   if (confidence >= 0.70) {
     label = 'High Confidence Match';
     color = '#059669';
-  } else if (confidence >= 0.40) {
+  } else {
     label = 'Likely Match';
     color = '#D97706';
-  } else if (confidence >= 0.20) {
-    label = 'Best Match (Low Confidence)';
-    color = '#F97316';
-  } else {
-    label = 'Showing Closest Matches';
-    color = '#EF4444';
   }
 
-  return { label, color, isLow: confidence < 0.40, isVeryLow: confidence < 0.20 };
+  return { label, color, isLow: false, isVeryLow: false };
 }
 
 export function ConfidenceBadge({ confidence }: ConfidenceDisplayProps) {

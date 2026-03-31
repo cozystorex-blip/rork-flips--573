@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Package,
   TrendingUp,
-  Info,
   Trash2,
   Leaf,
   UtensilsCrossed,
@@ -199,7 +198,7 @@ function getRecentlySoldItems(result: SmartScanResult): SoldItem[] {
   ];
 }
 
-function getInsightText(result: SmartScanResult, isLowConfidence: boolean): { title: string; description: string } {
+function getInsightText(result: SmartScanResult): { title: string; description: string } {
   const resaleSuggestion = result.fashion_details?.resale_suggestion
     ?? result.electronics_details?.resale_suggestion
     ?? result.furniture_details?.resale_suggestion
@@ -211,14 +210,6 @@ function getInsightText(result: SmartScanResult, isLowConfidence: boolean): { ti
     ?? result.furniture_details?.value_reasoning
     ?? result.household_details?.value_reasoning
     ?? result.general_details?.value_reasoning;
-
-  if (isLowConfidence) {
-    const base = resaleSuggestion ?? valueReasoning ?? result.short_summary ?? '';
-    return {
-      title: base || 'Best visual match — category and estimate are still usable.',
-      description: 'Try scanning with better lighting or a closer angle for improved accuracy.',
-    };
-  }
 
   if (resaleSuggestion) {
     return {
@@ -319,8 +310,8 @@ interface ScanResultViewProps {
   _generatingImage?: boolean;
   resultFade: Animated.Value;
   onScanAgain: () => void;
-  onScanGallery: () => void;
-  isLowConfidence: boolean;
+  onScanGallery?: () => void;
+  isLowConfidence?: boolean;
   viewingEntryId: string | null;
   onDelete?: () => void;
 }
@@ -372,8 +363,6 @@ export default function ScanResultView({
   referenceImageUrl,
   resultFade,
   onScanAgain,
-  onScanGallery,
-  isLowConfidence,
   viewingEntryId,
   onDelete,
 }: ScanResultViewProps) {
@@ -381,20 +370,18 @@ export default function ScanResultView({
   const priceInfo = useMemo(() => extractPriceInfo(result), [result]);
   const attributeChips = useMemo(() => getAttributeChips(result), [result]);
   const recentlySold = useMemo(() => getRecentlySoldItems(result), [result]);
-  const insightData = useMemo(() => getInsightText(result, isLowConfidence), [result, isLowConfidence]);
+  const insightData = useMemo(() => getInsightText(result), [result]);
   const subtleTips = useMemo(() => getSubtleTips(result), [result]);
 
 
   const confidenceBadgeLabel = useMemo(() => {
     if (result.confidence >= 0.70) return 'High conf.';
-    if (result.confidence >= 0.40) return 'Med conf.';
-    return 'Low conf.';
+    return 'Med conf.';
   }, [result.confidence]);
 
   const confidenceBadgeColor = useMemo(() => {
     if (result.confidence >= 0.70) return '#059669';
-    if (result.confidence >= 0.40) return '#D97706';
-    return '#F59E0B';
+    return '#D97706';
   }, [result.confidence]);
 
   const heroImageUri = scannedImageUri ?? referenceImageUrl;
@@ -529,14 +516,10 @@ export default function ScanResultView({
 
         <View style={st.insightCard}>
           <View style={st.insightIconWrap}>
-            {isLowConfidence ? (
-              <Info size={18} color="#D97706" />
-            ) : (
-              <CheckCircle size={18} color="#059669" />
-            )}
+            <CheckCircle size={18} color="#059669" />
           </View>
           <View style={st.insightTextWrap}>
-            <Text style={[st.insightTitle, isLowConfidence && { color: '#92400E' }]}>{insightData.title}</Text>
+            <Text style={st.insightTitle}>{insightData.title}</Text>
             {insightData.description ? (
               <Text style={st.insightDescription}>{insightData.description}</Text>
             ) : null}
@@ -705,16 +688,6 @@ export default function ScanResultView({
               </View>
             )}
           </View>
-        )}
-
-        {isLowConfidence && (
-          <Pressable
-            style={({ pressed }) => [st.tryDifferentBtn, pressed && { opacity: 0.7 }]}
-            onPress={onScanGallery}
-            testID="try-different-photo"
-          >
-            <Text style={st.tryDifferentText}>Try a Different Photo</Text>
-          </Pressable>
         )}
 
         {onDelete && viewingEntryId && (
@@ -1109,16 +1082,6 @@ const st = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' as const,
     color: ScannerColors.accent,
-  },
-  tryDifferentBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  tryDifferentText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
   },
   deleteBtn: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -42,7 +42,6 @@ import {
   ScannerTopBar,
   ScannerActionButtons,
   ScannerProgressCard,
-  getConfidenceInfo,
 } from '@/components/scan/ScannerComponents';
 import ScanResultView from '@/components/scan/ScanResultView';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
@@ -280,10 +279,7 @@ export default function SmartScanScreen() {
     hasNavigatedRef.current = false;
   }, [resetScan]);
 
-  const isLowConfidence = useMemo(() => {
-    if (!result) return false;
-    return getConfidenceInfo(result.confidence).isLow;
-  }, [result]);
+
 
   return (
     <View style={st.container}>
@@ -431,7 +427,7 @@ export default function SmartScanScreen() {
             resultFade={resultFade}
             onScanAgain={handleResetScan}
             onScanGallery={() => void handleCapture('gallery')}
-            isLowConfidence={isLowConfidence}
+
             viewingEntryId={viewingEntryId}
             onDelete={viewingEntryId ? () => {
               Alert.alert(
@@ -574,9 +570,6 @@ const st = StyleSheet.create({
 
   detailsSection: { backgroundColor: '#FFFFFF', borderRadius: ScannerRadius.xxl, padding: ScannerSpacing.lg, marginBottom: ScannerSpacing.lg, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
 
-  lowConfidenceCard: { backgroundColor: ScannerColors.warningBg, borderRadius: ScannerRadius.lg, padding: 14, marginBottom: ScannerSpacing.md, borderWidth: 1, borderColor: ScannerColors.warningBorder },
-  lowConfidenceTitle: { fontSize: 13, fontWeight: '700' as const, color: ScannerColors.warning, marginBottom: 4 },
-  lowConfidenceText: { fontSize: 12, color: ScannerColors.textSecondary, lineHeight: 17 },
 
   historySection: { backgroundColor: ScannerColors.card, borderRadius: ScannerRadius.xxl, marginBottom: ScannerSpacing.xl, overflow: 'hidden' as const, borderWidth: 1, borderColor: ScannerColors.cardBorder },
   historyHeaderRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingHorizontal: ScannerSpacing.lg, paddingVertical: 14 },
