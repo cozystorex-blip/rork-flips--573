@@ -213,10 +213,7 @@ export default function SmartScanScreen() {
 
     hasAutoLaunched.current = true;
     console.log('[SmartScan] Auto-launching camera on open');
-    const timer = setTimeout(() => {
-      void handleCapture('camera');
-    }, 100);
-    return () => clearTimeout(timer);
+    void handleCapture('camera');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.historyEntryId, viewingEntryId, result, scanning]);
 
