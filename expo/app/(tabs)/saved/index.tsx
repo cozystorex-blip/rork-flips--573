@@ -23,7 +23,7 @@ import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import { useScanProcess } from '@/contexts/ScanProcessContext';
 import type { SmartScanResult } from '@/services/smartScanService';
 import { useScreenWidth } from '@/hooks/useScreenWidth';
-import SyncBadge from '@/components/SyncBadge';
+
 
 const GRID_GAP = 12;
 const H_PAD = 16;
@@ -179,13 +179,6 @@ export default function SavedScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#16A34A" />
         }
       >
-        {filteredItems.length > 0 && (
-          <View style={styles.headerRow}>
-            <Text style={styles.itemCount}>{filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}</Text>
-            <SyncBadge itemCount={filteredItems.length} />
-          </View>
-        )}
-
         {isLoading ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.loadingText}>Loading...</Text>
@@ -273,17 +266,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: H_PAD,
     paddingTop: 8,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  itemCount: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-  },
+
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',

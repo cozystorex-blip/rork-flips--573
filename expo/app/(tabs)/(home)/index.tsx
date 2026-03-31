@@ -24,7 +24,7 @@ import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import { useScanProcess } from '@/contexts/ScanProcessContext';
 import type { SmartScanResult } from '@/services/smartScanService';
 import { useScreenWidth } from '@/hooks/useScreenWidth';
-import OnlineStatusBar from '@/components/OnlineStatusBar';
+
 
 const GRID_GAP = 12;
 const H_PAD = 16;
@@ -188,10 +188,6 @@ export default function HomeScreen() {
         }
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-          <OnlineStatusBar
-            onPress={() => router.push('/(tabs)/profile')}
-          />
-
           {isLoading ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.loadingText}>Loading...</Text>
