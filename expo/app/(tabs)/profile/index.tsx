@@ -9,25 +9,20 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
-  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   LogOut,
   Camera,
-  Wifi,
-  WifiOff,
   Scan,
   Bookmark,
   Clock,
-  Eye,
   ShoppingBag,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { useOnlinePeople, OnlineUser, UserActivity } from '@/contexts/OnlinePeopleContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import SyncBadge from '@/components/SyncBadge';
@@ -40,92 +35,16 @@ import {
   openAppSettings,
 } from '@/services/uploadService';
 
-const ACTIVITY_LABELS: Record<UserActivity, string> = {
-  scanning: 'Scanning items',
-  browsing: 'Browsing',
-  saving: 'Saving deals',
-  idle: 'Idle',
-};
-
-const ACTIVITY_COLORS: Record<UserActivity, string> = {
-  scanning: '#16A34A',
-  browsing: '#007AFF',
-  saving: '#FF9500',
-  idle: '#AEAEB2',
-};
-
-function OnlineUserCard({ user, index }: { user: OnlineUser; index: number }) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        delay: index * 60,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 300,
-        delay: index * 60,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim, index]);
-
-  const timeSinceJoin = useMemo(() => {
-    const diff = Date.now() - user.joinedAt;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins === 1) return '1m ago';
-    return `${mins}m ago`;
-  }, [user.joinedAt]);
-
-  return (
-    <Animated.View style={[styles.userCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      <View style={styles.userAvatarWrap}>
-        <Image source={{ uri: user.avatar_url }} style={styles.userAvatar} contentFit="cover" />
-        <View style={[styles.statusDot, user.status === 'active' ? styles.statusActive : styles.statusIdle]} />
-      </View>
-      <View style={styles.userInfo}>
-        <Text style={styles.userName} numberOfLines={1}>{user.name}</Text>
-        <View style={styles.userActivityRow}>
-          <View style={[styles.activityDot, { backgroundColor: ACTIVITY_COLORS[user.activity] }]} />
-          <Text style={[styles.userActivity, { color: ACTIVITY_COLORS[user.activity] }]}>
-            {ACTIVITY_LABELS[user.activity]}
-          </Text>
-          <Text style={styles.userJoined}> · {timeSinceJoin}</Text>
-        </View>
-      </View>
-      {user.scanCount > 0 && (
-        <View style={styles.userScanBadge}>
-          <Scan size={10} color="#8E8E93" strokeWidth={2} />
-          <Text style={styles.userScanCount}>{user.scanCount}</Text>
-        </View>
-      )}
-    </Animated.View>
-  );
-}
-
-const MemoizedOnlineUserCard = React.memo(OnlineUserCard);
-
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
-  const { handleToggleOnline, isUserOnline, onlineUsers, activeCount, connectionState, isToggling } = useOnlinePeople();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const isConnecting = connectionState === 'connecting' || isToggling;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const onlineListFade = useRef(new Animated.Value(0)).current;
-  const onlineDotPulse = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -134,40 +53,6 @@ export default function ProfileScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
-
-  useEffect(() => {
-    Animated.timing(onlineListFade, {
-      toValue: isUserOnline ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [isUserOnline, onlineListFade]);
-
-  useEffect(() => {
-    if (!isUserOnline) {
-      onlineDotPulse.setValue(0.4);
-      return;
-    }
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(onlineDotPulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(onlineDotPulse, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [isUserOnline, onlineDotPulse]);
-
-  const handleGoOnline = useCallback(() => {
-    if (isConnecting) return;
-
-    Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1.15, duration: 120, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
-    ]).start();
-
-    void handleToggleOnline();
-  }, [isConnecting, handleToggleOnline, pulseAnim]);
 
   const memberSince = useMemo(() => {
     if (profile?.created_at) {
@@ -310,12 +195,6 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const renderOnlineUser = useCallback(({ item, index }: { item: OnlineUser; index: number }) => (
-    <MemoizedOnlineUserCard user={item} index={index} />
-  ), []);
-
-  const keyExtractor = useCallback((item: OnlineUser) => item.id, []);
-
   return (
     <View style={styles.root}>
       <ScrollView
@@ -351,9 +230,6 @@ export default function ProfileScreen() {
               >
                 <Camera size={14} color="#16A34A" strokeWidth={2} />
               </Pressable>
-              {isUserOnline && (
-                <Animated.View style={[styles.onlineRing, { opacity: onlineDotPulse }]} />
-              )}
             </View>
 
             <Pressable
@@ -368,13 +244,6 @@ export default function ProfileScreen() {
                 <Text style={styles.nameText}>{displayName}</Text>
               )}
             </Pressable>
-
-            {isUserOnline && (
-              <View style={styles.onlineTagRow}>
-                <View style={styles.onlineTagDot} />
-                <Text style={styles.onlineTagText}>Online</Text>
-              </View>
-            )}
 
             <Text style={styles.memberText}>Member since {memberSince}</Text>
             {user?.email && (
@@ -397,46 +266,7 @@ export default function ProfileScreen() {
                 <Text style={styles.statValue}>{totalSaved}</Text>
                 <Text style={styles.statLabel}>Saved</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <View style={styles.statIconWrap}>
-                  <Eye size={16} color="#FFFFFF" strokeWidth={2} />
-                </View>
-                <Text style={styles.statValue}>{isUserOnline ? activeCount : 0}</Text>
-                <Text style={styles.statLabel}>Active</Text>
-              </View>
             </View>
-
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Pressable
-                onPress={handleGoOnline}
-                style={({ pressed }) => [
-                  styles.onlineBadgeRow,
-                  isUserOnline && styles.onlineBadgeActive,
-                  pressed && { opacity: 0.8 },
-                ]}
-                testID="go-online-btn"
-              >
-                {isConnecting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    {isUserOnline ? (
-                      <Wifi size={16} color="#FFFFFF" strokeWidth={2.5} />
-                    ) : (
-                      <WifiOff size={16} color="rgba(255,255,255,0.7)" strokeWidth={2} />
-                    )}
-                    <Text style={styles.onlineBadgeLabel}>
-                      {isUserOnline
-                        ? onlineUsers.length > 0
-                          ? `Online · ${onlineUsers.length} nearby`
-                          : 'Online · Connected'
-                        : 'Go Online'}
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            </Animated.View>
 
             <View style={styles.runnerContainer}>
               <Image
@@ -450,49 +280,9 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {isUserOnline && (
-            <View style={styles.syncStatusRow}>
-              <SyncBadge itemCount={totalScans + totalSaved} />
-            </View>
-          )}
-
-          {isUserOnline && (
-            <Animated.View style={[styles.onlineSection, { opacity: onlineListFade }]}>
-              <View style={styles.onlineHeader}>
-                <View style={styles.onlineHeaderLeft}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.onlineSectionTitle}>People Online</Text>
-                </View>
-                <Text style={styles.onlineCount}>{onlineUsers.length}</Text>
-              </View>
-
-              {onlineUsers.length > 0 ? (
-                <FlatList
-                  data={onlineUsers}
-                  renderItem={renderOnlineUser}
-                  keyExtractor={keyExtractor}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.usersList}
-                />
-              ) : (
-                <View style={styles.noUsersHint}>
-                  <Wifi size={20} color="#AEAEB2" strokeWidth={1.5} />
-                  <Text style={styles.noUsersText}>No other users online right now</Text>
-                  <Text style={styles.noUsersSubtext}>When others go online, they'll appear here</Text>
-                </View>
-              )}
-            </Animated.View>
-          )}
-
-          {!isUserOnline && (
-            <View style={styles.offlineHint}>
-              <WifiOff size={32} color="#C7C7CC" strokeWidth={1.5} />
-              <Text style={styles.offlineTitle}>You're Offline</Text>
-              <Text style={styles.offlineSubtitle}>
-                Tap "Go Online" to connect with other Flips users in real time
-              </Text>
-            </View>
-          )}
+          <View style={styles.syncStatusRow}>
+            <SyncBadge itemCount={totalScans + totalSaved} />
+          </View>
 
           {(totalScans > 0 || totalSaved > 0) && (
             <View style={styles.activitySection}>
@@ -613,16 +403,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  onlineRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 59,
-    borderWidth: 2.5,
-    borderColor: '#34C759',
-  },
+
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -634,27 +415,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.4,
   },
-  onlineTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 6,
-    backgroundColor: 'rgba(52,199,89,0.3)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  onlineTagDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#34C759',
-  },
-  onlineTagText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
+
   memberText: {
     fontSize: 13,
     fontWeight: '500' as const,
@@ -709,27 +470,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     marginHorizontal: 4,
   },
-  onlineBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    gap: 8,
-    alignSelf: 'center',
-  },
-  onlineBadgeActive: {
-    backgroundColor: 'rgba(52,199,89,0.35)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  onlineBadgeLabel: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#FFFFFF',
-  },
+
   runnerContainer: {
     marginTop: 16,
     alignItems: 'center',
@@ -758,150 +499,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: 'row',
   },
-  onlineSection: {
-    marginHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: 12,
-  },
-  onlineHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  onlineHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#34C759',
-  },
-  onlineSectionTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  onlineCount: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#16A34A',
-    backgroundColor: 'rgba(22,163,74,0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  usersList: {
-    gap: 2,
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
-  },
-  userAvatarWrap: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  userAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E5E5EA',
-  },
-  statusDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  statusActive: {
-    backgroundColor: '#34C759',
-  },
-  statusIdle: {
-    backgroundColor: '#FF9500',
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  userActivityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  activityDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    marginRight: 5,
-  },
-  userActivity: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-  },
-  userJoined: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-  },
-  userScanBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  userScanCount: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-  },
-  offlineHint: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 32,
-  },
-  offlineTitle: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#8E8E93',
-    marginTop: 12,
-  },
-  offlineSubtitle: {
-    fontSize: 14,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    textAlign: 'center' as const,
-    marginTop: 6,
-    lineHeight: 20,
-  },
+
   activitySection: {
     marginHorizontal: 16,
     marginTop: 4,
@@ -970,21 +568,5 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FF3B30',
   },
-  noUsersHint: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    gap: 6,
-  },
-  noUsersText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-    marginTop: 4,
-  },
-  noUsersSubtext: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: '#AEAEB2',
-    textAlign: 'center' as const,
-  },
+
 });
