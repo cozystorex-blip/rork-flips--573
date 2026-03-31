@@ -32,6 +32,7 @@ export interface OnlineUser {
 
 const CHANNEL_NAME = 'flips-online-presence';
 const ONLINE_STATE_KEY = 'flips_online_state';
+const ANON_ID_KEY = 'flips_anon_online_id';
 const HEARTBEAT_INTERVAL = 12000;
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -72,6 +73,18 @@ async function clearPersistedState(): Promise<void> {
   try {
     await AsyncStorage.removeItem(ONLINE_STATE_KEY);
   } catch {}
+}
+
+async function getOrCreateAnonId(): Promise<string> {
+  try {
+    const existing = await AsyncStorage.getItem(ANON_ID_KEY);
+    if (existing) return existing;
+    const id = 'anon_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    await AsyncStorage.setItem(ANON_ID_KEY, id);
+    return id;
+  } catch {
+    return 'anon_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  }
 }
 
 function presenceRecordToOnlineUser(record: PresenceRecord): OnlineUser {
@@ -140,7 +153,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
   const buildPresencePayload = useCallback(() => {
     const displayName = profile?.display_name && profile.display_name !== 'User' && profile.display_name.trim()
       ? profile.display_name
-      : 'Flip User';
+      : 'Guest User';
     return {
       user_id: userId ?? 'anon',
       name: displayName,
@@ -376,25 +389,21 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
   }, [connectChannel]);
 
   const handleToggleOnline = useCallback(async () => {
-    if (!userId) {
-      console.log('[OnlinePeople] Cannot toggle: no user, prompting sign in');
-      Alert.alert('Sign In Required', 'Please sign in to go online.', [{ text: 'OK' }]);
-      return;
-    }
     if (isGoingOnlineRef.current) {
       console.log('[OnlinePeople] Already toggling, skipping');
       return;
     }
 
+    const effectiveId = userId ?? await getOrCreateAnonId();
     const goingOnline = !isUserOnline;
     isGoingOnlineRef.current = true;
     wantsOnlineRef.current = goingOnline;
 
-    console.log('[OnlinePeople] handleToggleOnline:', goingOnline ? 'GOING ONLINE' : 'GOING OFFLINE');
+    console.log('[OnlinePeople] handleToggleOnline:', goingOnline ? 'GOING ONLINE' : 'GOING OFFLINE', 'id:', effectiveId);
 
     try {
       toggleMutation.mutate({
-        id: userId,
+        id: effectiveId,
         isOnline: goingOnline,
         fullName: profile?.display_name || undefined,
         avatarUrl: profile?.avatar_url || undefined,
@@ -406,7 +415,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
         if (channelSuccess) {
           await savePersistedState({
             wantsOnline: true,
-            userId,
+            userId: effectiveId,
             timestamp: Date.now(),
           });
           console.log('[OnlinePeople] Online state persisted');
@@ -420,7 +429,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
           setLastSyncedAt(null);
         }
         void clearPersistedState();
-        void markOffline(userId);
+        void markOffline(effectiveId);
       }
     } finally {
       isGoingOnlineRef.current = false;
