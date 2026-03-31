@@ -1653,7 +1653,7 @@ function buildDocumentResult(
 
 export async function generateReferenceImage(description: string, scannedImageBase64?: string, confidence?: number): Promise<string | null> {
   try {
-    if (confidence !== undefined && confidence < 0.55) {
+    if (confidence !== undefined && confidence < 0.35) {
       console.log('[SmartScan] Skipping reference image generation — confidence too low:', confidence);
       return null;
     }
@@ -1662,18 +1662,20 @@ export async function generateReferenceImage(description: string, scannedImageBa
 
     if (scannedImageBase64) {
       console.log('[SmartScan] Using image edit API with scanned image');
-      const editPrompt = `Clean up this product photo for a professional listing. STRICT RULES:
-- Keep the EXACT same item — do NOT replace, reimagine, or change the product in any way
-- Remove background clutter, replace with a clean solid white background
-- Fix lighting and exposure for studio-quality appearance
-- PRESERVE exact colors, textures, proportions, branding, and all details of the original item
-- Center the item with a subtle natural shadow
-- Ensure crisp focus and high resolution appearance
-- Remove hands, other objects, and distracting elements from the background only
-- The output MUST look like the same physical object photographed professionally
-- Do NOT add text, watermarks, or new elements
-- Do NOT stylize, illustrate, or artistically reinterpret the item
-- If the item has text/labels, keep them exactly as they appear`;
+      const editPrompt = `Transform this photo into a clean, professional product image. Instructions:
+- This is a photo of: ${description}
+- Place the item on a perfectly clean, pure white background
+- Remove ALL background clutter, other objects, hands, surfaces, shadows from the original scene
+- Keep the EXACT same item with identical colors, textures, proportions, brand logos, and all visible details
+- Apply professional studio lighting: soft, even illumination with no harsh shadows
+- Add only a subtle, natural drop shadow beneath the item for depth
+- Center and frame the item perfectly, filling about 70-80% of the image
+- Ensure maximum sharpness, clarity, and color accuracy
+- Do NOT change, replace, reimagine, or modify the actual product in any way
+- Do NOT add any text, labels, watermarks, or decorative elements
+- Do NOT stylize or artistically reinterpret — keep it photorealistic
+- If the item has printed text, logos, or labels, preserve them exactly
+- The result should look like an Amazon or eBay product listing photo`;
       try {
         const editResponse = await fetch('https://toolkit.rork.com/images/edit/', {
           method: 'POST',
@@ -1694,13 +1696,37 @@ export async function generateReferenceImage(description: string, scannedImageBa
             return dataUrl;
           }
         }
-        console.log('[SmartScan] Edit API response not ok, skipping reference image generation');
+        console.log('[SmartScan] Edit API failed, trying DALL-E generation as fallback');
       } catch (editErr) {
-        console.log('[SmartScan] Edit API error:', editErr);
+        console.log('[SmartScan] Edit API error, trying DALL-E fallback:', editErr);
       }
     }
 
-    console.log('[SmartScan] No scanned image base64 available, skipping AI generation to avoid inaccurate images');
+    if (description && description.length > 10) {
+      console.log('[SmartScan] Generating reference image via DALL-E');
+      const dallePrompt = `Professional product photography of ${description}. Clean white background, studio lighting, photorealistic, centered, high detail, sharp focus, no text overlays, no watermarks. E-commerce product listing style photo.`;
+      try {
+        const genResponse = await fetch('https://toolkit.rork.com/images/generate/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: dallePrompt, size: '1024x1024' }),
+        });
+        if (genResponse.ok) {
+          const genData = await genResponse.json() as { image?: { base64Data?: string; mimeType?: string } };
+          if (genData.image?.base64Data) {
+            const mimeType = genData.image.mimeType || 'image/png';
+            const dataUrl = `data:${mimeType};base64,${genData.image.base64Data}`;
+            console.log('[SmartScan] Reference image created via DALL-E generation');
+            return dataUrl;
+          }
+        }
+        console.log('[SmartScan] DALL-E generation also failed');
+      } catch (genErr) {
+        console.log('[SmartScan] DALL-E generation error:', genErr);
+      }
+    }
+
+    console.log('[SmartScan] All image generation methods failed');
     return null;
   } catch (err) {
     console.log('[SmartScan] Reference image generation error:', err);

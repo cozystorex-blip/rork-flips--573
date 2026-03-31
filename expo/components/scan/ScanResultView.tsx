@@ -400,7 +400,9 @@ export default function ScanResultView({
 
 
 
-  const heroImageUri = scannedImageUri ?? referenceImageUrl;
+  const heroImageUri = referenceImageUrl ?? scannedImageUri;
+  const hasReferenceImage = !!referenceImageUrl;
+  const hasBothImages = !!scannedImageUri && !!referenceImageUrl;
   const isNonResale = result.item_type === 'food' || result.item_type === 'grocery' || result.item_type === 'receipt' || result.item_type === 'document' || result.item_type === 'unknown';
   const isFood = result.item_type === 'food' || result.item_type === 'grocery';
 
@@ -481,7 +483,33 @@ export default function ScanResultView({
 
   return (
     <Animated.View style={[st.root, { opacity: resultFade }]}>
-      {heroImageUri && (
+      {hasBothImages ? (
+        <View style={st.dualImageRow}>
+          <View style={st.dualImageWrap}>
+            <ExpoImage
+              source={{ uri: referenceImageUrl }}
+              style={st.dualImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+            <View style={st.dualImageBadge}>
+              <Text style={st.dualImageBadgeText}>AI Enhanced</Text>
+            </View>
+          </View>
+          <View style={st.dualImageWrap}>
+            <ExpoImage
+              source={{ uri: scannedImageUri }}
+              style={st.dualImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+            <View style={st.dualImageBadge}>
+              <Camera size={9} color="#FFFFFF" />
+              <Text style={st.dualImageBadgeText}>Your Photo</Text>
+            </View>
+          </View>
+        </View>
+      ) : heroImageUri ? (
         <View style={st.heroImageWrap}>
           <ExpoImage
             source={{ uri: heroImageUri }}
@@ -489,14 +517,13 @@ export default function ScanResultView({
             contentFit="cover"
             cachePolicy="memory-disk"
           />
-          {scannedImageUri && referenceImageUrl && (
+          {hasReferenceImage && (
             <View style={st.heroImageBadge}>
-              <Camera size={10} color="#FFFFFF" />
-              <Text style={st.heroImageBadgeText}>Your Photo</Text>
+              <Text style={st.heroImageBadgeText}>AI Enhanced</Text>
             </View>
           )}
         </View>
-      )}
+      ) : null}
 
       <View style={st.contentSection}>
         {isLowConf && (
@@ -1364,5 +1391,39 @@ const st = StyleSheet.create({
     color: '#78716C',
     flex: 1,
     lineHeight: 19,
+  },
+  dualImageRow: {
+    flexDirection: 'row' as const,
+    gap: 10,
+    marginBottom: ScannerSpacing.lg,
+  },
+  dualImageWrap: {
+    flex: 1,
+    height: 220,
+    borderRadius: ScannerRadius.xxl,
+    overflow: 'hidden' as const,
+    backgroundColor: '#F0F0F0',
+    position: 'relative' as const,
+  },
+  dualImage: {
+    width: '100%' as const,
+    height: '100%' as const,
+  },
+  dualImageBadge: {
+    position: 'absolute' as const,
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: ScannerRadius.sm,
+  },
+  dualImageBadgeText: {
+    fontSize: 10,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
 });
