@@ -13,7 +13,7 @@ import {
   Image as ImageIcon,
   ScanLine,
   RefreshCw,
-  AlertTriangle,
+  Info,
   Trash2,
 } from 'lucide-react-native';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
@@ -156,8 +156,8 @@ export function ScannerErrorCard({
   return (
     <View style={styles.errorCard}>
       <View style={styles.errorHeader}>
-        <AlertTriangle size={18} color={ScannerColors.warning} />
-        <Text style={styles.errorTitle}>Scan Issue</Text>
+        <Info size={18} color={ScannerColors.accent} />
+        <Text style={styles.errorTitle}>Try Again</Text>
       </View>
       <Text style={styles.errorMessage}>{message}</Text>
       <View style={styles.errorActions}>

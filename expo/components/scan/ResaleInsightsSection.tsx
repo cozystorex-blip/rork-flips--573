@@ -8,7 +8,7 @@ import {
   Package,
   Lightbulb,
   Target,
-  AlertTriangle,
+  Info,
 } from 'lucide-react-native';
 
 import { SmartScanResult, SmartScanItemType } from '@/services/smartScanService';
@@ -370,9 +370,9 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
 
       {isDocument && (
         <View style={st.documentNotice}>
-          <AlertTriangle size={14} color={ScannerColors.amber} />
+          <Info size={14} color={ScannerColors.accent} />
           <Text style={st.documentNoticeText}>
-            This appears to be a reference or informational image rather than a single resale item. Scan one specific object for accurate resale analysis.
+            For best results, scan one specific object. This looks like it may contain multiple items or reference material.
           </Text>
         </View>
       )}
@@ -423,7 +423,7 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
               </Text>
               {estimate.confidence === 'low' && (
                 <View style={st.lowConfNotice}>
-                  <AlertTriangle size={11} color={ScannerColors.amber} />
+                  <Info size={11} color={ScannerColors.accent} />
                   <Text style={st.lowConfText}>
                     Estimated from category — scan labels or tags for more accurate pricing.
                   </Text>

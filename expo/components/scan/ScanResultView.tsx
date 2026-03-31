@@ -16,7 +16,6 @@ import {
   Package,
   TrendingUp,
   Target,
-  Sparkles,
   Info,
   Trash2,
 } from 'lucide-react-native';
@@ -570,7 +569,7 @@ export default function ScanResultView({
 
         {!isNonResale && recentlySold.length > 0 && (
           <View style={st.soldSection}>
-            <SectionHeader icon={Sparkles} title="Similar Recently Sold" color="#6366F1" />
+            <SectionHeader icon={TrendingUp} title="Similar Recently Sold" color="#6366F1" />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}

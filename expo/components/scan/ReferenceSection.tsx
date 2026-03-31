@@ -8,7 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { Link2, Wrench, Sparkles, RefreshCw } from 'lucide-react-native';
+import { Link2, Wrench, BookOpen, RefreshCw } from 'lucide-react-native';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
@@ -188,7 +188,7 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
       <View style={st.container}>
         <View style={st.headerRow}>
           <View style={st.headerIconWrap}>
-            <Sparkles size={14} color="#3B82F6" />
+            <BookOpen size={14} color="#3B82F6" />
           </View>
           <Text style={st.headerTitle}>Reference</Text>
           {error && !loading && (
@@ -247,7 +247,7 @@ const ReferenceSection = React.memo(function ReferenceSection({ result, referenc
             {hasRefImage && (
               <View style={st.section}>
                 <View style={st.sectionHeader}>
-                  <Sparkles size={12} color="#3B82F6" />
+                  <BookOpen size={12} color="#3B82F6" />
                   <Text style={st.sectionTitle}>AI reference</Text>
                 </View>
                 <View style={st.refImageWrap}>
