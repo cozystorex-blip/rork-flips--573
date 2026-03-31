@@ -114,7 +114,7 @@ export interface ScanProcessState {
 }
 
 const SCAN_TIMEOUT_MS = 60000;
-const SCAN_STUCK_TIMEOUT_MS = 90000;
+const SCAN_STUCK_TIMEOUT_MS = 15000;
 
 export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [scanning, setScanning] = useState<boolean>(false);
@@ -145,10 +145,18 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     }
   }, []);
 
+  const scanningRef = useRef<boolean>(false);
+  scanningRef.current = scanning;
+
   const handleCapture = useCallback(async (mode: 'camera' | 'gallery', ikeaScanMode?: IkeaScanMode) => {
     if (scanInProgressRef.current) {
-      console.log('[ScanProcess] Scan already in progress, ignoring duplicate call');
-      return;
+      if (!scanningRef.current) {
+        console.log('[ScanProcess] scanInProgressRef stuck but not scanning — force resetting');
+        scanInProgressRef.current = false;
+      } else {
+        console.log('[ScanProcess] Scan already in progress, ignoring duplicate call');
+        return;
+      }
     }
 
     scanInProgressRef.current = true;
