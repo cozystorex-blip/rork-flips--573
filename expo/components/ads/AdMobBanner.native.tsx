@@ -101,7 +101,26 @@ export default function AdMobBanner() {
   }, []);
 
   if (isPremium) return null;
-  if (!isAdModuleAvailable() || !BannerAd) return null;
+
+  if (!isAdModuleAvailable() || !BannerAd) {
+    return (
+      <Animated.View
+        style={[styles.wrapper, { opacity: fadeAnim }]}
+        testID="ad-banner-placeholder"
+      >
+        <View style={styles.container}>
+          <View style={styles.placeholderInner}>
+            <Text style={styles.placeholderText}>Ad</Text>
+            <Text style={styles.placeholderSubtext}>Google AdMob Banner</Text>
+          </View>
+          <View style={styles.adLabel}>
+            <Text style={styles.adLabelText}>Ad</Text>
+          </View>
+        </View>
+      </Animated.View>
+    );
+  }
+
   if (!sdkReady) return null;
   if (adError && retryCount >= MAX_RETRY_ATTEMPTS) return null;
   if (adError) return null;
@@ -147,6 +166,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     width: '100%',
     alignItems: 'center',
+  },
+  placeholderInner: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  placeholderText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    letterSpacing: 0.3,
+  },
+  placeholderSubtext: {
+    fontSize: 11,
+    fontWeight: '400' as const,
+    color: '#636366',
+    marginTop: 2,
   },
   adLabel: {
     position: 'absolute' as const,
