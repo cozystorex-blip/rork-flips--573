@@ -35,7 +35,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: "Scan",
+          title: "",
           tabBarIcon: ({ color, size }) => (
             <View style={styles.scanIconWrap}>
               <Camera size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />
@@ -53,7 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saved"
         options={{
-          title: "Saved",
+          title: "",
           tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />,
         }}
       />
