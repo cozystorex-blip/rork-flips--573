@@ -216,9 +216,9 @@ export interface ScanProcessState {
   lastValidation: ScanValidationResult | null;
 }
 
-const SCAN_TIMEOUT_MS = 60000;
-const SCAN_STUCK_TIMEOUT_MS = 20000;
-const SCAN_PHASE_TIMEOUT_MS = 45000;
+const SCAN_TIMEOUT_MS = 120000;
+const SCAN_STUCK_TIMEOUT_MS = 90000;
+const SCAN_PHASE_TIMEOUT_MS = 60000;
 
 export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [scanning, setScanning] = useState<boolean>(false);
