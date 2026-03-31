@@ -12,7 +12,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#2D6A4F",
+        tabBarActiveTintColor: "#16A34A",
         tabBarInactiveTintColor: "#8E8E93",
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
@@ -29,7 +29,7 @@ export default function TabLayout() {
         name="(home)"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} fill={color === "#2D6A4F" ? color : "transparent"} />,
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />,
         }}
       />
       <Tabs.Screen
@@ -38,7 +38,7 @@ export default function TabLayout() {
           title: "Scan",
           tabBarIcon: ({ color, size }) => (
             <View style={styles.scanIconWrap}>
-              <Camera size={size} color={color} fill={color === "#2D6A4F" ? color : "transparent"} />
+              <Camera size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />
             </View>
           ),
         }}
@@ -54,14 +54,14 @@ export default function TabLayout() {
         name="saved"
         options={{
           title: "Saved",
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} fill={color === "#2D6A4F" ? color : "transparent"} />,
+          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} fill={color === "#2D6A4F" ? color : "transparent"} />,
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />,
         }}
       />
     </Tabs>

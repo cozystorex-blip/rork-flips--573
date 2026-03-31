@@ -12,8 +12,8 @@ import { Image } from 'expo-image';
 import {
   Tag,
   Package,
+  Heart,
   Camera,
-  Scan,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -23,9 +23,10 @@ import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
 import { useScanProcess } from '@/contexts/ScanProcessContext';
 import type { SmartScanResult } from '@/services/smartScanService';
 import { useScreenWidth } from '@/hooks/useScreenWidth';
+import SyncBadge from '@/components/SyncBadge';
 
-const GRID_GAP = 3;
-const H_PAD = 3;
+const GRID_GAP = 12;
+const H_PAD = 16;
 
 interface UnifiedItem {
   id: string;
@@ -67,11 +68,11 @@ function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string }
   const vv = details.value_verdict;
   if (vv && typeof vv === 'string') {
     const v = vv.toLowerCase();
-    if (v.includes('good') || v.includes('great')) return { label: 'Good Deal', color: '#2D6A4F' };
-    if (v.includes('low')) return { label: 'Low Price', color: '#2D6A4F' };
+    if (v.includes('good') || v.includes('great')) return { label: 'Good Deal', color: '#16A34A' };
+    if (v.includes('low')) return { label: 'Low Price', color: '#16A34A' };
   }
   const rd = details.resale_demand;
-  if (rd && typeof rd === 'string' && rd.toLowerCase().includes('high')) return { label: 'High Demand', color: '#E07C3E' };
+  if (rd && typeof rd === 'string' && rd.toLowerCase().includes('high')) return { label: 'High Demand', color: '#EA580C' };
   return null;
 }
 
@@ -79,8 +80,7 @@ export default function SavedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const screenWidth = useScreenWidth();
-  const COLS = 3;
-  const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP * (COLS - 1)) / COLS;
+  const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
   const { entries: scanEntries, isLoading: scanLoading } = useScanHistory();
   const { savedDeals, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();
@@ -114,7 +114,7 @@ export default function SavedScreen() {
       source: d.storeName,
       savedAt: d.savedAt,
       badge: d.savingsAmount ? `${Math.round((d.savingsAmount / (d.price ?? 1)) * 100)}% Off` : null,
-      badgeColor: '#2D6A4F',
+      badgeColor: '#16A34A',
       raw: d,
     }));
 
@@ -122,6 +122,8 @@ export default function SavedScreen() {
       (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
     );
   }, [scanEntries, savedDeals]);
+
+  const filteredItems = unifiedItems;
 
   const { loadHistoryEntry } = useScanProcess();
 
@@ -166,74 +168,82 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.headerArea, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.headerTitle}>Saved</Text>
-        {unifiedItems.length > 0 && (
-          <Text style={styles.itemCount}>{unifiedItems.length} items</Text>
-        )}
+      <View style={[styles.screenHeader, { paddingTop: insets.top + 28 }]}>
+        <Text style={styles.screenTitle}>{''}</Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2D6A4F" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#16A34A" />
         }
       >
+        {filteredItems.length > 0 && (
+          <View style={styles.headerRow}>
+            <Text style={styles.itemCount}>{filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}</Text>
+            <SyncBadge itemCount={filteredItems.length} />
+          </View>
+        )}
+
         {isLoading ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.loadingText}>Loading...</Text>
           </View>
-        ) : unifiedItems.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <View style={styles.emptyCard}>
-            <View style={styles.emptyIconWrap}>
-              <Scan size={32} color="#2D6A4F" strokeWidth={1.4} />
-            </View>
+            <Heart size={32} color="#C7C7CC" strokeWidth={1.3} />
             <Text style={styles.emptyTitle}>Nothing saved yet</Text>
             <Text style={styles.emptySubtitle}>Scan items or save deals to build your collection</Text>
-            <Pressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push('/smart-scan');
-              }}
-              style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
-            >
-              <Camera size={15} color="#FFFFFF" strokeWidth={2} />
-              <Text style={styles.emptyBtnText}>Scan an Item</Text>
-            </Pressable>
+            <View style={styles.emptyActions}>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/smart-scan');
+                }}
+                style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
+              >
+                <Camera size={15} color="#FFFFFF" strokeWidth={2} />
+                <Text style={styles.emptyBtnText}>Scan an Item</Text>
+              </Pressable>
+            </View>
           </View>
         ) : (
-          <View style={styles.grid}>
-            {unifiedItems.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => handleCardPress(item)}
-                style={({ pressed }) => [
-                  styles.gridCard,
-                  { width: cardWidth, height: cardWidth },
-                  pressed && { opacity: 0.85 },
-                ]}
-                testID={`saved-card-${item.id}`}
-              >
-                {item.imageUri ? (
-                  <Image
-                    source={{ uri: item.imageUri }}
-                    style={[styles.gridImage, { width: cardWidth, height: cardWidth }]}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                    recyclingKey={`saved-${item.id}`}
-                  />
-                ) : (
-                  <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth }]}>
-                    {item.type === 'deal' ? (
-                      <Tag size={24} color="#C7C7CC" strokeWidth={1.5} />
+          <View>
+            <View style={styles.grid}>
+              {filteredItems.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => handleCardPress(item)}
+                  style={({ pressed }) => [
+                    styles.gridCard,
+                    { width: cardWidth },
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                  ]}
+                  testID={`saved-card-${item.id}`}
+                >
+                  <View style={[styles.gridImageWrap, { width: cardWidth, height: cardWidth }]}>
+                    {item.imageUri ? (
+                      <Image
+                        source={{ uri: item.imageUri }}
+                        style={[styles.gridImage, { width: cardWidth, height: cardWidth }]}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        recyclingKey={`saved-${item.id}`}
+                      />
                     ) : (
-                      <Package size={24} color="#C7C7CC" strokeWidth={1.5} />
+                      <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth }]}>
+                        {item.type === 'deal' ? (
+                          <Tag size={28} color="#C7C7CC" strokeWidth={1.5} />
+                        ) : (
+                          <Package size={28} color="#C7C7CC" strokeWidth={1.5} />
+                        )}
+                      </View>
                     )}
                   </View>
-                )}
-              </Pressable>
-            ))}
+                </Pressable>
+              ))}
+            </View>
           </View>
         )}
 
@@ -246,30 +256,33 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F7',
   },
-  headerArea: {
+  screenHeader: {
+    paddingHorizontal: H_PAD,
+    paddingBottom: 14,
+    backgroundColor: '#F2F2F7',
+  },
+  screenTitle: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.4,
+  },
+  scrollContent: {
+    paddingHorizontal: H_PAD,
+    paddingTop: 8,
+  },
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '800' as const,
-    color: '#1A1A1A',
-    letterSpacing: -0.8,
+    marginBottom: 12,
   },
   itemCount: {
     fontSize: 14,
     fontWeight: '500' as const,
     color: '#8E8E93',
-  },
-  scrollContent: {
-    paddingHorizontal: H_PAD,
-    paddingTop: 2,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -277,24 +290,22 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyCard: {
-    paddingVertical: 60,
-    paddingHorizontal: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 32,
     alignItems: 'center',
-    gap: 10,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F0F7F4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#1A1A1A',
+    color: '#1C1C1E',
+    marginTop: 4,
   },
   emptySubtitle: {
     fontSize: 14,
@@ -303,15 +314,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     maxWidth: 260,
   },
+  emptyActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#2D6A4F',
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-    borderRadius: 12,
-    marginTop: 12,
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
   },
   emptyBtnText: {
     fontSize: 15,
@@ -328,14 +343,22 @@ const styles = StyleSheet.create({
     gap: GRID_GAP,
   },
   gridCard: {
+    backgroundColor: 'transparent',
+    borderRadius: 16,
     overflow: 'hidden',
+  },
+  gridImageWrap: {
+    backgroundColor: '#F2F2F7',
+    overflow: 'hidden',
+    borderRadius: 16,
   },
   gridImage: {
     backgroundColor: '#F2F2F7',
+    borderRadius: 16,
   },
   gridImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F7',
   },
 });
