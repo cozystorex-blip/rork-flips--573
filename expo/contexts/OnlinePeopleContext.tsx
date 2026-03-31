@@ -376,8 +376,9 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
   }, [connectChannel]);
 
   const handleToggleOnline = useCallback(async () => {
-    if (!userId || !profile) {
-      console.log('[OnlinePeople] Cannot toggle: no user/profile');
+    if (!userId) {
+      console.log('[OnlinePeople] Cannot toggle: no user, prompting sign in');
+      Alert.alert('Sign In Required', 'Please sign in to go online.', [{ text: 'OK' }]);
       return;
     }
     if (isGoingOnlineRef.current) {
@@ -395,8 +396,8 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
       toggleMutation.mutate({
         id: userId,
         isOnline: goingOnline,
-        fullName: profile.display_name || undefined,
-        avatarUrl: profile.avatar_url || undefined,
+        fullName: profile?.display_name || undefined,
+        avatarUrl: profile?.avatar_url || undefined,
         scanCount: 0,
       });
 
