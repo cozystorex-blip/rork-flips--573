@@ -2,9 +2,9 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Flip",
-  slug: "grocery-tracker-map-clone-cl-v42ss0s",
-  version: "1.10000",
+  name: "Flips",
+  slug: "xrbl9oijjxu6ij41g3klq",
+  version: "1.0.10",
   sdkVersion: "54.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -19,14 +19,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: false,
     buildNumber: "10",
-    bundleIdentifier: "app.rork.grocery-tracker-map-clone-cl-v42ss0s",
+    bundleIdentifier: "app.rork.xrbl9oijjxu6ij41g3klq",
     infoPlist: {
       NSCameraUsageDescription:
-        "Item Scanner needs camera access to scan receipts, products, and food items for budget analysis.",
+        "Flips needs camera access to scan items, products, and receipts for price analysis and resale insights.",
       NSPhotoLibraryUsageDescription:
-        "Item Scanner needs photo library access to select images of receipts, products, and deals.",
+        "Flips needs photo library access to select images of items, products, and deals for scanning.",
       NSLocationWhenInUseUsageDescription:
-        "Item Scanner uses your location to find nearby stores and deals in your area.",
+        "Flips uses your location to find nearby stores and deals in your area.",
       ITSAppUsesNonExemptEncryption: false,
     },
   },
@@ -36,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    package: "app.rork.grocery_tracker_map_clone_cl_v42ss0s",
+    package: "app.rork.xrbl9oijjxu6ij41g3klq",
   },
   web: {
     favicon: "./assets/images/favicon.png",
@@ -53,19 +53,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-image-picker",
       {
         photosPermission:
-          "Item Scanner needs photo library access to select images of receipts, products, and deals.",
+          "Flips needs photo library access to select images of items, products, and deals for scanning.",
         cameraPermission:
-          "Item Scanner needs camera access to scan receipts, products, and food items for budget analysis.",
+          "Flips needs camera access to scan items, products, and receipts for price analysis and resale insights.",
       },
     ],
-    [
-      "expo-location",
-      {
-        locationWhenInUsePermission:
-          "Item Scanner uses your location to find nearby stores and deals in your area.",
-      },
-    ],
-
   ],
   experiments: {
     typedRoutes: true,
