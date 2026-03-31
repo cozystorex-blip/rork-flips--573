@@ -4,6 +4,8 @@ import {
   Text,
   StyleSheet,
   Animated,
+  TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable } from '@/services/adService';
 import { usePremium } from '@/contexts/PremiumContext';
@@ -102,20 +104,41 @@ export default function AdMobBanner() {
 
   if (isPremium) return null;
 
+  const handleAdPress = useCallback(async () => {
+    try {
+      console.log('[AdMobBanner] Ad placeholder clicked, opening real ad');
+      await Linking.openURL('https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-3643873601626975&output=html&slotname=ca-app-pub-3643873601626975/1979589861');
+    } catch (e) {
+      console.warn('[AdMobBanner] Could not open ad URL:', e);
+      try {
+        await Linking.openURL('https://www.google.com/ads');
+      } catch (e2) {
+        console.warn('[AdMobBanner] Fallback URL also failed:', e2);
+      }
+    }
+  }, []);
+
   if (!isAdModuleAvailable() || !BannerAd) {
     return (
       <Animated.View
         style={[styles.wrapper, { opacity: fadeAnim }]}
         testID="ad-banner-placeholder"
       >
-        <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.container}
+          onPress={handleAdPress}
+          activeOpacity={0.85}
+          accessibilityRole="link"
+          accessibilityLabel="Advertisement"
+        >
           <View style={styles.placeholderInner}>
             <Text style={styles.placeholderText}>Sponsored</Text>
+            <Text style={styles.placeholderSubtext}>Tap to learn more</Text>
           </View>
           <View style={styles.adLabel}>
             <Text style={styles.adLabelText}>Ad</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </Animated.View>
     );
   }
@@ -134,7 +157,7 @@ export default function AdMobBanner() {
         { opacity: fadeAnim },
       ]}
     >
-      <View style={styles.container}>
+      <View style={styles.container} pointerEvents="box-none">
         <BannerAd
           unitId={unitId}
           size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
