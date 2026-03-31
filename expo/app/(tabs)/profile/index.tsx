@@ -243,9 +243,6 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            <View style={styles.adContainer}>
-              <AdMobBanner />
-            </View>
           </View>
         </View>
 
@@ -279,6 +276,18 @@ export default function ProfileScreen() {
                   <Text style={styles.activityCardValue}>{memberSince.split(' ')[0]}</Text>
                   <Text style={styles.activityCardLabel}>Joined</Text>
                 </View>
+              </View>
+
+              <View style={styles.adContainer}>
+                <AdMobBanner />
+              </View>
+            </View>
+          )}
+
+          {totalScans === 0 && totalSaved === 0 && (
+            <View style={styles.activitySection}>
+              <View style={styles.adContainer}>
+                <AdMobBanner />
               </View>
             </View>
           )}
@@ -432,7 +441,7 @@ const styles = StyleSheet.create({
   },
 
   adContainer: {
-    marginTop: 16,
+    marginTop: 14,
     width: '100%',
     borderRadius: 12,
     overflow: 'hidden',
