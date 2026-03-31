@@ -18,6 +18,7 @@ export const ScannerColors = {
   ikeaYellow: '#FFDA1A',
   ikeaYellowSoft: '#FFDA1A18',
   ikeaYellowBorder: '#FFDA1A40',
+  ikeaYellowDark: '#CC9E00',
 
   success: '#2D8C3C',
   successBg: '#EFF8F0',
@@ -37,6 +38,17 @@ export const ScannerColors = {
 
   divider: '#EBEBEB',
   overlay: 'rgba(0,0,0,0.4)',
+
+  toolsBg: '#F0F7FF',
+  toolsBorder: '#B8D4F0',
+  assemblyBg: '#FFF9EB',
+  assemblyBorder: '#FFE5A0',
+  matchesBg: '#F0FDF4',
+  matchesBorder: '#BBF7D0',
+  goodForBg: '#F5F3FF',
+  goodForBorder: '#DDD6FE',
+  valueBg: '#FFFBEB',
+  valueBorder: '#FDE68A',
 } as const;
 
 export const ScannerSpacing = {

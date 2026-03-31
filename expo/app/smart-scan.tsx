@@ -47,13 +47,12 @@ import ScanResultView from '@/components/scan/ScanResultView';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
 
 const SCAN_MODE_OPTIONS: { mode: IkeaScanMode; label: string; icon: string }[] = [
-  { mode: 'general_scan', label: 'Anything', icon: 'general' },
-  { mode: 'fashion_scan', label: 'Clothing', icon: 'fashion' },
-  { mode: 'electronics_scan', label: 'Electronics', icon: 'electronics' },
-  { mode: 'household_scan', label: 'Home', icon: 'household' },
+  { mode: 'general_scan', label: 'Any Item', icon: 'general' },
   { mode: 'assembled', label: 'Furniture', icon: 'armchair' },
-  { mode: 'food_scan', label: 'Food', icon: 'food' },
   { mode: 'product_tag', label: 'Price Tag', icon: 'tag' },
+  { mode: 'box_label', label: 'Box Label', icon: 'box' },
+  { mode: 'household_scan', label: 'Home', icon: 'household' },
+  { mode: 'food_scan', label: 'Food Court', icon: 'food' },
 ];
 
 function ScanModeIcon({ icon, size, color }: { icon: string; size: number; color: string }) {
@@ -71,13 +70,12 @@ function ScanModeIcon({ icon, size, color }: { icon: string; size: number; color
 }
 
 const SCAN_MODE_HINT_TEXT: Record<string, string> = {
-  food_scan: 'Point at food, ingredients, or packaged products',
-  fashion_scan: 'Scan clothing, shoes, bags, or accessories',
-  electronics_scan: 'Scan devices, gadgets, or tech products',
-  assembled: 'Scan furniture, tables, chairs, shelves',
-  household_scan: 'Scan kitchenware, tools, decor, or home items',
-  general_scan: 'Point at anything — we\'ll figure it out',
-  product_tag: 'Scan a price tag, label, or sticker',
+  food_scan: 'Scan IKEA food court items or Swedish Market products',
+  assembled: 'Scan assembled furniture on the showroom floor',
+  household_scan: 'Scan kitchenware, textiles, decor, or home items',
+  general_scan: 'Point at any IKEA item — we\'ll figure it out',
+  product_tag: 'Scan a yellow price tag or shelf label',
+  box_label: 'Scan the product box label or article number sticker',
 };
 
 function ScanModeChips({ activeMode, onSelect, disabled }: { activeMode: IkeaScanMode; onSelect: (mode: IkeaScanMode) => void; disabled: boolean }) {
@@ -283,7 +281,7 @@ export default function SmartScanScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScannerTopBar
-        title="Scan Anything"
+        title="IKEA Scanner"
         onClose={() => router.back()}
         paddingTop={insets.top}
         testID="close-smart-scan"

@@ -12,8 +12,9 @@ import { Image } from 'expo-image';
 import {
   Tag,
   Package,
-  Heart,
   Camera,
+  ScanLine,
+  Bookmark,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -168,8 +169,16 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeader, { paddingTop: insets.top + 28 }]}>
-        <Text style={styles.screenTitle}>{''}</Text>
+      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.headerRow}>
+          <View style={styles.savedLogoBadge}>
+            <Bookmark size={16} color="#0058A3" strokeWidth={2.2} />
+          </View>
+          <View>
+            <Text style={styles.screenTitle}>Saved Items</Text>
+            <Text style={styles.screenSubtitle}>Your IKEA collection</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView
@@ -185,9 +194,11 @@ export default function SavedScreen() {
           </View>
         ) : filteredItems.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Heart size={32} color="#C7C7CC" strokeWidth={1.3} />
-            <Text style={styles.emptyTitle}>Nothing saved yet</Text>
-            <Text style={styles.emptySubtitle}>Scan items or save deals to build your collection</Text>
+            <View style={styles.emptyIconWrap}>
+              <ScanLine size={32} color="#0058A3" strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyTitle}>No saved items</Text>
+            <Text style={styles.emptySubtitle}>Scan IKEA items to automatically save them here</Text>
             <View style={styles.emptyActions}>
               <Pressable
                 onPress={() => {
@@ -197,7 +208,7 @@ export default function SavedScreen() {
                 style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
               >
                 <Camera size={15} color="#FFFFFF" strokeWidth={2} />
-                <Text style={styles.emptyBtnText}>Scan an Item</Text>
+                <Text style={styles.emptyBtnText}>Scan an IKEA Item</Text>
               </Pressable>
             </View>
           </View>
@@ -256,11 +267,29 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     backgroundColor: '#F2F2F7',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  savedLogoBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#0058A312',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   screenTitle: {
-    fontSize: 28,
-    fontWeight: '700' as const,
+    fontSize: 24,
+    fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.4,
+  },
+  screenSubtitle: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginTop: 1,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
@@ -302,11 +331,20 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 16,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: '#FFDA1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   emptyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#0058A3',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
