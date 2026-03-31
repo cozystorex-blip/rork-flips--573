@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   Animated,
-  TouchableOpacity,
-  Linking,
+  Pressable,
 } from 'react-native';
-import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable } from '@/services/adService';
+import * as Haptics from 'expo-haptics';
+import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable, showInterstitialIfReady } from '@/services/adService';
 import { usePremium } from '@/contexts/PremiumContext';
 
 let BannerAd: any = null;
@@ -105,16 +105,11 @@ export default function AdMobBanner() {
   if (isPremium) return null;
 
   const handleAdPress = useCallback(async () => {
-    try {
-      console.log('[AdMobBanner] Ad placeholder clicked, opening real ad');
-      await Linking.openURL('https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-3643873601626975&output=html&slotname=ca-app-pub-3643873601626975/1979589861');
-    } catch (e) {
-      console.warn('[AdMobBanner] Could not open ad URL:', e);
-      try {
-        await Linking.openURL('https://www.google.com/ads');
-      } catch (e2) {
-        console.warn('[AdMobBanner] Fallback URL also failed:', e2);
-      }
+    console.log('[AdMobBanner] Ad placeholder tapped, showing interstitial');
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const shown = await showInterstitialIfReady();
+    if (!shown) {
+      console.log('[AdMobBanner] Interstitial not ready yet');
     }
   }, []);
 
@@ -124,21 +119,20 @@ export default function AdMobBanner() {
         style={[styles.wrapper, { opacity: fadeAnim }]}
         testID="ad-banner-placeholder"
       >
-        <TouchableOpacity
-          style={styles.container}
+        <Pressable
+          style={({ pressed }) => [styles.container, pressed && { opacity: 0.85 }]}
           onPress={handleAdPress}
-          activeOpacity={0.85}
-          accessibilityRole="link"
-          accessibilityLabel="Advertisement"
+          accessibilityRole="button"
+          accessibilityLabel="Advertisement - tap to view"
         >
           <View style={styles.placeholderInner}>
             <Text style={styles.placeholderText}>Sponsored</Text>
-            <Text style={styles.placeholderSubtext}>Tap to learn more</Text>
+            <Text style={styles.placeholderSubtext}>Tap to view ad</Text>
           </View>
           <View style={styles.adLabel}>
             <Text style={styles.adLabelText}>Ad</Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Animated.View>
     );
   }

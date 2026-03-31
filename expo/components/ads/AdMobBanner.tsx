@@ -1,21 +1,20 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Animated,
-  TouchableOpacity,
-  Linking,
   Platform,
 } from 'react-native';
 import { usePremium } from '@/contexts/PremiumContext';
 
-const AD_UNIT_ID = 'ca-app-pub-3643873601626975/1979589861';
-const AD_CLICK_URL = `https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-3643873601626975&output=html&slotname=${AD_UNIT_ID}`;
+const AD_CLIENT = 'ca-pub-3643873601626975';
+const AD_SLOT = '1979589861';
 
 export default function AdMobBanner() {
   const { isPremium } = usePremium();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [adLoaded, setAdLoaded] = useState(false);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -25,19 +24,38 @@ export default function AdMobBanner() {
     }).start();
   }, [fadeAnim]);
 
-  const handleAdPress = useCallback(async () => {
-    try {
-      console.log('[AdMobBanner] Ad clicked, opening real ad URL');
-      await Linking.openURL(AD_CLICK_URL);
-    } catch (e) {
-      console.warn('[AdMobBanner] Could not open ad URL:', e);
-      try {
-        await Linking.openURL('https://www.google.com/ads');
-      } catch (e2) {
-        console.warn('[AdMobBanner] Fallback URL also failed:', e2);
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const existing = document.querySelector('script[src*="pagead2.googlesyndication.com"]');
+      if (!existing) {
+        const script = document.createElement('script');
+        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + AD_CLIENT;
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.onload = () => {
+          console.log('[AdMobBanner] AdSense script loaded');
+          setAdLoaded(true);
+        };
+        script.onerror = () => {
+          console.warn('[AdMobBanner] AdSense script failed to load');
+        };
+        document.head.appendChild(script);
+      } else {
+        setAdLoaded(true);
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (adLoaded && Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+        console.log('[AdMobBanner] AdSense ad pushed');
+      } catch (e) {
+        console.warn('[AdMobBanner] AdSense push error:', e);
+      }
+    }
+  }, [adLoaded]);
 
   if (isPremium) return null;
 
@@ -46,21 +64,35 @@ export default function AdMobBanner() {
       style={[styles.wrapper, { opacity: fadeAnim }]}
       testID="ad-banner"
     >
-      <TouchableOpacity
-        style={styles.container}
-        onPress={handleAdPress}
-        activeOpacity={0.85}
-        accessibilityRole="link"
-        accessibilityLabel="Advertisement"
-      >
-        <View style={styles.inner}>
-          <Text style={styles.adText}>Sponsored</Text>
-          <Text style={styles.adSubtext}>Tap to learn more</Text>
-        </View>
-        <View style={styles.adLabel}>
-          <Text style={styles.adLabelText}>Ad</Text>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.container}>
+        {Platform.OS === 'web' ? (
+          <View style={styles.iframeWrap}>
+            <iframe
+              src={`https://pagead2.googlesyndication.com/pagead/ads?client=${AD_CLIENT}&slotname=${AD_SLOT}&output=html&w=320&h=50`}
+              width="320"
+              height="50"
+              style={{
+                border: 'none',
+                overflow: 'hidden',
+                borderRadius: 8,
+              } as any}
+              scrolling="no"
+              allowFullScreen
+            />
+            <View style={styles.adLabel} pointerEvents="none">
+              <Text style={styles.adLabelText}>Ad</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.inner}>
+            <Text style={styles.adText}>Sponsored</Text>
+            <Text style={styles.adSubtext}>Tap to learn more</Text>
+            <View style={styles.adLabel}>
+              <Text style={styles.adLabelText}>Ad</Text>
+            </View>
+          </View>
+        )}
+      </View>
     </Animated.View>
   );
 }
@@ -78,6 +110,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E5EA',
+  },
+  iframeWrap: {
+    width: 320,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative' as const,
   },
   inner: {
     paddingVertical: 16,

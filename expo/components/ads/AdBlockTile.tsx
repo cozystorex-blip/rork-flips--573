@@ -6,6 +6,7 @@ import {
   Pressable,
   Animated,
   Platform,
+  Linking,
 } from 'react-native';
 import { Megaphone, Sparkles, Tag, Zap } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -65,9 +66,22 @@ function AdBlockTile({ size, index = 0 }: AdBlockTileProps) {
     }).start();
   }, [fadeAnim]);
 
-  const handlePress = useCallback(() => {
+  const handlePress = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (Platform.OS !== 'web') {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        const { showInterstitialIfReady } = require('@/services/adService');
+        const shown = await showInterstitialIfReady();
+        console.log('[AdBlockTile] Interstitial shown:', shown);
+      } catch (e) {
+        console.log('[AdBlockTile] Could not show interstitial:', e);
+      }
+    } else {
+      try {
+        await Linking.openURL('https://www.google.com/ads');
+      } catch (e) {
+        console.log('[AdBlockTile] Could not open ad URL:', e);
+      }
     }
   }, []);
 
