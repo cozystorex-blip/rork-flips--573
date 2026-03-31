@@ -25,11 +25,17 @@ import {
   ShoppingBag,
   Info,
   Sparkles,
+  Tag,
+  ArrowRight,
+  Zap,
+  Users,
+  Target,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import type { SmartScanResult } from '@/services/smartScanService';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
+import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
 
 interface PriceInfo {
   originalPrice: string | null;
@@ -550,6 +556,55 @@ export default function ScanResultView({
     return tips.slice(0, 5);
   }, [result]);
 
+  const valueReasoning = useMemo(() => {
+    return result.fashion_details?.value_reasoning
+      ?? result.electronics_details?.value_reasoning
+      ?? result.furniture_details?.value_reasoning
+      ?? result.household_details?.value_reasoning
+      ?? result.general_details?.value_reasoning
+      ?? null;
+  }, [result]);
+
+  const resaleSuggestion = useMemo(() => {
+    return result.fashion_details?.resale_suggestion
+      ?? result.electronics_details?.resale_suggestion
+      ?? result.furniture_details?.resale_suggestion
+      ?? result.household_details?.resale_suggestion
+      ?? result.general_details?.resale_suggestion
+      ?? null;
+  }, [result]);
+
+  const bestSellingPlatform = useMemo(() => {
+    return result.fashion_details?.best_selling_platform
+      ?? result.electronics_details?.best_selling_platform
+      ?? result.furniture_details?.best_selling_platform
+      ?? result.household_details?.best_selling_platform
+      ?? result.general_details?.best_selling_platform
+      ?? null;
+  }, [result]);
+
+  const companionItems = useMemo(() => {
+    if (isFood) return [];
+    const items = result.fashion_details?.complementary_items
+      ?? result.electronics_details?.complementary_items
+      ?? result.furniture_details?.complementary_items
+      ?? result.household_details?.complementary_items
+      ?? result.general_details?.complementary_items
+      ?? [];
+    return items.filter(Boolean).slice(0, 6);
+  }, [result, isFood]);
+
+  const nextScanSuggestion = useMemo(() => {
+    return result.fashion_details?.next_scan_suggestion
+      ?? result.electronics_details?.next_scan_suggestion
+      ?? result.furniture_details?.next_scan_suggestion
+      ?? result.household_details?.next_scan_suggestion
+      ?? result.general_details?.next_scan_suggestion
+      ?? result.food_details?.next_scan_suggestion
+      ?? result.grocery_details?.next_scan_suggestion
+      ?? null;
+  }, [result]);
+
 
 
   return (
@@ -743,6 +798,42 @@ export default function ScanResultView({
           </View>
         )}
 
+        {!isNonResale && !isUnknown && valueReasoning && (
+          <View style={st.valueReasoningCard}>
+            <SectionHeader icon={Target} title="What Affects Value" color="#8B5CF6" />
+            <Text style={st.valueReasoningText}>{valueReasoning}</Text>
+          </View>
+        )}
+
+        {!isNonResale && !isUnknown && companionItems.length > 0 && (
+          <View style={st.companionSection}>
+            <SectionHeader icon={Users} title="Often Sold With" color="#6366F1" />
+            <View style={st.companionList}>
+              {companionItems.map((item, i) => (
+                <View key={`comp-${i}`} style={st.companionRow}>
+                  <View style={st.companionDot} />
+                  <Text style={st.companionText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {!isNonResale && !isUnknown && resaleSuggestion && (
+          <View style={st.listingTipCard}>
+            <SectionHeader icon={Tag} title="Listing Tips" color="#059669" />
+            <Text style={st.listingTipText}>{resaleSuggestion}</Text>
+            {bestSellingPlatform && (
+              <View style={st.platformRow}>
+                <Zap size={12} color="#D97706" />
+                <Text style={st.platformText}>Best on: {bestSellingPlatform}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        <ResaleInsightsSection result={result} />
+
         {isFood && foodIngredients.length > 0 && (
           <View style={st.collapsibleSection}>
             <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleIngredients}>
@@ -888,6 +979,13 @@ export default function ScanResultView({
                 ))}
               </View>
             )}
+          </View>
+        )}
+
+        {nextScanSuggestion && (
+          <View style={st.nextScanCard}>
+            <SectionHeader icon={ArrowRight} title="Best Next Scan" color="#3B82F6" />
+            <Text style={st.nextScanText}>{nextScanSuggestion}</Text>
           </View>
         )}
 
@@ -1538,6 +1636,93 @@ const st = StyleSheet.create({
     color: '#1C1C1E',
     textAlign: 'center' as const,
     lineHeight: 16,
+  },
+  valueReasoningCard: {
+    marginBottom: ScannerSpacing.lg,
+  },
+  valueReasoningText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#4B5563',
+    lineHeight: 19,
+    backgroundColor: '#FAF5FF',
+    borderRadius: ScannerRadius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    overflow: 'hidden' as const,
+  },
+  companionSection: {
+    marginBottom: ScannerSpacing.lg,
+  },
+  companionList: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: ScannerRadius.lg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    gap: 4,
+  },
+  companionRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingVertical: 4,
+  },
+  companionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#6366F1',
+  },
+  companionText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#3C3C43',
+    flex: 1,
+    lineHeight: 18,
+  },
+  listingTipCard: {
+    marginBottom: ScannerSpacing.lg,
+  },
+  listingTipText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#166534',
+    lineHeight: 19,
+    backgroundColor: '#F0FDF4',
+    borderRadius: ScannerRadius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    overflow: 'hidden' as const,
+  },
+  platformRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  platformText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#92400E',
+  },
+  nextScanCard: {
+    marginBottom: ScannerSpacing.lg,
+  },
+  nextScanText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#1E40AF',
+    lineHeight: 19,
+    backgroundColor: '#EFF6FF',
+    borderRadius: ScannerRadius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    overflow: 'hidden' as const,
   },
   groceryNutritionCard: {
     backgroundColor: '#F0FDF4',
