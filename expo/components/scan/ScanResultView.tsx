@@ -15,7 +15,6 @@ import {
   ChevronRight,
   Package,
   TrendingUp,
-  Target,
   Info,
   Trash2,
 } from 'lucide-react-native';
@@ -290,38 +289,6 @@ function getSubtleTips(result: SmartScanResult): string[] {
   return tips.slice(0, 3);
 }
 
-function getValueFactors(result: SmartScanResult): string[] {
-  const factors: string[] = ['Condition'];
-  const hasBrand = !!(result.fashion_details?.brand ?? result.electronics_details?.brand ?? result.household_details?.brand ?? result.general_details?.brand);
-  factors.push(hasBrand ? 'Brand recognition' : 'Brand (not detected)');
-  factors.push('Size / dimensions');
-  if (result.fashion_details) { factors.push('Wear and tear'); factors.push('Current demand'); }
-  if (result.electronics_details) { factors.push('Working condition'); factors.push('Included accessories'); }
-  if (result.furniture_details) { factors.push('Missing parts'); factors.push('Assembly completeness'); }
-  factors.push('Material quality');
-  factors.push('Market demand');
-  return factors.slice(0, 6);
-}
-
-function getListingTips(result: SmartScanResult): string[] {
-  const tips = ['Photograph labels or brand marks', 'Include dimensions in your listing', 'Show condition clearly in photos'];
-  if (result.fashion_details) { tips.push('Show size tags and care labels'); }
-  if (result.electronics_details) { tips.push('Show the item powered on if possible'); }
-  if (result.furniture_details) { tips.push('Note if assembly instructions are included'); }
-  tips.push('Include accessories if available');
-  return tips.slice(0, 5);
-}
-
-function getNextScanSuggestions(result: SmartScanResult): string[] {
-  const suggestions: string[] = [];
-  const hasBrand = !!(result.fashion_details?.brand ?? result.electronics_details?.brand ?? result.household_details?.brand ?? result.general_details?.brand);
-  if (!hasBrand) suggestions.push('Brand label or logo');
-  suggestions.push('Product packaging or box');
-  suggestions.push('Barcode or item tag');
-  suggestions.push('Instruction manual or model tag');
-  return suggestions.slice(0, 4);
-}
-
 function getResaleDisplayPrice(result: SmartScanResult, priceInfo: PriceInfo, isNonResale: boolean): string | null {
   if (isNonResale) return null;
   if (priceInfo.priceRange) return priceInfo.priceRange;
@@ -395,15 +362,6 @@ function SectionHeader({ icon: Icon, title, color }: { icon: React.ComponentType
   );
 }
 
-function BulletItem({ text, char }: { text: string; char?: string }) {
-  return (
-    <View style={st.bulletRow}>
-      <Text style={st.bulletChar}>{char ?? '•'}</Text>
-      <Text style={st.bulletText}>{text}</Text>
-    </View>
-  );
-}
-
 export default function ScanResultView({
   result,
   scannedImageUri,
@@ -421,9 +379,7 @@ export default function ScanResultView({
   const recentlySold = useMemo(() => getRecentlySoldItems(result), [result]);
   const insightData = useMemo(() => getInsightText(result, isLowConfidence), [result, isLowConfidence]);
   const subtleTips = useMemo(() => getSubtleTips(result), [result]);
-  const valueFactors = useMemo(() => getValueFactors(result), [result]);
-  const listingTips = useMemo(() => getListingTips(result), [result]);
-  const nextScanSuggestions = useMemo(() => getNextScanSuggestions(result), [result]);
+
 
   const confidenceBadgeLabel = useMemo(() => {
     if (result.confidence >= 0.70) return 'High conf.';
@@ -456,29 +412,14 @@ export default function ScanResultView({
   }, [result]);
 
   const [tipsExpanded, setTipsExpanded] = useState(false);
-  const [valueFactorsExpanded, setValueFactorsExpanded] = useState(false);
-  const [listingTipsExpanded, setListingTipsExpanded] = useState(false);
-  const [nextScanExpanded, setNextScanExpanded] = useState(false);
+
 
   const handleToggleTips = useCallback(() => {
     void Haptics.selectionAsync();
     setTipsExpanded(prev => !prev);
   }, []);
 
-  const handleToggleValueFactors = useCallback(() => {
-    void Haptics.selectionAsync();
-    setValueFactorsExpanded(prev => !prev);
-  }, []);
 
-  const handleToggleListingTips = useCallback(() => {
-    void Haptics.selectionAsync();
-    setListingTipsExpanded(prev => !prev);
-  }, []);
-
-  const handleToggleNextScan = useCallback(() => {
-    void Haptics.selectionAsync();
-    setNextScanExpanded(prev => !prev);
-  }, []);
 
   return (
     <Animated.View style={[st.root, { opacity: resultFade }]}>
@@ -586,73 +527,7 @@ export default function ScanResultView({
           </View>
         )}
 
-        {!isNonResale && (
-          <View style={st.collapsibleSection}>
-            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleValueFactors}>
-              <View style={st.collapsibleHeaderLeft}>
-                <Target size={14} color="#F59E0B" />
-                <Text style={st.collapsibleHeaderTitle}>What Affects Value</Text>
-              </View>
-              <ChevronRight
-                size={14}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: valueFactorsExpanded ? '90deg' : '0deg' }] }}
-              />
-            </Pressable>
-            {valueFactorsExpanded && (
-              <View style={st.collapsibleContent}>
-                {valueFactors.map((factor, i) => (
-                  <BulletItem key={`vf-${i}`} text={factor} char="☐" />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
 
-        {!isNonResale && (
-          <View style={st.collapsibleSection}>
-            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleListingTips}>
-              <View style={st.collapsibleHeaderLeft}>
-                <Lightbulb size={14} color="#0EA5E9" />
-                <Text style={st.collapsibleHeaderTitle}>Listing Tips</Text>
-              </View>
-              <ChevronRight
-                size={14}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: listingTipsExpanded ? '90deg' : '0deg' }] }}
-              />
-            </Pressable>
-            {listingTipsExpanded && (
-              <View style={st.collapsibleContent}>
-                {listingTips.map((tip, i) => (
-                  <BulletItem key={`lt-${i}`} text={tip} char="→" />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={st.collapsibleSection}>
-          <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleNextScan}>
-            <View style={st.collapsibleHeaderLeft}>
-              <Camera size={14} color="#EC4899" />
-              <Text style={st.collapsibleHeaderTitle}>Best Next Scan</Text>
-            </View>
-            <ChevronRight
-              size={14}
-              color="#AEAEB2"
-              style={{ transform: [{ rotate: nextScanExpanded ? '90deg' : '0deg' }] }}
-            />
-          </Pressable>
-          {nextScanExpanded && (
-            <View style={st.collapsibleContent}>
-              <Text style={st.nextScanIntro}>For better accuracy, try scanning:</Text>
-              {nextScanSuggestions.map((s, i) => (
-                <BulletItem key={`ns-${i}`} text={s} char="◎" />
-              ))}
-            </View>
-          )}
-        </View>
 
         <Pressable
           style={({ pressed }) => [st.scanAnotherBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
@@ -1049,12 +924,6 @@ const st = StyleSheet.create({
     borderTopColor: '#E5E5EA',
     paddingTop: 12,
     gap: 4,
-  },
-  nextScanIntro: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-    marginBottom: 6,
   },
   bulletRow: {
     flexDirection: 'row',

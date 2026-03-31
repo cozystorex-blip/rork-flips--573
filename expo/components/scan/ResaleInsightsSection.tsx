@@ -4,10 +4,7 @@ import {
   TrendingUp,
   Tag,
   DollarSign,
-  CheckSquare,
   Package,
-  Lightbulb,
-  Target,
   Info,
 } from 'lucide-react-native';
 
@@ -190,43 +187,6 @@ function computeResaleEstimate(result: SmartScanResult): ResaleEstimate {
   };
 }
 
-function getValueFactors(result: SmartScanResult): string[] {
-  const factors: string[] = ['Condition'];
-
-  const hasBrand = !!(
-    result.fashion_details?.brand ??
-    result.electronics_details?.brand ??
-    result.household_details?.brand ??
-    result.general_details?.brand
-  );
-  if (hasBrand) {
-    factors.push('Brand identification');
-  } else {
-    factors.push('Brand (not detected)');
-  }
-
-  factors.push('Size / dimensions');
-
-  if (result.furniture_details) {
-    factors.push('Missing parts or hardware');
-    factors.push('Assembly completeness');
-  }
-  if (result.fashion_details) {
-    factors.push('Wear and tear');
-    factors.push('Current demand / season');
-  }
-  if (result.electronics_details) {
-    factors.push('Working condition');
-    factors.push('Included accessories');
-  }
-
-  factors.push('Material quality');
-  factors.push('Market demand');
-  factors.push('Completeness');
-
-  return factors.slice(0, 7);
-}
-
 function getCompanionItems(result: SmartScanResult): string[] {
   const items: string[] = [];
 
@@ -271,51 +231,6 @@ function getCompanionItems(result: SmartScanResult): string[] {
   return unique.slice(0, 5);
 }
 
-function getListingTips(result: SmartScanResult): string[] {
-  const tips = [
-    'Photograph labels or brand marks',
-    'Include dimensions in your listing',
-    'Photograph all sides of the item',
-    'Show condition clearly in photos',
-  ];
-
-  if (result.furniture_details) {
-    tips.push('Note if assembly instructions are included');
-    tips.push('Mention all included hardware and parts');
-  }
-  if (result.fashion_details) {
-    tips.push('Show size tags and care labels');
-    tips.push('Note any defects or wear');
-  }
-  if (result.electronics_details) {
-    tips.push('Show the item powered on if possible');
-    tips.push('Include all cables and accessories');
-  }
-
-  tips.push('Include accessories if available');
-  return tips.slice(0, 6);
-}
-
-function getNextScanSuggestions(result: SmartScanResult): string[] {
-  const suggestions: string[] = [];
-  const hasBrand = !!(
-    result.fashion_details?.brand ??
-    result.electronics_details?.brand ??
-    result.household_details?.brand ??
-    result.general_details?.brand
-  );
-
-  if (!hasBrand) {
-    suggestions.push('A brand label or logo');
-  }
-  suggestions.push('Product packaging or box');
-  suggestions.push('Instruction manual or model tag');
-  suggestions.push('Barcode or item tag');
-  suggestions.push('The object alone with clear background');
-
-  return suggestions.slice(0, 4);
-}
-
 function SectionHeader({ icon: Icon, title, color }: { icon: React.ComponentType<{ size: number; color: string }>; title: string; color: string }) {
   return (
     <View style={st.sectionHeader}>
@@ -354,10 +269,7 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
   const resaleCategory = RESALE_CATEGORY_MAP[result.item_type];
   const subcategoryLabel = getSubcategoryLabel(result);
   const estimate = isResaleEligible ? computeResaleEstimate(result) : null;
-  const valueFactors = isResaleEligible ? getValueFactors(result) : [];
   const companionItems = isResaleEligible ? getCompanionItems(result) : [];
-  const listingTips = isResaleEligible ? getListingTips(result) : [];
-  const nextScanSuggestions = getNextScanSuggestions(result);
 
   return (
     <View style={st.container} testID="resale-insights-section">
@@ -432,13 +344,6 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
             </View>
           )}
 
-          <SectionHeader icon={CheckSquare} title="What Affects Value" color="#F59E0B" />
-          <View style={st.factorsCard}>
-            {valueFactors.map((factor, i) => (
-              <BulletItem key={`vf-${i}`} text={factor} char="☐" />
-            ))}
-          </View>
-
           {companionItems.length > 0 && (
             <>
               <SectionHeader icon={Package} title="Often Sold With" color="#6366F1" />
@@ -449,27 +354,10 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
               </View>
             </>
           )}
-
-          <SectionHeader icon={Lightbulb} title="Listing Tips" color="#0EA5E9" />
-          <View style={st.tipsCard}>
-            {listingTips.map((tip, i) => (
-              <BulletItem key={`lt-${i}`} text={tip} char="→" />
-            ))}
-          </View>
         </>
       )}
 
-      {nextScanSuggestions.length > 0 && (
-        <>
-          <SectionHeader icon={Target} title="Best Next Scan" color="#EC4899" />
-          <View style={st.nextScanCard}>
-            <Text style={st.nextScanIntro}>For better resale accuracy, try scanning:</Text>
-            {nextScanSuggestions.map((s, i) => (
-              <BulletItem key={`ns-${i}`} text={s} char="◎" />
-            ))}
-          </View>
-        </>
-      )}
+
     </View>
   );
 }
@@ -685,14 +573,6 @@ const st = StyleSheet.create({
     textAlign: 'center' as const,
     lineHeight: 17,
   },
-  factorsCard: {
-    backgroundColor: ScannerColors.card,
-    borderRadius: ScannerRadius.lg,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ScannerColors.cardBorder,
-    gap: 2,
-  },
   companionCard: {
     backgroundColor: ScannerColors.card,
     borderRadius: ScannerRadius.lg,
@@ -700,28 +580,6 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: ScannerColors.cardBorder,
     gap: 2,
-  },
-  tipsCard: {
-    backgroundColor: ScannerColors.card,
-    borderRadius: ScannerRadius.lg,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ScannerColors.cardBorder,
-    gap: 2,
-  },
-  nextScanCard: {
-    backgroundColor: ScannerColors.card,
-    borderRadius: ScannerRadius.lg,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: ScannerColors.cardBorder,
-    gap: 2,
-  },
-  nextScanIntro: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: ScannerColors.textSecondary,
-    marginBottom: 4,
   },
   bulletRow: {
     flexDirection: 'row',

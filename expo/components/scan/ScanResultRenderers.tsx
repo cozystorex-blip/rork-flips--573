@@ -132,18 +132,7 @@ function ValueInsightSection({ insight }: { insight: string | null | undefined }
   );
 }
 
-function NextScanSection({ suggestion }: { suggestion: string | null | undefined }) {
-  if (!suggestion) return null;
-  return (
-    <>
-      <Divider />
-      <View style={s.nextScanCard}>
-        <Text style={s.nextScanLabel}>Scan Next</Text>
-        <Text style={s.nextScanText}>{suggestion}</Text>
-      </View>
-    </>
-  );
-}
+
 
 function VerificationBadge({ status }: { status: VerificationStatus }) {
   const label = getVerificationLabel(status);
@@ -585,7 +574,6 @@ export function FoodResultSection({ result }: ResultProps) {
       <ChipRow items={fd.complementary_items} label="PAIRS WELL WITH" />
       <PurposeSection purpose={fd.purpose} />
       <ValueInsightSection insight={fd.value_insight} />
-      <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -700,7 +688,6 @@ export function GroceryResultSection({ result }: ResultProps) {
       <ChipRow items={gd.complementary_items} label="GOES WELL WITH" />
       <PurposeSection purpose={gd.purpose} />
       <ValueInsightSection insight={gd.value_insight} />
-      <NextScanSection suggestion={gd.next_scan_suggestion} />
       <TagsRow tags={gd.tags} />
     </>
   );
@@ -740,24 +727,7 @@ function IkeaCluesSection({ clues }: { clues: string[] }) {
   );
 }
 
-function BestNextScanSection({ suggestions }: { suggestions: string[] }) {
-  if (!suggestions || suggestions.length === 0) return null;
-  return (
-    <>
-      <Divider />
-      <SectionLabel text="Best Next Scan" />
-      <View style={s.bestNextScanCard}>
-        <Text style={s.bestNextScanIntro}>For better accuracy, try scanning:</Text>
-        {suggestions.map((sug, i) => (
-          <View key={`bns-${i}`} style={s.bulletRow}>
-            <Text style={s.bulletChar}>{"\u25CE"}</Text>
-            <Text style={s.bulletText}>{sug}</Text>
-          </View>
-        ))}
-      </View>
-    </>
-  );
-}
+
 
 export function FurnitureResultSection({ result }: ResultProps) {
   if (!result.furniture_details) {
@@ -898,8 +868,6 @@ export function FurnitureResultSection({ result }: ResultProps) {
       <ChipRow items={fd.complementary_items} label="PAIRS WELL WITH" />
       <PurposeSection purpose={fd.purpose} />
       <ValueInsightSection insight={fd.value_insight} />
-      <BestNextScanSection suggestions={fd.best_next_scan} />
-      <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -991,7 +959,6 @@ export function FashionResultSection({ result }: ResultProps) {
       <ChipRow items={fd.complementary_items} label="PAIRS WELL WITH" />
       <PurposeSection purpose={fd.purpose} />
       <ValueInsightSection insight={fd.value_insight} />
-      <NextScanSection suggestion={fd.next_scan_suggestion} />
       <TagsRow tags={fd.tags} />
     </>
   );
@@ -1059,7 +1026,6 @@ export function ElectronicsResultSection({ result }: ResultProps) {
       <ChipRow items={ed.complementary_items} label="GOES WELL WITH" />
       <PurposeSection purpose={ed.purpose} />
       <ValueInsightSection insight={ed.value_insight} />
-      <NextScanSection suggestion={ed.next_scan_suggestion} />
       <TagsRow tags={ed.tags} />
     </>
   );
@@ -1135,7 +1101,6 @@ export function HouseholdResultSection({ result }: ResultProps) {
       <ChipRow items={hd.complementary_items} label="GOES WELL WITH" />
       <PurposeSection purpose={hd.purpose} />
       <ValueInsightSection insight={hd.value_insight} />
-      <NextScanSection suggestion={hd.next_scan_suggestion} />
       <TagsRow tags={hd.tags} />
     </>
   );
@@ -1203,7 +1168,6 @@ export function GeneralResultSection({ result }: ResultProps) {
       <ChipRow items={gd.complementary_items} label="GOES WELL WITH" />
       <PurposeSection purpose={gd.purpose} />
       <ValueInsightSection insight={gd.value_insight} />
-      <NextScanSection suggestion={gd.next_scan_suggestion} />
       <TagsRow tags={gd.tags} />
     </>
   );
