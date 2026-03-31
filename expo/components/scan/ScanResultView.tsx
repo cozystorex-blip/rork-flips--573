@@ -199,6 +199,41 @@ function getRecentlySoldItems(result: SmartScanResult): SoldItem[] {
 }
 
 function getInsightText(result: SmartScanResult): { title: string; description: string } {
+  const isFood = result.item_type === 'food' || result.item_type === 'grocery';
+
+  if (isFood) {
+    const healthSummary = result.food_details?.health_summary ?? result.grocery_details?.nutrition_highlights;
+    const quickTip = result.food_details?.quick_tip;
+    const cuisineType = result.food_details?.cuisine_type;
+    const purpose = result.food_details?.purpose ?? result.grocery_details?.purpose;
+
+    if (healthSummary) {
+      return {
+        title: healthSummary,
+        description: quickTip ?? purpose ?? '',
+      };
+    }
+    if (quickTip) {
+      return {
+        title: quickTip,
+        description: purpose ?? '',
+      };
+    }
+    if (purpose) {
+      return {
+        title: purpose,
+        description: cuisineType ? `Cuisine: ${cuisineType}` : '',
+      };
+    }
+    if (result.short_summary) {
+      return { title: result.short_summary, description: '' };
+    }
+    return {
+      title: 'Food item identified with ingredient pairings and recipe ideas.',
+      description: '',
+    };
+  }
+
   const resaleSuggestion = result.fashion_details?.resale_suggestion
     ?? result.electronics_details?.resale_suggestion
     ?? result.furniture_details?.resale_suggestion
@@ -237,8 +272,8 @@ function getInsightText(result: SmartScanResult): { title: string; description: 
     electronics: 'Electronics item identified with estimated market value.',
     furniture: 'Furniture piece detected with estimated secondhand value.',
     household: 'Household item identified with general market value estimate.',
-    food: 'Food item analyzed with nutritional breakdown.',
-    grocery: 'Grocery product identified with price comparison.',
+    food: 'Food item identified with ingredient pairings and recipe ideas.',
+    grocery: 'Grocery product identified with cooking suggestions.',
     general: 'Item identified with best-effort value estimate.',
   };
 
@@ -282,6 +317,17 @@ function getSubtleTips(result: SmartScanResult): string[] {
   }
 
   return tips.slice(0, 3);
+}
+
+function getFoodSubstitutes(result: SmartScanResult): string[] {
+  if (result.food_details?.substitutes?.length) return result.food_details.substitutes;
+  if (result.grocery_details?.substitutes?.length) return result.grocery_details.substitutes;
+  return [];
+}
+
+function getFoodDrinkPairings(result: SmartScanResult): string[] {
+  if (result.food_details?.pairs_with_drinks?.length) return result.food_details.pairs_with_drinks;
+  return [];
 }
 
 function getResaleDisplayPrice(result: SmartScanResult, priceInfo: PriceInfo, isNonResale: boolean): string | null {
@@ -403,8 +449,9 @@ export default function ScanResultView({
   }, [result]);
 
   const [tipsExpanded, setTipsExpanded] = useState(false);
-  const [ingredientsExpanded, setIngredientsExpanded] = useState(false);
-  const [recipesExpanded, setRecipesExpanded] = useState(false);
+  const [ingredientsExpanded, setIngredientsExpanded] = useState(isFood);
+  const [recipesExpanded, setRecipesExpanded] = useState(isFood);
+  const [substitutesExpanded, setSubstitutesExpanded] = useState(false);
 
 
   const handleToggleTips = useCallback(() => {
@@ -422,20 +469,27 @@ export default function ScanResultView({
     setRecipesExpanded(prev => !prev);
   }, []);
 
+  const handleToggleSubstitutes = useCallback(() => {
+    void Haptics.selectionAsync();
+    setSubstitutesExpanded(prev => !prev);
+  }, []);
+
   const foodIngredients = useMemo(() => {
     if (result.food_details?.ingredients?.length) return result.food_details.ingredients;
     if (result.grocery_details?.ingredients_list?.length) return result.grocery_details.ingredients_list;
     return [];
   }, [result]);
 
-  const foodPairsWith = useMemo(() => {
+  const foodIngredientsGoWith = useMemo(() => {
     const items: string[] = [];
     if (result.food_details?.complementary_items?.length) items.push(...result.food_details.complementary_items);
     else if (result.grocery_details?.complementary_items?.length) items.push(...result.grocery_details.complementary_items);
-    if (result.food_details?.pairs_with_drinks?.length) items.push(...result.food_details.pairs_with_drinks);
     if (result.grocery_details?.what_else_needed?.length) items.push(...result.grocery_details.what_else_needed);
-    return [...new Set(items)].slice(0, 8);
+    return [...new Set(items)].slice(0, 10);
   }, [result]);
+
+  const foodDrinkPairings = useMemo(() => getFoodDrinkPairings(result), [result]);
+  const foodSubstitutes = useMemo(() => getFoodSubstitutes(result), [result]);
 
   const foodRecipes = useMemo(() => {
     if (result.food_details?.recipe_ideas?.length) return result.food_details.recipe_ideas;
@@ -488,6 +542,12 @@ export default function ScanResultView({
           <View style={st.calorieHighlight}>
             <Text style={st.calorieNumber}>{result.food_details.calories}</Text>
             <Text style={st.calorieUnit}>CAL</Text>
+          </View>
+        )}
+
+        {isFood && result.grocery_details && !result.food_details && result.grocery_details.nutrition_highlights && (
+          <View style={st.groceryNutritionCard}>
+            <Text style={st.groceryNutritionText}>{result.grocery_details.nutrition_highlights}</Text>
           </View>
         )}
 
@@ -585,18 +645,38 @@ export default function ScanResultView({
           </View>
         )}
 
-        {isFood && foodPairsWith.length > 0 && (
+        {isFood && foodIngredientsGoWith.length > 0 && (
           <View style={st.foodPairsSection}>
-            <SectionHeader icon={Cherry} title="Foods That Go With It" color="#E11D48" />
+            <SectionHeader icon={Cherry} title="Ingredients That Go With This" color="#E11D48" />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={st.foodPairsScroll}
             >
-              {foodPairsWith.map((item, i) => (
+              {foodIngredientsGoWith.map((item, i) => (
                 <View key={`pair-${i}`} style={st.foodPairCard}>
                   <View style={st.foodPairIconWrap}>
                     <UtensilsCrossed size={16} color="#E11D48" />
+                  </View>
+                  <Text style={st.foodPairText} numberOfLines={2}>{item}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {isFood && foodDrinkPairings.length > 0 && (
+          <View style={st.foodPairsSection}>
+            <SectionHeader icon={Cherry} title="Pairs Well With" color="#7C3AED" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={st.foodPairsScroll}
+            >
+              {foodDrinkPairings.map((item, i) => (
+                <View key={`drink-${i}`} style={[st.foodPairCard, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}>
+                  <View style={[st.foodPairIconWrap, { backgroundColor: '#EDE9FE' }]}>
+                    <Cherry size={16} color="#7C3AED" />
                   </View>
                   <Text style={st.foodPairText} numberOfLines={2}>{item}</Text>
                 </View>
@@ -650,6 +730,35 @@ export default function ScanResultView({
                     </View>
                   );
                 })}
+              </View>
+            )}
+          </View>
+        )}
+
+        {isFood && foodSubstitutes.length > 0 && (
+          <View style={st.collapsibleSection}>
+            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleSubstitutes}>
+              <View style={st.collapsibleHeaderLeft}>
+                <Package size={14} color="#0D9488" />
+                <Text style={st.collapsibleHeaderTitle}>Substitutes</Text>
+                <View style={[st.foodBadgeCount, { backgroundColor: '#0D948814' }]}>
+                  <Text style={[st.foodBadgeCountText, { color: '#0D9488' }]}>{foodSubstitutes.length}</Text>
+                </View>
+              </View>
+              <ChevronRight
+                size={14}
+                color="#AEAEB2"
+                style={{ transform: [{ rotate: substitutesExpanded ? '90deg' : '0deg' }] }}
+              />
+            </Pressable>
+            {substitutesExpanded && (
+              <View style={st.collapsibleContent}>
+                {foodSubstitutes.map((sub, i) => (
+                  <View key={`sub-${i}`} style={st.ingredientRow}>
+                    <View style={[st.ingredientDot, { backgroundColor: '#0D9488' }]} />
+                    <Text style={st.bulletText}>{sub}</Text>
+                  </View>
+                ))}
               </View>
             )}
           </View>
@@ -1149,8 +1258,23 @@ const st = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600' as const,
     color: '#1C1C1E',
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 16,
+  },
+  groceryNutritionCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: ScannerRadius.lg,
+    padding: 14,
+    marginBottom: ScannerSpacing.md,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  groceryNutritionText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#166534',
+    lineHeight: 20,
+    textAlign: 'center' as const,
   },
   recipeCard: {
     backgroundColor: '#FFFBEB',

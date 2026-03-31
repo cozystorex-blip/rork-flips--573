@@ -754,7 +754,13 @@ NUTRITION (be thorough and accurate):
 
 PRICING:
 - estimated_price, price_range, value_rating, budget_insight
-- tags and complementary_items (5+ each)
+- tags (8+)
+- complementary_items: THIS IS CRITICAL FOR FOOD — list 6-10 COOKING INGREDIENTS that pair with this food item. Think like a chef building a meal:
+  - For pasta sauce: pasta, garlic, parmesan, basil, ground beef, mozzarella, olive oil, crushed red pepper
+  - For chicken breast: rice, garlic, lemon, olive oil, rosemary, potatoes, bell peppers, broccoli
+  - For apples: peanut butter, cinnamon, honey, oats, caramel, walnuts, yogurt
+  - For bread: butter, jam, cheese, deli meat, lettuce, tomato, mayo, mustard
+  These should be INGREDIENTS a cook would naturally reach for, not random products.
 - purpose: Detailed sentence about how this food is used, eaten, or enjoyed
 - value_insight: Practical money/nutrition insight
 - next_scan_suggestion: What to scan next
@@ -798,8 +804,9 @@ PRODUCT INFO:
 - value_rating: ALWAYS rate it. Compare to similar products.
 - budget_insight: Smart shopping tip for this product
 - cheaper_alternative: ALWAYS suggest a cheaper option if one exists
-- what_else_needed: 3-5 items commonly bought with this (think complete meal)
-- tags (8+), complementary_items (5+)
+- what_else_needed: 5-8 items commonly bought/used with this to make a complete meal — think like a chef shopping list
+- tags (8+)
+- complementary_items: 6-10 COOKING INGREDIENTS that go with this item (e.g. for pasta: garlic, olive oil, parmesan, basil, tomatoes, onion, ground beef, red pepper flakes)
 - purpose: What this product is used for in cooking/eating
 - value_insight: Practical shopping/value insight
 - next_scan_suggestion: What to scan next
