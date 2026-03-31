@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Flips",
   slug: "xrbl9oijjxu6ij41g3klq",
-  version: "1.0.10",
+  version: "1.11.11.10.0",
   sdkVersion: "54.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: false,
-    buildNumber: "10",
+    buildNumber: "11",
     bundleIdentifier: "app.rork.xrbl9oijjxu6ij41g3klq",
     infoPlist: {
       NSCameraUsageDescription:
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    versionCode: 10,
+    versionCode: 11,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
