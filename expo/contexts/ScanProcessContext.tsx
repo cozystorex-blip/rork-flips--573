@@ -405,7 +405,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       startPhaseTimer('generating_image');
 
       const processedBase64 = getLastProcessedBase64();
-      if (scanResult.image_description) {
+      if (scanResult.image_description && scanResult.confidence >= 0.55) {
         try {
           setGeneratingImage(true);
           const refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined, scanResult.confidence);
@@ -418,6 +418,8 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         } finally {
           setGeneratingImage(false);
         }
+      } else if (scanResult.confidence < 0.55) {
+        console.log('[ScanProcess] Skipping reference image — confidence too low:', scanResult.confidence);
       }
 
       setScanPhase('done');

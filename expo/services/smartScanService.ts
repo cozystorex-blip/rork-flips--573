@@ -725,6 +725,17 @@ ACCURACY RULES (CRITICAL — follow these strictly):
 10. For companion/matching products: suggest item TYPES, not specific branded products, unless verified.
 11. Never use "Worth it", "Good value", "Great deal" without real comparison data. Set value_verdict and value_rating to null if uncertain.
 
+TRUST-FIRST RULES (CRITICAL):
+12. NEVER invent data to fill fields. It is ALWAYS better to return null than to make something up.
+13. brand: ONLY fill if you can see a logo, label, or clearly recognize the brand from distinctive design. Otherwise null.
+14. material: ONLY fill if you can visually determine or strongly infer the material. Otherwise null.
+15. condition: ONLY fill if you can see enough of the item to assess wear. Otherwise null.
+16. color: ALWAYS fill — describe the dominant visible color accurately.
+17. Prices: Use ranges like "$20 - $40" when uncertain. NEVER give fake precision like "$37.99" unless you know the exact product.
+18. resale_value: Set to null if you cannot confidently estimate. Do NOT fabricate resale numbers.
+19. comparable_model / comparable_item: Set to null unless you can name a REAL, specific comparable product.
+20. If the image is unclear, blurry, or partially obscured, SAY SO and reduce detail rather than guessing.
+
 FIELD QUALITY RULES (CRITICAL — every field must be useful):
 - color: Use the PRIMARY visible color (e.g. "White", "Black", "Navy Blue"). Never use "Various" unless truly 3+ equally dominant colors.
 - material: Use the DOMINANT material you can see (e.g. "Mesh", "Leather", "Ceramic", "Stainless Steel"). Never use "Mixed" as a cop-out.
@@ -1597,7 +1608,7 @@ function buildDocumentResult(
 
 export async function generateReferenceImage(description: string, scannedImageBase64?: string, confidence?: number): Promise<string | null> {
   try {
-    if (confidence !== undefined && confidence < 0.5) {
+    if (confidence !== undefined && confidence < 0.55) {
       console.log('[SmartScan] Skipping reference image generation — confidence too low:', confidence);
       return null;
     }
@@ -1606,16 +1617,18 @@ export async function generateReferenceImage(description: string, scannedImageBa
 
     if (scannedImageBase64) {
       console.log('[SmartScan] Using image edit API with scanned image');
-      const editPrompt = `You are a professional product photographer. Clean up this photo to look like a professional product listing. Rules:
-- Keep the EXACT same item — do NOT replace, reimagine, or alter the product
-- Remove background clutter, replace with a clean solid white or very light gray background
-- Improve lighting and exposure to look like studio photography
-- Maintain exact colors, textures, details, proportions, and branding of the original item
-- Center the item with natural soft shadow beneath
-- Ensure sharp focus and high clarity
-- Remove hands, other objects, and distracting elements
-- The result MUST be clearly recognizable as the exact same item from the original photo
-- Do NOT add any text, logos, watermarks, or elements not in the original`;
+      const editPrompt = `Clean up this product photo for a professional listing. STRICT RULES:
+- Keep the EXACT same item — do NOT replace, reimagine, or change the product in any way
+- Remove background clutter, replace with a clean solid white background
+- Fix lighting and exposure for studio-quality appearance
+- PRESERVE exact colors, textures, proportions, branding, and all details of the original item
+- Center the item with a subtle natural shadow
+- Ensure crisp focus and high resolution appearance
+- Remove hands, other objects, and distracting elements from the background only
+- The output MUST look like the same physical object photographed professionally
+- Do NOT add text, watermarks, or new elements
+- Do NOT stylize, illustrate, or artistically reinterpret the item
+- If the item has text/labels, keep them exactly as they appear`;
       try {
         const editResponse = await fetch('https://toolkit.rork.com/images/edit/', {
           method: 'POST',
@@ -1841,31 +1854,30 @@ Be ACCURATE: real prices for recognized products, realistic ranges for unrecogni
 CONSISTENCY: For the same item scanned multiple times, return essentially the same details. Be deterministic.
 FORMATTING: Prices must start with $. Tags must be lowercase. Arrays ordered by relevance. Use null instead of "n/a" or "none".
 
-IMPORTANT — FILL EVERY FIELD POSSIBLE:
-You are the ultimate product analysis GENIE. The user expects MAXIMUM detail on every single item — like having a personal expert for each category:
-- For FOOD: Act like a Michelin chef + nutritionist + cookbook author. Give complete ingredients, detailed recipes with creative names and vivid descriptions, expert preparation tips, drink pairings, storage advice, and substitutes. The recipe_ideas field is CRITICAL — make them cookbook-quality with appetizing names and detailed descriptions.
-- For GROCERY: Act like a smart shopper + chef + nutritionist. Full ingredient breakdown, 3-4 complete recipes using this product, nutrition facts, allergens, dietary info, storage guidance, and cheaper alternatives. Recipe ideas should be practical meals anyone can make.
-- For FASHION: Act like a StockX analyst + personal stylist + brand expert. Identify the brand from ANY visual cue. Give exact resale values, best selling platforms, styling advice, condition assessment, and care tips. The user wants to know exactly what it's worth and where to sell it.
-- For FURNITURE: Act like an IKEA expert + interior designer + handyman. Full assembly details, tools needed, build time, room styling suggestions, extra items needed, and honest value assessment. If it's IKEA, identify the exact product line.
-- For ALL ITEMS: Act like a professional appraiser + retail expert + resale consultant.
+ACCURACY OVER COMPLETENESS — TRUST IS THE #1 PRIORITY:
+You are a product expert. The user needs ACCURATE, TRUSTWORTHY information — not filler.
 
-For EVERY field:
-- brand: Even if logo is not visible, if you can identify the brand from design/style, state it. Say "Likely Nike" etc.
-- estimated_retail_price / estimated_price: ALWAYS provide your best estimate. Use ranges if unsure.
-- estimated_resale_value: ALWAYS estimate for non-consumable items. Think eBay, Poshmark, Mercari, Facebook Marketplace.
-- best_selling_platform: ALWAYS suggest where this sells best (eBay, StockX, Poshmark, Mercari, Facebook Marketplace, Craigslist, OfferUp, Depop, etc.)
-- value_verdict / value_rating: ALWAYS rate the value.
-- resale_demand: ALWAYS estimate demand level.
-- comparable_model / comparable_item: ALWAYS suggest a comparable product.
-- condition: ALWAYS assess from what you see.
-- care_tip: ALWAYS provide care advice.
-- budget_insight: ALWAYS provide a money-saving tip.
-- cheaper_alternative: ALWAYS suggest an alternative if one exists.
-- tags: Provide 8-12 relevant tags.
-- complementary_items: Suggest 4-6 items that go with this.
-- purpose, value_insight, next_scan_suggestion: ALWAYS fill these with detailed, useful content.
-- For food/grocery: recipe_ideas MUST have 3-4 entries, ingredients MUST be thorough, allergens MUST be complete.
-The goal: leave NO field empty unless truly impossible. Every scan should feel like consulting with a world-class expert. Act like a product oracle.`;
+RULES:
+- Fill fields ONLY when you have genuine knowledge or strong visual evidence.
+- It is MUCH better to return null for a field than to fabricate a value.
+- brand: ONLY if visible on the item or you can confidently identify from distinctive design features. Use "Likely [Brand]" only if you have strong visual evidence. Otherwise null.
+- estimated_retail_price / estimated_price: Provide ranges when uncertain. Only give specific prices for products you recognize.
+- estimated_resale_value: Only provide for items with real secondhand markets AND when you can make a reasonable estimate. null is fine.
+- comparable_model / comparable_item: Only name REAL products you know exist. null is better than a made-up comparable.
+- condition: Only assess if you can see enough of the item. null if uncertain.
+- material: Only state if visually determinable. null if not.
+- value_verdict / value_rating: Only rate when you have enough data. null otherwise.
+- tags: Provide 6-10 relevant tags based on what you actually see.
+- complementary_items: Suggest 3-6 items that genuinely pair with this.
+- For food/grocery: recipe_ideas should have 2-4 entries, ingredients should be thorough, allergens complete.
+
+For fields you ARE confident about, be detailed and expert-level:
+- For FOOD: Give real nutrition data, genuine recipes, actual ingredient pairings.
+- For FASHION: If you recognize the brand/model, give real market data. If not, describe what you see accurately.
+- For ELECTRONICS: If you recognize the device, give real specs and pricing. If not, describe it honestly.
+- For FURNITURE: If you recognize it, give real details. If not, describe materials and style accurately.
+
+The goal: every piece of information shown must be trustworthy. Users lose trust when they see obviously fabricated details.`;
 
   const result = await callWithRetry(
     () => generateObject({
@@ -1908,157 +1920,49 @@ The goal: leave NO field empty unless truly impossible. Every scan should feel l
   return withResale;
 }
 
-const CATEGORY_FALLBACK_RANGES: Record<string, { low: number; high: number; demand: string }> = {
-  shoes: { low: 10, high: 60, demand: 'medium' },
-  footwear: { low: 10, high: 60, demand: 'medium' },
-  clothing: { low: 5, high: 40, demand: 'medium' },
-  outerwear: { low: 15, high: 80, demand: 'medium' },
-  accessories: { low: 5, high: 50, demand: 'low' },
-  bags: { low: 10, high: 80, demand: 'medium' },
-  jewelry: { low: 5, high: 100, demand: 'low' },
-  activewear: { low: 5, high: 40, demand: 'medium' },
-  fashion: { low: 5, high: 40, demand: 'medium' },
-  electronics: { low: 15, high: 150, demand: 'medium' },
-  furniture: { low: 20, high: 250, demand: 'medium' },
-  household: { low: 5, high: 60, demand: 'low' },
-  kitchenware: { low: 5, high: 40, demand: 'low' },
-  tools: { low: 10, high: 80, demand: 'low' },
-  fitness: { low: 10, high: 100, demand: 'medium' },
-  cleaning: { low: 3, high: 20, demand: 'low' },
-  decor: { low: 5, high: 60, demand: 'low' },
-  storage: { low: 5, high: 30, demand: 'low' },
-  lighting: { low: 5, high: 50, demand: 'low' },
-  small_appliance: { low: 10, high: 80, demand: 'medium' },
-  garden: { low: 5, high: 40, demand: 'low' },
-  bathroom: { low: 3, high: 25, demand: 'low' },
-  general: { low: 5, high: 50, demand: 'low' },
-  other: { low: 5, high: 50, demand: 'low' },
-};
-
-function getCategoryFallbackRange(result: SmartScanResult): { low: number; high: number; demand: string } {
-  const sub = result.fashion_details?.subcategory
-    ?? result.household_details?.subcategory
-    ?? result.electronics_details?.product_type?.toLowerCase()
-    ?? result.general_details?.subcategory
-    ?? null;
-
-  if (sub) {
-    const subLower = sub.toLowerCase();
-    for (const [key, val] of Object.entries(CATEGORY_FALLBACK_RANGES)) {
-      if (subLower.includes(key)) return val;
-    }
-  }
-
-  const typeKey = result.item_type as string;
-  if (CATEGORY_FALLBACK_RANGES[typeKey]) return CATEGORY_FALLBACK_RANGES[typeKey];
-  return CATEGORY_FALLBACK_RANGES.general;
-}
-
 function ensureResaleData(result: SmartScanResult): SmartScanResult {
   const r = { ...result };
   const CONSUMABLE: SmartScanItemType[] = ['food', 'grocery', 'receipt', 'document', 'unknown'];
   if (CONSUMABLE.includes(r.item_type)) return r;
 
-  if (r.confidence < 0.6) {
+  if (r.confidence < 0.72) {
     console.log('[SmartScan] ensureResaleData: confidence too low (' + r.confidence.toFixed(2) + '), skipping fallback resale data to avoid fake values');
     return r;
   }
 
-  const fallback = getCategoryFallbackRange(r);
-
   if (r.fashion_details) {
     const fd = { ...r.fashion_details };
-    if (!fd.estimated_retail_price) fd.estimated_retail_price = `${fallback.low} - ${fallback.high}`;
-    if (!fd.estimated_resale_value) {
-      const fResLow = Math.round(fallback.low * 0.4);
-      const fResHigh = Math.round(fallback.high * 0.6);
-      fd.estimated_resale_value = `${Math.max(fResLow, 1)}`;
-      if (!fd.price_range) fd.price_range = `${fResLow} - ${fResHigh}`;
-    }
-    if (!fd.resale_demand) fd.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
     if (!fd.best_selling_platform) fd.best_selling_platform = fd.subcategory === 'shoes' ? 'eBay, StockX, Mercari' : 'Poshmark, Mercari, Depop';
-    if (!fd.value_verdict) fd.value_verdict = 'fair';
-    if (!fd.value_rating) fd.value_rating = 'average';
-    if (!fd.value_reasoning) fd.value_reasoning = 'Estimated based on visual category match. Scan labels or tags for more accurate pricing.';
     if (!fd.resale_suggestion) fd.resale_suggestion = 'Take clear photos of labels, tags, and any brand markings for best resale results.';
-    if (!fd.comparable_model) fd.comparable_model = 'Similar items in this category';
     r.fashion_details = fd;
   }
 
   if (r.electronics_details) {
     const ed = { ...r.electronics_details };
-    if (!ed.estimated_retail_price) ed.estimated_retail_price = `${fallback.low} - ${fallback.high}`;
-    if (!ed.estimated_resale_value) {
-      const eResLow = Math.round(fallback.low * 0.3);
-      const eResHigh = Math.round(fallback.high * 0.5);
-      ed.estimated_resale_value = `${Math.max(eResLow, 1)}`;
-      if (!ed.price_range) ed.price_range = `${eResLow} - ${eResHigh}`;
-    }
-    if (!ed.resale_demand) ed.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
     if (!ed.best_selling_platform) ed.best_selling_platform = 'eBay, Facebook Marketplace, Swappa';
-    if (!ed.value_verdict) ed.value_verdict = 'fair';
-    if (!ed.value_rating) ed.value_rating = 'average';
-    if (!ed.value_reasoning) ed.value_reasoning = 'Estimated based on product category. Scan model numbers or serial labels for precise valuation.';
     if (!ed.resale_suggestion) ed.resale_suggestion = 'Include all accessories and show the device powered on for best resale results.';
-    if (!ed.comparable_model) ed.comparable_model = 'Similar devices in this category';
     r.electronics_details = ed;
   }
 
   if (r.furniture_details) {
     const fd = { ...r.furniture_details };
-    if (!fd.estimated_retail_price && !fd.estimated_price_range) {
-      fd.estimated_price_range = `${fallback.low} - ${fallback.high}`;
-    }
-    if (!fd.estimated_resale_value) {
-      const fuResLow = Math.round(fallback.low * 0.3);
-      fd.estimated_resale_value = `${Math.max(fuResLow, 5)}`;
-    }
-    if (!fd.resale_demand) fd.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
     if (!fd.best_selling_platform) fd.best_selling_platform = 'Facebook Marketplace, Craigslist, OfferUp';
-    if (!fd.value_verdict) fd.value_verdict = 'fair';
-    if (!fd.value_rating) fd.value_rating = 'average';
-    if (!fd.value_reasoning) fd.value_reasoning = 'Estimated from visual category. Check underside labels for brand and model details.';
     if (!fd.resale_suggestion) fd.resale_suggestion = 'Photograph all sides including brand labels. Note any damage or missing hardware.';
-    if (!fd.comparable_model) fd.comparable_model = 'Similar furniture items in this style';
     if (!fd.resale_title_suggestion) fd.resale_title_suggestion = r.item_name;
     r.furniture_details = fd;
   }
 
   if (r.household_details) {
     const hd = { ...r.household_details };
-    if (!hd.estimated_price) hd.estimated_price = `${fallback.low} - ${fallback.high}`;
-    if (!hd.estimated_resale_value) {
-      const hResLow = Math.round(fallback.low * 0.3);
-      const hResHigh = Math.round(fallback.high * 0.5);
-      hd.estimated_resale_value = `${Math.max(hResLow, 1)}`;
-      if (!hd.price_range) hd.price_range = `${hResLow} - ${hResHigh}`;
-    }
-    if (!hd.resale_potential) hd.resale_potential = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
     if (!hd.best_selling_platform) hd.best_selling_platform = 'Facebook Marketplace, OfferUp, Mercari';
-    if (!hd.value_verdict) hd.value_verdict = 'fair';
-    if (!hd.value_rating) hd.value_rating = 'average';
-    if (!hd.value_reasoning) hd.value_reasoning = 'Estimated from item category. Scan labels or packaging for more accurate pricing.';
     if (!hd.resale_suggestion) hd.resale_suggestion = 'Clean the item and photograph any brand markings or labels for best listing results.';
-    if (!hd.comparable_model) hd.comparable_model = 'Similar household items';
     r.household_details = hd;
   }
 
   if (r.general_details) {
     const gd = { ...r.general_details };
-    if (!gd.estimated_retail_price) gd.estimated_retail_price = `${fallback.low} - ${fallback.high}`;
-    if (!gd.estimated_resale_value) {
-      const gResLow = Math.round(fallback.low * 0.3);
-      const gResHigh = Math.round(fallback.high * 0.5);
-      gd.estimated_resale_value = `${Math.max(gResLow, 1)}`;
-      if (!gd.price_range) gd.price_range = `${gResLow} - ${gResHigh}`;
-    }
-    if (!gd.resale_demand) gd.resale_demand = fallback.demand as 'high' | 'moderate' | 'low' | 'minimal';
     if (!gd.best_selling_platform) gd.best_selling_platform = 'eBay, Facebook Marketplace, Mercari';
-    if (!gd.value_verdict) gd.value_verdict = 'fair';
-    if (!gd.value_rating) gd.value_rating = 'average';
-    if (!gd.value_reasoning) gd.value_reasoning = 'Estimated from visual category. Scan labels or barcodes for more accurate pricing.';
     if (!gd.resale_suggestion) gd.resale_suggestion = 'Photograph all identifying marks and include accurate descriptions for best resale results.';
-    if (!gd.comparable_item) gd.comparable_item = 'Similar items in this category';
     r.general_details = gd;
   }
 

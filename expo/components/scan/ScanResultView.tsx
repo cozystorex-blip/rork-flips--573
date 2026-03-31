@@ -106,7 +106,7 @@ interface AttributeChip {
   value: string;
 }
 
-const JUNK_VALUES = ['unknown', 'n/a', 'none', 'mixed', 'various', 'unbranded', 'generic', 'other', 'item', 'personal', 'general use', 'standard', 'typical', 'regular', 'basic', 'normal', 'not available', 'not applicable', 'unspecified', 'undetermined', 'general', 'commodity', 'average', 'fair', 'common', 'null', 'undefined', 'mixed materials', 'various materials', 'multiple', 'assorted', 'miscellaneous', 'misc'];
+const JUNK_VALUES = ['unknown', 'n/a', 'none', 'mixed', 'various', 'unbranded', 'generic', 'other', 'item', 'personal', 'general use', 'standard', 'typical', 'regular', 'basic', 'normal', 'not available', 'not applicable', 'unspecified', 'undetermined', 'general', 'commodity', 'average', 'fair', 'common', 'null', 'undefined', 'mixed materials', 'various materials', 'multiple', 'assorted', 'miscellaneous', 'misc', 'similar items in this category', 'similar devices in this category', 'similar household items', 'similar furniture items in this style', 'estimated based on visual category match', 'estimated from visual category', 'estimated from item category', 'estimated based on product category'];
 
 function isRealValue(val: string | null | undefined): val is string {
   if (!val || val.trim().length === 0) return false;
@@ -183,7 +183,7 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
 }
 
 function hasStrongPricingData(result: SmartScanResult): boolean {
-  if (result.confidence < 0.6) return false;
+  if (result.confidence < 0.65) return false;
   const priceInfo = extractPriceInfo(result);
   return !!(priceInfo.originalPrice || priceInfo.valuePrice);
 }
@@ -344,7 +344,7 @@ function getFoodDrinkPairings(result: SmartScanResult): string[] {
 
 function getResaleDisplayPrice(result: SmartScanResult, priceInfo: PriceInfo, isNonResale: boolean): string | null {
   if (isNonResale) return null;
-  if (result.confidence < 0.55) return null;
+  if (result.confidence < 0.6) return null;
   if (priceInfo.priceRange) return priceInfo.priceRange;
   if (priceInfo.valuePrice && priceInfo.originalPrice) {
     return `${priceInfo.valuePrice} – ${priceInfo.originalPrice}`;
@@ -393,8 +393,9 @@ export default function ScanResultView({
   const _hasPricing = useMemo(() => hasStrongPricingData(result), [result]);
   const insightData = useMemo(() => getInsightText(result), [result]);
   const subtleTips = useMemo(() => getSubtleTips(result), [result]);
-  const isLowConf = result.confidence < 0.45;
-  const isVeryLowConf = result.confidence < 0.3;
+  const isLowConf = result.confidence < 0.5;
+  const isVeryLowConf = result.confidence < 0.35;
+  const _isMediumConf = result.confidence >= 0.5 && result.confidence < 0.65;
 
 
 
@@ -548,21 +549,21 @@ export default function ScanResultView({
           </View>
         )}
 
-        {!isNonResale && !isVeryLowConf && resaleDisplayPrice && (
+        {!isNonResale && !isVeryLowConf && !isLowConf && resaleDisplayPrice && (
           <View style={st.resaleCard}>
             <View style={st.resalePriceRow}>
               <View>
                 <Text style={st.resalePrice}>{resaleDisplayPrice}</Text>
-                <Text style={st.resaleLabel}>{result.confidence >= 0.7 ? 'Estimated Value' : 'Rough Estimate'}</Text>
+                <Text style={st.resaleLabel}>{result.confidence >= 0.75 ? 'Estimated Value' : 'Rough Estimate'}</Text>
               </View>
-              {demandLevel && result.confidence >= 0.6 && (
+              {demandLevel && result.confidence >= 0.7 && (
                 <View style={st.demandBadge}>
                   <TrendingUp size={12} color="#10B981" />
                   <Text style={st.demandText}>{demandLevel.charAt(0).toUpperCase() + demandLevel.slice(1)} demand</Text>
                 </View>
               )}
             </View>
-            {priceInfo.originalPrice && priceInfo.valuePrice && priceInfo.originalPrice !== priceInfo.valuePrice && (
+            {priceInfo.originalPrice && priceInfo.valuePrice && priceInfo.originalPrice !== priceInfo.valuePrice && result.confidence >= 0.65 && (
               <View style={st.retailRow}>
                 <Text style={st.retailLabel}>{priceInfo.originalLabel}</Text>
                 <Text style={st.retailValue}>{priceInfo.originalPrice}</Text>
@@ -583,7 +584,7 @@ export default function ScanResultView({
           </View>
         </View>
 
-        {attributeChips.length > 0 && !isVeryLowConf && (
+        {attributeChips.length > 0 && !isVeryLowConf && !isLowConf && (
           <View style={st.attributeGrid}>
             {attributeChips.map((chip, i) => (
               <View key={`chip-${i}`} style={st.attributeChip}>
