@@ -12,6 +12,7 @@ import { ScanProcessProvider } from "@/contexts/ScanProcessContext";
 import { ExpenseProvider } from "@/contexts/ExpenseContext";
 import { BlocksProvider } from "@/contexts/BlocksContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
+import { OnlinePeopleProvider } from "@/contexts/OnlinePeopleContext";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -53,9 +54,11 @@ export default function RootLayout() {
                   <ExpenseProvider>
                     <BlocksProvider>
                       <BusinessProvider>
-                        <ScanProcessProvider>
-                          <RootLayoutNav />
-                        </ScanProcessProvider>
+                        <OnlinePeopleProvider>
+                          <ScanProcessProvider>
+                            <RootLayoutNav />
+                          </ScanProcessProvider>
+                        </OnlinePeopleProvider>
                       </BusinessProvider>
                     </BlocksProvider>
                   </ExpenseProvider>
