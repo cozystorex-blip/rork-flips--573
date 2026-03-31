@@ -10,6 +10,8 @@ import type { IkeaScanMode } from '@/services/smartScanService';
 import { persistScanImage } from '@/services/imagePersistence';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import type { SmartScanResult } from '@/services/smartScanService';
+import { ScanCaptureError, parseCaptureError } from '@/services/cameraErrors';
+import type { CameraPermissionStatus } from '@/services/cameraErrors';
 
 export type ScanPhase = 'idle' | 'preprocessing' | 'analyzing' | 'generating_image' | 'done' | 'error';
 
@@ -24,45 +26,133 @@ export const PHASE_MESSAGES: Record<ScanPhase, string> = {
 
 const CAMERA_OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
-  quality: 0.7,
+  quality: 0.8,
   allowsEditing: false,
-  exif: false,
+  exif: true,
 };
 
 const GALLERY_OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
-  quality: 0.7,
+  quality: 0.8,
   allowsEditing: false,
-  exif: false,
+  exif: true,
 };
+
+const CAPTURE_TIMEOUT_MS = 30000;
+
+function mapPermissionStatus(status: string): CameraPermissionStatus {
+  switch (status) {
+    case 'granted': return 'granted';
+    case 'denied': return 'denied';
+    case 'limited': return 'limited';
+    default: return 'undetermined';
+  }
+}
+
+async function getCameraPermissionStatus(): Promise<CameraPermissionStatus> {
+  if (Platform.OS === 'web') return 'granted';
+  const { status } = await ImagePicker.getCameraPermissionsAsync();
+  console.log('[Camera] getCameraPermissionStatus:', status);
+  return mapPermissionStatus(status);
+}
+
+async function requestCameraPermission(): Promise<CameraPermissionStatus> {
+  if (Platform.OS === 'web') return 'granted';
+  const result = await ImagePicker.requestCameraPermissionsAsync();
+  console.log('[Camera] requestCameraPermission result:', result.status, 'granted:', result.granted);
+  return result.granted ? 'granted' : mapPermissionStatus(result.status);
+}
+
+async function getGalleryPermissionStatus(): Promise<CameraPermissionStatus> {
+  if (Platform.OS === 'web') return 'granted';
+  const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+  console.log('[Gallery] getGalleryPermissionStatus:', status);
+  return mapPermissionStatus(status);
+}
+
+async function requestGalleryPermission(): Promise<CameraPermissionStatus> {
+  if (Platform.OS === 'web') return 'granted';
+  const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  console.log('[Gallery] requestGalleryPermission result:', result.status, 'granted:', result.granted);
+  return result.granted ? 'granted' : mapPermissionStatus(result.status);
+}
+
+async function withCaptureTimeout<T>(promise: Promise<T>, timeoutMs: number = CAPTURE_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new ScanCaptureError('capture/timeout', `Capture timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
+async function launchCameraWithRetry(options: ImagePicker.ImagePickerOptions, maxRetries: number = 2): Promise<ImagePicker.ImagePickerResult> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Camera] launchCameraAsync attempt ${attempt}/${maxRetries}`);
+      const result = await withCaptureTimeout(ImagePicker.launchCameraAsync(options));
+      return result;
+    } catch (err) {
+      lastError = err;
+      console.log(`[Camera] launchCameraAsync attempt ${attempt} failed:`, err);
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 500 * attempt));
+      }
+    }
+  }
+  throw lastError ?? new ScanCaptureError('capture/failed', 'Camera launch failed after retries');
+}
 
 async function requestCameraImage(): Promise<ImagePicker.ImagePickerResult | null> {
   if (Platform.OS === 'web') {
     console.log('[Camera] Web platform — using gallery fallback');
-    return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+    return withCaptureTimeout(ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS));
   }
 
-  const { status, canAskAgain } = await ImagePicker.getCameraPermissionsAsync();
-  console.log('[Camera] Permission status:', status, 'canAskAgain:', canAskAgain);
+  let permStatus = await getCameraPermissionStatus();
+  console.log('[Camera] Initial permission status:', permStatus);
 
-  if (status === 'granted') {
+  if (permStatus === 'undetermined') {
+    permStatus = await requestCameraPermission();
+    console.log('[Camera] After request, permission status:', permStatus);
+  }
+
+  if (permStatus === 'granted' || permStatus === 'limited') {
     try {
-      return await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
+      return await launchCameraWithRetry(CAMERA_OPTIONS);
     } catch (err) {
-      console.log('[Camera] launchCameraAsync failed, falling back to gallery:', err);
-      return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+      const parsed = parseCaptureError(err);
+      console.log('[Camera] launchCameraAsync failed with code:', parsed.code, '— falling back to gallery');
+      if (parsed.code === 'capture/cancelled') return null;
+      try {
+        return await withCaptureTimeout(ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS));
+      } catch (galleryErr) {
+        console.log('[Camera] Gallery fallback also failed:', galleryErr);
+        throw new ScanCaptureError('capture/failed', 'Both camera and gallery failed');
+      }
     }
   }
 
-  if (status === 'undetermined' || canAskAgain) {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (perm.granted) {
-      try {
-        return await ImagePicker.launchCameraAsync(CAMERA_OPTIONS);
-      } catch (err) {
-        console.log('[Camera] launchCameraAsync failed after grant, falling back:', err);
-        return ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
-      }
+  if (permStatus === 'denied') {
+    Alert.alert(
+      'Camera Access Needed',
+      'Camera access was denied. Please enable it in your device Settings, or use the Gallery option.',
+      [{ text: 'OK' }]
+    );
+    return null;
+  }
+
+  const retryPerm = await requestCameraPermission();
+  if (retryPerm === 'granted' || retryPerm === 'limited') {
+    try {
+      return await launchCameraWithRetry(CAMERA_OPTIONS);
+    } catch (err) {
+      console.log('[Camera] launchCameraAsync failed after permission grant:', err);
+      return withCaptureTimeout(ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS));
     }
   }
 
@@ -76,26 +166,39 @@ async function requestCameraImage(): Promise<ImagePicker.ImagePickerResult | nul
 
 async function requestGalleryImage(): Promise<ImagePicker.ImagePickerResult | null> {
   if (Platform.OS !== 'web') {
-    const { status, canAskAgain } = await ImagePicker.getMediaLibraryPermissionsAsync();
-    console.log('[Gallery] Permission status:', status, 'canAskAgain:', canAskAgain);
-    if (status !== 'granted') {
-      if (status === 'undetermined' || canAskAgain) {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
-          return null;
-        }
-      } else {
+    let permStatus = await getGalleryPermissionStatus();
+    console.log('[Gallery] Initial permission status:', permStatus);
+
+    if (permStatus === 'undetermined') {
+      permStatus = await requestGalleryPermission();
+      console.log('[Gallery] After request, permission status:', permStatus);
+    }
+
+    if (permStatus === 'denied') {
+      Alert.alert(
+        'Photo Access Needed',
+        'Photo library access was denied. Please enable it in your device Settings to select photos.',
+        [{ text: 'OK' }]
+      );
+      return null;
+    }
+
+    if (permStatus !== 'granted' && permStatus !== 'limited') {
+      const retryPerm = await requestGalleryPermission();
+      if (retryPerm !== 'granted' && retryPerm !== 'limited') {
         Alert.alert('Photo Access Needed', 'Please allow photo library access in your device Settings to select photos.');
         return null;
       }
     }
   }
+
   try {
-    return await ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS);
+    return await withCaptureTimeout(ImagePicker.launchImageLibraryAsync(GALLERY_OPTIONS));
   } catch (err) {
-    console.log('[Gallery] launchImageLibraryAsync failed:', err);
-    Alert.alert('Error', 'Could not open photo library. Please try again.');
+    const parsed = parseCaptureError(err);
+    console.log('[Gallery] launchImageLibraryAsync failed with code:', parsed.code);
+    if (parsed.code === 'capture/cancelled') return null;
+    Alert.alert('Error', parsed.userMessage);
     return null;
   }
 }
@@ -114,7 +217,8 @@ export interface ScanProcessState {
 }
 
 const SCAN_TIMEOUT_MS = 60000;
-const SCAN_STUCK_TIMEOUT_MS = 15000;
+const SCAN_STUCK_TIMEOUT_MS = 20000;
+const SCAN_PHASE_TIMEOUT_MS = 45000;
 
 export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [scanning, setScanning] = useState<boolean>(false);
@@ -129,12 +233,15 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   const [lastValidation, setLastValidation] = useState<ScanValidationResult | null>(null);
 
   const { addEntry } = useScanHistory();
+  const [lastError, setLastError] = useState<ScanCaptureError | null>(null);
   const scanAbortRef = useRef<boolean>(false);
   const scanInProgressRef = useRef<boolean>(false);
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stuckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const phaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const captureAttemptRef = useRef<number>(0);
 
-  const clearScanTimeout = useCallback(() => {
+  const clearAllTimers = useCallback(() => {
     if (scanTimeoutRef.current) {
       clearTimeout(scanTimeoutRef.current);
       scanTimeoutRef.current = null;
@@ -143,6 +250,22 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       clearTimeout(stuckTimeoutRef.current);
       stuckTimeoutRef.current = null;
     }
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startPhaseTimer = useCallback((phaseName: string) => {
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+    }
+    phaseTimeoutRef.current = setTimeout(() => {
+      if (scanInProgressRef.current) {
+        console.log(`[ScanProcess] Phase '${phaseName}' stuck for ${SCAN_PHASE_TIMEOUT_MS}ms — triggering abort`);
+        scanAbortRef.current = true;
+      }
+    }, SCAN_PHASE_TIMEOUT_MS);
   }, []);
 
   const scanningRef = useRef<boolean>(false);
@@ -159,6 +282,10 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       }
     }
 
+    captureAttemptRef.current += 1;
+    const attemptId = captureAttemptRef.current;
+    console.log(`[ScanProcess] Starting capture attempt #${attemptId} mode=${mode}`);
+
     scanInProgressRef.current = true;
     setResult(null);
     setReferenceImageUrl(null);
@@ -166,15 +293,17 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setGeneratingImage(false);
     setViewingEntryId(null);
     setPendingReceiptNav(false);
+    setLastError(null);
     scanAbortRef.current = false;
-    clearScanTimeout();
+    clearAllTimers();
 
     stuckTimeoutRef.current = setTimeout(() => {
-      if (scanInProgressRef.current) {
-        console.log('[ScanProcess] STUCK SAFETY: Force-resetting scanInProgressRef after', SCAN_STUCK_TIMEOUT_MS, 'ms');
+      if (scanInProgressRef.current && captureAttemptRef.current === attemptId) {
+        console.log(`[ScanProcess] STUCK SAFETY #${attemptId}: Force-resetting after ${SCAN_STUCK_TIMEOUT_MS}ms`);
         scanInProgressRef.current = false;
         setScanning(false);
         setScanPhase('idle');
+        setLastError(new ScanCaptureError('processing/timeout', 'Scan got stuck and was auto-recovered'));
       }
     }, SCAN_STUCK_TIMEOUT_MS);
 
@@ -189,43 +318,58 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         pickerResult = await requestGalleryImage();
       }
 
+      if (captureAttemptRef.current !== attemptId) {
+        console.log(`[ScanProcess] Attempt #${attemptId} superseded by #${captureAttemptRef.current}, aborting`);
+        return;
+      }
+
       if (!pickerResult || pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
         console.log('[ScanProcess] User cancelled image selection');
         scanInProgressRef.current = false;
-        clearScanTimeout();
+        clearAllTimers();
         setScanning(false);
         setScanPhase('idle');
         return;
       }
 
       capturedUri = pickerResult.assets[0].uri;
-      console.log('[ScanProcess] Image captured:', capturedUri.substring(0, 80));
+      const assetWidth = pickerResult.assets[0].width;
+      const assetHeight = pickerResult.assets[0].height;
+      console.log(`[ScanProcess] Image captured: ${capturedUri.substring(0, 80)} (${assetWidth}x${assetHeight})`);
 
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       setScanning(true);
       setScanPhase('preprocessing');
+      startPhaseTimer('preprocessing');
 
       scanTimeoutRef.current = setTimeout(() => {
-        if (scanInProgressRef.current) {
-          console.log('[ScanProcess] Scan timed out after', SCAN_TIMEOUT_MS, 'ms');
+        if (scanInProgressRef.current && captureAttemptRef.current === attemptId) {
+          console.log(`[ScanProcess] Scan #${attemptId} timed out after ${SCAN_TIMEOUT_MS}ms`);
           scanAbortRef.current = true;
         }
       }, SCAN_TIMEOUT_MS);
 
       setScanPhase('analyzing');
+      startPhaseTimer('analyzing');
 
       const activeScanMode = ikeaScanMode ?? scanMode;
       console.log('[ScanProcess] Using scan mode:', activeScanMode ?? 'auto');
       const scanResult = await runSmartScan(capturedUri, activeScanMode);
 
-      clearScanTimeout();
+      clearAllTimers();
+
+      if (captureAttemptRef.current !== attemptId) {
+        console.log(`[ScanProcess] Attempt #${attemptId} superseded after analysis, discarding result`);
+        return;
+      }
 
       if (scanAbortRef.current) {
         console.log('[ScanProcess] Scan was aborted or timed out');
         scanInProgressRef.current = false;
         setScanning(false);
         setScanPhase('idle');
+        setLastError(new ScanCaptureError('processing/timeout', 'Scan analysis timed out'));
         Alert.alert('Scan Timeout', 'The scan took too long. Please try again with a clearer photo.');
         return;
       }
@@ -258,6 +402,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       setViewingEntryId(entryId);
 
       setScanPhase('generating_image');
+      startPhaseTimer('generating_image');
 
       const processedBase64 = getLastProcessedBase64();
       if (scanResult.image_description) {
@@ -283,9 +428,18 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       console.log('[ScanProcess] Scan saved with ID:', entryId, 'name:', scanResult.item_name);
 
     } catch (error: unknown) {
-      clearScanTimeout();
-      const msg = error instanceof Error ? error.message : String(error);
-      console.log('[ScanProcess] Error during scan:', msg);
+      clearAllTimers();
+
+      const scanError = parseCaptureError(error);
+      setLastError(scanError);
+      console.log(`[ScanProcess] Error during scan: code=${scanError.code} message=${scanError.message} retryable=${scanError.isRetryable}`);
+
+      if (scanError.code === 'capture/cancelled') {
+        scanInProgressRef.current = false;
+        setScanning(false);
+        setScanPhase('idle');
+        return;
+      }
 
       const fallbackResult: SmartScanResult = {
         item_type: 'general',
@@ -317,7 +471,9 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
           cheaper_alternative: null,
           care_tip: 'Store in a clean, dry place to maintain condition.',
           fun_fact: null,
-          practical_tip: 'Try scanning the product label, barcode, or a clearer angle for better results.',
+          practical_tip: scanError.isRetryable
+            ? 'Try scanning the product label, barcode, or a clearer angle for better results.'
+            : scanError.userMessage,
           age_or_era: null, rarity: null,
           tags: ['general', 'rescan-for-detail'],
           complementary_items: ['Related accessories', 'Replacement parts'],
@@ -355,9 +511,9 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       console.log('[ScanProcess] Scan complete, resetting state flags');
       setScanning(false);
       scanInProgressRef.current = false;
-      clearScanTimeout();
+      clearAllTimers();
     }
-  }, [addEntry, clearScanTimeout, scanMode]);
+  }, [addEntry, clearAllTimers, startPhaseTimer, scanMode]);
 
   const resetScan = useCallback(() => {
     console.log('[ScanProcess] Resetting scan state');
@@ -369,11 +525,22 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     setGeneratingImage(false);
     setPendingReceiptNav(false);
     setLastValidation(null);
+    setLastError(null);
     scanAbortRef.current = false;
     scanInProgressRef.current = false;
     setScanning(false);
-    clearScanTimeout();
-  }, [clearScanTimeout]);
+    clearAllTimers();
+  }, [clearAllTimers]);
+
+  const abortScan = useCallback(() => {
+    console.log('[ScanProcess] User-initiated abort');
+    scanAbortRef.current = true;
+    scanInProgressRef.current = false;
+    setScanning(false);
+    setScanPhase('idle');
+    setLastError(new ScanCaptureError('processing/aborted', 'Scan cancelled by user'));
+    clearAllTimers();
+  }, [clearAllTimers]);
 
   const loadHistoryEntry = useCallback((entry: {
     result: SmartScanResult;
@@ -405,8 +572,10 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
     pendingReceiptNav,
     scanMode,
     lastValidation,
+    lastError,
     handleCapture,
     resetScan,
+    abortScan,
     loadHistoryEntry,
     consumeReceiptNav,
     setScanMode,
@@ -417,6 +586,6 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
   }), [
     scanning, scanPhase, result, referenceImageUrl, scannedImageUri,
     generatingImage, viewingEntryId, pendingReceiptNav, scanMode,
-    lastValidation, handleCapture, resetScan, loadHistoryEntry, consumeReceiptNav,
+    lastValidation, lastError, handleCapture, resetScan, abortScan, loadHistoryEntry, consumeReceiptNav,
   ]);
 });
