@@ -349,9 +349,7 @@ export function ResaleInsightsSection({ result }: { result: SmartScanResult }) {
     return null;
   }
 
-  if (result.confidence < 0.2) {
-    return null;
-  }
+  // Always show resale insights for eligible types — no confidence gate
 
   const resaleCategory = RESALE_CATEGORY_MAP[result.item_type];
   const subcategoryLabel = getSubcategoryLabel(result);

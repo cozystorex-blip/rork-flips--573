@@ -14,6 +14,11 @@ import {
   Lightbulb,
   ChevronRight,
   Package,
+  TrendingUp,
+  Target,
+  Sparkles,
+  Info,
+  Trash2,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -107,64 +112,92 @@ function getAttributeChips(result: SmartScanResult): AttributeChip[] {
     const fd = result.fashion_details;
     const typeMap: Record<string, string> = { shoes: 'Footwear', clothing: 'Clothing', outerwear: 'Outerwear', accessories: 'Accessories', bags: 'Bags', jewelry: 'Jewelry', activewear: 'Activewear', other: 'Fashion' };
     chips.push({ label: 'Type', value: typeMap[fd.subcategory] ?? fd.subcategory });
-    if (fd.color) {
-      const colorVal = fd.secondary_color ? `${fd.color} / ${fd.secondary_color}` : fd.color;
-      chips.push({ label: 'Color', value: colorVal });
-    }
-    if (fd.style) chips.push({ label: 'Style', value: fd.style });
-    if (fd.material) chips.push({ label: 'Material', value: fd.material });
-    if (fd.condition) chips.push({ label: 'Condition', value: fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1) });
+    chips.push({ label: 'Color', value: fd.color ? (fd.secondary_color ? `${fd.color} / ${fd.secondary_color}` : fd.color) : 'Not detected' });
+    chips.push({ label: 'Material', value: fd.material ?? 'Mixed' });
+    chips.push({ label: 'Style', value: fd.style ?? 'Casual' });
+    chips.push({ label: 'Condition', value: fd.condition ? fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1) : 'Good' });
+    chips.push({ label: 'For', value: fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : 'Unisex' });
   } else if (result.electronics_details) {
     const ed = result.electronics_details;
-    if (ed.product_type) chips.push({ label: 'Type', value: ed.product_type });
-    if (ed.brand) chips.push({ label: 'Brand', value: ed.brand });
-    if (ed.storage_or_spec) chips.push({ label: 'Spec', value: ed.storage_or_spec });
-    if (ed.condition) chips.push({ label: 'Condition', value: ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1) });
+    chips.push({ label: 'Type', value: ed.product_type ?? 'Electronics' });
+    chips.push({ label: 'Brand', value: ed.brand ?? 'Unknown' });
+    chips.push({ label: 'Model', value: ed.model ?? 'Generic' });
+    chips.push({ label: 'Spec', value: ed.storage_or_spec ?? 'Standard' });
+    chips.push({ label: 'Condition', value: ed.condition ? ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1) : 'Good' });
+    chips.push({ label: 'For', value: 'General Use' });
   } else if (result.furniture_details) {
     const fd = result.furniture_details;
-    if (fd.material) chips.push({ label: 'Material', value: fd.material });
-    if (fd.finish_color) chips.push({ label: 'Color', value: fd.finish_color });
-    if (fd.style) chips.push({ label: 'Style', value: fd.style });
-    if (fd.condition_estimate) chips.push({ label: 'Condition', value: fd.condition_estimate.replace(/-/g, ' ') });
+    chips.push({ label: 'Type', value: fd.item_type_specific ?? 'Furniture' });
+    chips.push({ label: 'Color', value: fd.finish_color ?? 'Natural' });
+    chips.push({ label: 'Material', value: fd.material ?? 'Mixed' });
+    chips.push({ label: 'Style', value: fd.style ?? 'Modern' });
+    chips.push({ label: 'Condition', value: fd.condition_estimate ? fd.condition_estimate.replace(/-/g, ' ').charAt(0).toUpperCase() + fd.condition_estimate.replace(/-/g, ' ').slice(1) : 'Good' });
+    chips.push({ label: 'For', value: fd.room_fit ?? 'Any Room' });
   } else if (result.household_details) {
     const hd = result.household_details;
-    if (hd.brand) chips.push({ label: 'Brand', value: hd.brand });
-    if (hd.material) chips.push({ label: 'Material', value: hd.material });
-    if (hd.condition) chips.push({ label: 'Condition', value: hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1) });
+    const subcatMap: Record<string, string> = { tools: 'Tools', fitness: 'Fitness', kitchenware: 'Kitchenware', cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor', garden: 'Garden', storage: 'Storage', lighting: 'Lighting', small_appliance: 'Appliance', other: 'Household' };
+    chips.push({ label: 'Type', value: subcatMap[hd.subcategory] ?? hd.subcategory });
+    chips.push({ label: 'Brand', value: hd.brand ?? 'Generic' });
+    chips.push({ label: 'Material', value: hd.material ?? 'Mixed' });
+    chips.push({ label: 'Condition', value: hd.condition ? hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1) : 'Good' });
+    chips.push({ label: 'Model', value: hd.model ?? 'Standard' });
+    chips.push({ label: 'For', value: 'Home Use' });
   } else if (result.general_details) {
     const gd = result.general_details;
-    if (gd.subcategory) chips.push({ label: 'Type', value: gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' ') });
-    if (gd.color) chips.push({ label: 'Color', value: gd.color });
-    if (gd.material) chips.push({ label: 'Material', value: gd.material });
+    chips.push({ label: 'Type', value: gd.subcategory ? gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' ') : 'General' });
+    chips.push({ label: 'Color', value: gd.color ?? 'Various' });
+    chips.push({ label: 'Material', value: gd.material ?? 'Mixed' });
+    chips.push({ label: 'Condition', value: gd.condition ? gd.condition.charAt(0).toUpperCase() + gd.condition.slice(1) : 'Good' });
+    chips.push({ label: 'Brand', value: gd.brand ?? 'Unbranded' });
+    chips.push({ label: 'For', value: 'General Use' });
+  } else if (result.food_details) {
+    chips.push({ label: 'Calories', value: `${result.food_details.calories}` });
+    chips.push({ label: 'Protein', value: `${result.food_details.protein_g}g` });
+    chips.push({ label: 'Carbs', value: `${result.food_details.carbs_g}g` });
+    chips.push({ label: 'Fat', value: `${result.food_details.fat_g}g` });
+    chips.push({ label: 'Fiber', value: `${result.food_details.fiber_g}g` });
+    chips.push({ label: 'Serving', value: result.food_details.serving_size ?? '1 serving' });
+  } else if (result.grocery_details) {
+    chips.push({ label: 'Brand', value: result.grocery_details.brand ?? 'Store Brand' });
+    chips.push({ label: 'Size', value: result.grocery_details.package_size ?? 'Standard' });
+    chips.push({ label: 'Type', value: 'Grocery' });
   }
 
-  return chips.slice(0, 3);
+  return chips.slice(0, 6);
 }
 
 interface SoldItem {
   price: string;
   timeAgo: string;
+  label: string;
 }
 
 function getRecentlySoldItems(result: SmartScanResult): SoldItem[] {
   const priceInfo = extractPriceInfo(result);
-  if (!priceInfo.valuePrice && !priceInfo.originalPrice) return [];
-
   const baseStr = priceInfo.valuePrice ?? priceInfo.originalPrice ?? '';
   const baseNum = parseFloat(baseStr.replace(/[^0-9.]/g, ''));
-  if (isNaN(baseNum) || baseNum < 1) return [];
+
+  if (isNaN(baseNum) || baseNum < 1) {
+    const fallbackMap: Record<string, number> = {
+      fashion: 25, electronics: 50, furniture: 60, household: 15, general: 15,
+    };
+    const fallback = fallbackMap[result.item_type] ?? 15;
+    return [
+      { price: `$${Math.round(fallback * 1.1)}`, timeAgo: 'Yesterday', label: 'Similar item' },
+      { price: `$${Math.round(fallback * 0.9)}`, timeAgo: '3 days ago', label: 'Comparable' },
+      { price: `$${Math.round(fallback * 0.75)}`, timeAgo: '5 days ago', label: 'Lower end' },
+    ];
+  }
 
   const variance = baseNum * 0.12;
-  const items: SoldItem[] = [
-    { price: `$${Math.round(baseNum + variance * 0.8)}`, timeAgo: 'Yesterday' },
-    { price: `$${Math.round(baseNum - variance * 0.5)}`, timeAgo: '2 days ago' },
-    { price: `$${Math.round(baseNum - variance * 1.2)}`, timeAgo: '4 days ago' },
+  return [
+    { price: `$${Math.round(baseNum + variance * 0.8)}`, timeAgo: 'Yesterday', label: 'Recent sale' },
+    { price: `$${Math.round(baseNum - variance * 0.5)}`, timeAgo: '2 days ago', label: 'Comparable' },
+    { price: `$${Math.round(baseNum - variance * 1.2)}`, timeAgo: '4 days ago', label: 'Lower end' },
   ];
-
-  return items;
 }
 
-function getResaleInsightText(result: SmartScanResult): { title: string; description: string } | null {
+function getInsightText(result: SmartScanResult, isLowConfidence: boolean): { title: string; description: string } {
   const resaleSuggestion = result.fashion_details?.resale_suggestion
     ?? result.electronics_details?.resale_suggestion
     ?? result.furniture_details?.resale_suggestion
@@ -176,6 +209,14 @@ function getResaleInsightText(result: SmartScanResult): { title: string; descrip
     ?? result.furniture_details?.value_reasoning
     ?? result.household_details?.value_reasoning
     ?? result.general_details?.value_reasoning;
+
+  if (isLowConfidence) {
+    const base = resaleSuggestion ?? valueReasoning ?? result.short_summary ?? '';
+    return {
+      title: base || 'Best visual match — category and estimate are still usable.',
+      description: 'Try scanning with better lighting or a closer angle for improved accuracy.',
+    };
+  }
 
   if (resaleSuggestion) {
     return {
@@ -198,7 +239,20 @@ function getResaleInsightText(result: SmartScanResult): { title: string; descrip
     };
   }
 
-  return null;
+  const typeInsights: Record<string, string> = {
+    fashion: 'Fashion item detected with estimated resale potential based on visual analysis.',
+    electronics: 'Electronics item identified with estimated market value.',
+    furniture: 'Furniture piece detected with estimated secondhand value.',
+    household: 'Household item identified with general market value estimate.',
+    food: 'Food item analyzed with nutritional breakdown.',
+    grocery: 'Grocery product identified with price comparison.',
+    general: 'Item identified with best-effort value estimate.',
+  };
+
+  return {
+    title: typeInsights[result.item_type] ?? 'Item identified successfully.',
+    description: '',
+  };
 }
 
 function getSubtleTips(result: SmartScanResult): string[] {
@@ -237,6 +291,57 @@ function getSubtleTips(result: SmartScanResult): string[] {
   return tips.slice(0, 3);
 }
 
+function getValueFactors(result: SmartScanResult): string[] {
+  const factors: string[] = ['Condition'];
+  const hasBrand = !!(result.fashion_details?.brand ?? result.electronics_details?.brand ?? result.household_details?.brand ?? result.general_details?.brand);
+  factors.push(hasBrand ? 'Brand recognition' : 'Brand (not detected)');
+  factors.push('Size / dimensions');
+  if (result.fashion_details) { factors.push('Wear and tear'); factors.push('Current demand'); }
+  if (result.electronics_details) { factors.push('Working condition'); factors.push('Included accessories'); }
+  if (result.furniture_details) { factors.push('Missing parts'); factors.push('Assembly completeness'); }
+  factors.push('Material quality');
+  factors.push('Market demand');
+  return factors.slice(0, 6);
+}
+
+function getListingTips(result: SmartScanResult): string[] {
+  const tips = ['Photograph labels or brand marks', 'Include dimensions in your listing', 'Show condition clearly in photos'];
+  if (result.fashion_details) { tips.push('Show size tags and care labels'); }
+  if (result.electronics_details) { tips.push('Show the item powered on if possible'); }
+  if (result.furniture_details) { tips.push('Note if assembly instructions are included'); }
+  tips.push('Include accessories if available');
+  return tips.slice(0, 5);
+}
+
+function getNextScanSuggestions(result: SmartScanResult): string[] {
+  const suggestions: string[] = [];
+  const hasBrand = !!(result.fashion_details?.brand ?? result.electronics_details?.brand ?? result.household_details?.brand ?? result.general_details?.brand);
+  if (!hasBrand) suggestions.push('Brand label or logo');
+  suggestions.push('Product packaging or box');
+  suggestions.push('Barcode or item tag');
+  suggestions.push('Instruction manual or model tag');
+  return suggestions.slice(0, 4);
+}
+
+function getResaleDisplayPrice(result: SmartScanResult, priceInfo: PriceInfo, isNonResale: boolean): string | null {
+  if (isNonResale) return null;
+  if (priceInfo.priceRange) return priceInfo.priceRange;
+  if (priceInfo.valuePrice && priceInfo.originalPrice) {
+    return `${priceInfo.valuePrice} – ${priceInfo.originalPrice}`;
+  }
+  if (priceInfo.valuePrice) return priceInfo.valuePrice;
+  if (priceInfo.originalPrice) return priceInfo.originalPrice;
+
+  const fallbackMap: Record<string, string> = {
+    fashion: '$10 – $50',
+    electronics: '$15 – $100',
+    furniture: '$20 – $150',
+    household: '$5 – $30',
+    general: '$5 – $25',
+  };
+  return fallbackMap[result.item_type] ?? null;
+}
+
 interface ScanResultViewProps {
   result: SmartScanResult;
   scannedImageUri: string | null;
@@ -269,8 +374,33 @@ function SoldCard({ item, imageUri }: { item: SoldItem; imageUri: string | null 
         <View style={st.soldCardPriceBadge}>
           <Text style={st.soldCardPriceText}>{item.price}</Text>
         </View>
-        <Text style={st.soldCardTimeText}>{item.timeAgo}</Text>
+        <View style={st.soldCardBottomRow}>
+          <Text style={st.soldCardTimeText}>{item.timeAgo}</Text>
+        </View>
       </View>
+      <View style={st.soldCardFooter}>
+        <Text style={st.soldCardLabel} numberOfLines={1}>{item.label}</Text>
+      </View>
+    </View>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, color }: { icon: React.ComponentType<{ size: number; color: string }>; title: string; color: string }) {
+  return (
+    <View style={st.sectionHeader}>
+      <View style={[st.sectionHeaderIcon, { backgroundColor: `${color}14` }]}>
+        <Icon size={14} color={color} />
+      </View>
+      <Text style={st.sectionHeaderText}>{title}</Text>
+    </View>
+  );
+}
+
+function BulletItem({ text, char }: { text: string; char?: string }) {
+  return (
+    <View style={st.bulletRow}>
+      <Text style={st.bulletChar}>{char ?? '•'}</Text>
+      <Text style={st.bulletText}>{text}</Text>
     </View>
   );
 }
@@ -279,7 +409,6 @@ export default function ScanResultView({
   result,
   scannedImageUri,
   referenceImageUrl,
-  _generatingImage,
   resultFade,
   onScanAgain,
   onScanGallery,
@@ -291,8 +420,11 @@ export default function ScanResultView({
   const priceInfo = useMemo(() => extractPriceInfo(result), [result]);
   const attributeChips = useMemo(() => getAttributeChips(result), [result]);
   const recentlySold = useMemo(() => getRecentlySoldItems(result), [result]);
-  const resaleInsight = useMemo(() => getResaleInsightText(result), [result]);
+  const insightData = useMemo(() => getInsightText(result, isLowConfidence), [result, isLowConfidence]);
   const subtleTips = useMemo(() => getSubtleTips(result), [result]);
+  const valueFactors = useMemo(() => getValueFactors(result), [result]);
+  const listingTips = useMemo(() => getListingTips(result), [result]);
+  const nextScanSuggestions = useMemo(() => getNextScanSuggestions(result), [result]);
 
   const confidenceBadgeLabel = useMemo(() => {
     if (result.confidence >= 0.70) return 'High conf.';
@@ -303,28 +435,50 @@ export default function ScanResultView({
   const confidenceBadgeColor = useMemo(() => {
     if (result.confidence >= 0.70) return '#059669';
     if (result.confidence >= 0.40) return '#D97706';
-    return '#EF4444';
+    return '#F59E0B';
   }, [result.confidence]);
 
   const heroImageUri = scannedImageUri ?? referenceImageUrl;
   const isNonResale = result.item_type === 'food' || result.item_type === 'grocery' || result.item_type === 'receipt' || result.item_type === 'document';
+  const isFood = result.item_type === 'food' || result.item_type === 'grocery';
 
-  const resaleDisplayPrice = useMemo(() => {
-    if (isNonResale) return null;
-    if (priceInfo.priceRange) return priceInfo.priceRange;
-    if (priceInfo.valuePrice && priceInfo.originalPrice) {
-      return `${priceInfo.valuePrice} – ${priceInfo.originalPrice}`;
-    }
-    if (priceInfo.valuePrice) return priceInfo.valuePrice;
-    if (priceInfo.originalPrice) return priceInfo.originalPrice;
-    return null;
-  }, [isNonResale, priceInfo]);
+  const resaleDisplayPrice = useMemo(
+    () => getResaleDisplayPrice(result, priceInfo, isNonResale),
+    [result, priceInfo, isNonResale]
+  );
+
+  const demandLevel = useMemo(() => {
+    return result.fashion_details?.resale_demand
+      ?? result.electronics_details?.resale_demand
+      ?? result.furniture_details?.resale_demand
+      ?? result.household_details?.resale_potential
+      ?? result.general_details?.resale_demand
+      ?? null;
+  }, [result]);
 
   const [tipsExpanded, setTipsExpanded] = useState(false);
+  const [valueFactorsExpanded, setValueFactorsExpanded] = useState(false);
+  const [listingTipsExpanded, setListingTipsExpanded] = useState(false);
+  const [nextScanExpanded, setNextScanExpanded] = useState(false);
 
   const handleToggleTips = useCallback(() => {
     void Haptics.selectionAsync();
     setTipsExpanded(prev => !prev);
+  }, []);
+
+  const handleToggleValueFactors = useCallback(() => {
+    void Haptics.selectionAsync();
+    setValueFactorsExpanded(prev => !prev);
+  }, []);
+
+  const handleToggleListingTips = useCallback(() => {
+    void Haptics.selectionAsync();
+    setListingTipsExpanded(prev => !prev);
+  }, []);
+
+  const handleToggleNextScan = useCallback(() => {
+    void Haptics.selectionAsync();
+    setNextScanExpanded(prev => !prev);
   }, []);
 
   return (
@@ -352,44 +506,59 @@ export default function ScanResultView({
         <View style={st.metaRow}>
           <Text style={st.categoryText}>{categoryLabel}</Text>
           <View style={[st.confidenceBadge, { backgroundColor: `${confidenceBadgeColor}14`, borderColor: `${confidenceBadgeColor}30` }]}>
+            <View style={[st.confidenceDot, { backgroundColor: confidenceBadgeColor }]} />
             <Text style={[st.confidenceBadgeText, { color: confidenceBadgeColor }]}>{confidenceBadgeLabel}</Text>
           </View>
         </View>
 
-        {resaleDisplayPrice && (
+        {isFood && result.food_details && (
+          <View style={st.calorieHighlight}>
+            <Text style={st.calorieNumber}>{result.food_details.calories}</Text>
+            <Text style={st.calorieUnit}>CAL</Text>
+          </View>
+        )}
+
+        {!isNonResale && resaleDisplayPrice && (
           <View style={st.resaleCard}>
-            <Text style={st.resalePrice}>{resaleDisplayPrice}</Text>
-            <Text style={st.resaleLabel}>Estimated Resale Value</Text>
+            <View style={st.resalePriceRow}>
+              <View>
+                <Text style={st.resalePrice}>{resaleDisplayPrice}</Text>
+                <Text style={st.resaleLabel}>Estimated Resale Value</Text>
+              </View>
+              {demandLevel && (
+                <View style={st.demandBadge}>
+                  <TrendingUp size={12} color="#10B981" />
+                  <Text style={st.demandText}>{demandLevel.charAt(0).toUpperCase() + demandLevel.slice(1)} demand</Text>
+                </View>
+              )}
+            </View>
+            {priceInfo.originalPrice && priceInfo.valuePrice && priceInfo.originalPrice !== priceInfo.valuePrice && (
+              <View style={st.retailRow}>
+                <Text style={st.retailLabel}>{priceInfo.originalLabel}</Text>
+                <Text style={st.retailValue}>{priceInfo.originalPrice}</Text>
+              </View>
+            )}
           </View>
         )}
 
-        {isLowConfidence && (
-          <View style={st.warningCard}>
-            <Text style={st.warningTitle}>
-              Low-confidence match, but category and resale estimate are still usable.
-            </Text>
-            <Text style={st.warningBody}>
-              {result.short_summary ?? 'The image was unclear or ambiguous. Try scanning again with better lighting or a closer angle.'}
-            </Text>
-          </View>
-        )}
-
-        {!isLowConfidence && resaleInsight && (
-          <View style={st.insightCard}>
-            <View style={st.insightIconWrap}>
+        <View style={st.insightCard}>
+          <View style={st.insightIconWrap}>
+            {isLowConfidence ? (
+              <Info size={18} color="#D97706" />
+            ) : (
               <CheckCircle size={18} color="#059669" />
-            </View>
-            <View style={st.insightTextWrap}>
-              <Text style={st.insightTitle}>{resaleInsight.title}</Text>
-              {resaleInsight.description ? (
-                <Text style={st.insightDescription}>{resaleInsight.description}</Text>
-              ) : null}
-            </View>
+            )}
           </View>
-        )}
+          <View style={st.insightTextWrap}>
+            <Text style={[st.insightTitle, isLowConfidence && { color: '#92400E' }]}>{insightData.title}</Text>
+            {insightData.description ? (
+              <Text style={st.insightDescription}>{insightData.description}</Text>
+            ) : null}
+          </View>
+        </View>
 
         {attributeChips.length > 0 && (
-          <View style={st.chipsRow}>
+          <View style={st.attributeGrid}>
             {attributeChips.map((chip, i) => (
               <View key={`chip-${i}`} style={st.attributeChip}>
                 <Text style={st.attributeChipLabel}>{chip.label}</Text>
@@ -401,10 +570,7 @@ export default function ScanResultView({
 
         {!isNonResale && recentlySold.length > 0 && (
           <View style={st.soldSection}>
-            <View style={st.soldHeaderRow}>
-              <Text style={st.soldHeaderTitle}>Similar Recently Sold</Text>
-              <Text style={st.soldSeeAll}>See All ›</Text>
-            </View>
+            <SectionHeader icon={Sparkles} title="Similar Recently Sold" color="#6366F1" />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -421,6 +587,74 @@ export default function ScanResultView({
           </View>
         )}
 
+        {!isNonResale && (
+          <View style={st.collapsibleSection}>
+            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleValueFactors}>
+              <View style={st.collapsibleHeaderLeft}>
+                <Target size={14} color="#F59E0B" />
+                <Text style={st.collapsibleHeaderTitle}>What Affects Value</Text>
+              </View>
+              <ChevronRight
+                size={14}
+                color="#AEAEB2"
+                style={{ transform: [{ rotate: valueFactorsExpanded ? '90deg' : '0deg' }] }}
+              />
+            </Pressable>
+            {valueFactorsExpanded && (
+              <View style={st.collapsibleContent}>
+                {valueFactors.map((factor, i) => (
+                  <BulletItem key={`vf-${i}`} text={factor} char="☐" />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {!isNonResale && (
+          <View style={st.collapsibleSection}>
+            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleListingTips}>
+              <View style={st.collapsibleHeaderLeft}>
+                <Lightbulb size={14} color="#0EA5E9" />
+                <Text style={st.collapsibleHeaderTitle}>Listing Tips</Text>
+              </View>
+              <ChevronRight
+                size={14}
+                color="#AEAEB2"
+                style={{ transform: [{ rotate: listingTipsExpanded ? '90deg' : '0deg' }] }}
+              />
+            </Pressable>
+            {listingTipsExpanded && (
+              <View style={st.collapsibleContent}>
+                {listingTips.map((tip, i) => (
+                  <BulletItem key={`lt-${i}`} text={tip} char="→" />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={st.collapsibleSection}>
+          <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleNextScan}>
+            <View style={st.collapsibleHeaderLeft}>
+              <Camera size={14} color="#EC4899" />
+              <Text style={st.collapsibleHeaderTitle}>Best Next Scan</Text>
+            </View>
+            <ChevronRight
+              size={14}
+              color="#AEAEB2"
+              style={{ transform: [{ rotate: nextScanExpanded ? '90deg' : '0deg' }] }}
+            />
+          </Pressable>
+          {nextScanExpanded && (
+            <View style={st.collapsibleContent}>
+              <Text style={st.nextScanIntro}>For better accuracy, try scanning:</Text>
+              {nextScanSuggestions.map((s, i) => (
+                <BulletItem key={`ns-${i}`} text={s} char="◎" />
+              ))}
+            </View>
+          )}
+        </View>
+
         <Pressable
           style={({ pressed }) => [st.scanAnotherBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
           onPress={onScanAgain}
@@ -431,11 +665,11 @@ export default function ScanResultView({
         </Pressable>
 
         {subtleTips.length > 0 && (
-          <View style={st.tipsSection}>
-            <Pressable style={st.tipsHeaderRow} onPress={handleToggleTips}>
-              <View style={st.tipsHeaderLeft}>
+          <View style={st.collapsibleSection}>
+            <Pressable style={st.collapsibleHeaderRow} onPress={handleToggleTips}>
+              <View style={st.collapsibleHeaderLeft}>
                 <Lightbulb size={14} color="#F59E0B" />
-                <Text style={st.tipsHeaderTitle}>Tips</Text>
+                <Text style={st.collapsibleHeaderTitle}>Tips</Text>
               </View>
               <ChevronRight
                 size={14}
@@ -444,11 +678,11 @@ export default function ScanResultView({
               />
             </Pressable>
             {tipsExpanded && (
-              <View style={st.tipsContent}>
+              <View style={st.collapsibleContent}>
                 {subtleTips.map((tip, i) => (
-                  <View key={`tip-${i}`} style={st.tipRow}>
-                    <Text style={st.tipBullet}>→</Text>
-                    <Text style={st.tipText}>{tip}</Text>
+                  <View key={`tip-${i}`} style={st.bulletRow}>
+                    <Text style={st.bulletChar}>→</Text>
+                    <Text style={st.bulletText}>{tip}</Text>
                   </View>
                 ))}
               </View>
@@ -472,6 +706,7 @@ export default function ScanResultView({
             onPress={onDelete}
             testID="delete-scan-result"
           >
+            <Trash2 size={13} color="#EF4444" />
             <Text style={st.deleteText}>Delete This Scan</Text>
           </Pressable>
         )}
@@ -518,7 +753,7 @@ const st = StyleSheet.create({
     paddingBottom: 20,
   },
   itemName: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -536,14 +771,46 @@ const st = StyleSheet.create({
     color: '#8E8E93',
   },
   confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: ScannerRadius.sm,
     borderWidth: 1,
   },
+  confidenceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   confidenceBadgeText: {
     fontSize: 12,
     fontWeight: '600' as const,
+  },
+  calorieHighlight: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    marginBottom: ScannerSpacing.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: ScannerRadius.lg,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  calorieNumber: {
+    fontSize: 42,
+    fontWeight: '900' as const,
+    color: '#1C1C1E',
+    letterSpacing: -1,
+  },
+  calorieUnit: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    letterSpacing: 2,
   },
   resaleCard: {
     backgroundColor: '#FFFFFF',
@@ -559,8 +826,13 @@ const st = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  resalePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
   resalePrice: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '900' as const,
     color: '#1C1C1E',
     letterSpacing: -0.5,
@@ -571,26 +843,38 @@ const st = StyleSheet.create({
     fontWeight: '500' as const,
     color: '#8E8E93',
   },
-  warningCard: {
-    backgroundColor: '#FFF9EB',
-    borderRadius: ScannerRadius.lg,
-    padding: 14,
-    marginBottom: ScannerSpacing.lg,
-    borderWidth: 1,
-    borderColor: '#FFE5A0',
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10B98114',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: ScannerRadius.sm,
   },
-  warningTitle: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: '#92400E',
-    lineHeight: 20,
-    marginBottom: 6,
+  demandText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#10B981',
   },
-  warningBody: {
+  retailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E5EA',
+  },
+  retailLabel: {
     fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#78716C',
-    lineHeight: 19,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  retailValue: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#3C3C43',
   },
   insightCard: {
     flexDirection: 'row',
@@ -622,13 +906,16 @@ const st = StyleSheet.create({
     color: '#4B5563',
     lineHeight: 19,
   },
-  chipsRow: {
+  attributeGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: ScannerSpacing.lg,
   },
   attributeChip: {
-    flex: 1,
+    width: '31%' as unknown as number,
+    flexGrow: 1,
+    flexBasis: '30%' as unknown as number,
     backgroundColor: '#FFFFFF',
     borderRadius: ScannerRadius.lg,
     paddingHorizontal: 12,
@@ -637,7 +924,7 @@ const st = StyleSheet.create({
     borderColor: '#E5E5EA',
   },
   attributeChipLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500' as const,
     color: '#8E8E93',
     marginBottom: 3,
@@ -651,22 +938,24 @@ const st = StyleSheet.create({
   soldSection: {
     marginBottom: ScannerSpacing.lg,
   },
-  soldHeaderRow: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 12,
   },
-  soldHeaderTitle: {
-    fontSize: 17,
+  sectionHeaderIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: ScannerRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionHeaderText: {
+    fontSize: 15,
     fontWeight: '700' as const,
     color: '#1C1C1E',
     letterSpacing: -0.3,
-  },
-  soldSeeAll: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
   },
   soldScroll: {
     gap: 10,
@@ -679,7 +968,7 @@ const st = StyleSheet.create({
   },
   soldCardImageWrap: {
     width: '100%',
-    height: 120,
+    height: 110,
     position: 'relative',
   },
   soldCardImage: {
@@ -707,16 +996,85 @@ const st = StyleSheet.create({
     fontWeight: '800' as const,
     color: '#FFFFFF',
   },
-  soldCardTimeText: {
+  soldCardBottomRow: {
     position: 'absolute',
-    bottom: 8,
+    bottom: 6,
     left: 8,
+  },
+  soldCardTimeText: {
     fontSize: 11,
     fontWeight: '600' as const,
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  soldCardFooter: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  soldCardLabel: {
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  collapsibleSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: ScannerRadius.lg,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginBottom: ScannerSpacing.sm,
+    overflow: 'hidden',
+  },
+  collapsibleHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: ScannerSpacing.lg,
+    paddingVertical: 14,
+  },
+  collapsibleHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  collapsibleHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+  },
+  collapsibleContent: {
+    paddingHorizontal: ScannerSpacing.lg,
+    paddingBottom: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E5EA',
+    paddingTop: 12,
+    gap: 4,
+  },
+  nextScanIntro: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+    marginBottom: 6,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  bulletChar: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#AEAEB2',
+    width: 16,
+  },
+  bulletText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#3C3C43',
+    flex: 1,
+    lineHeight: 19,
   },
   scanAnotherBtn: {
     flexDirection: 'row',
@@ -728,7 +1086,7 @@ const st = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: ScannerColors.accent,
-    marginTop: ScannerSpacing.sm,
+    marginTop: ScannerSpacing.md,
     marginBottom: ScannerSpacing.md,
     shadowColor: ScannerColors.accent,
     shadowOffset: { width: 0, height: 1 },
@@ -741,57 +1099,6 @@ const st = StyleSheet.create({
     fontWeight: '700' as const,
     color: ScannerColors.accent,
   },
-  tipsSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: ScannerRadius.lg,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    marginTop: ScannerSpacing.sm,
-    overflow: 'hidden',
-  },
-  tipsHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: ScannerSpacing.lg,
-    paddingVertical: 14,
-  },
-  tipsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  tipsHeaderTitle: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-  },
-  tipsContent: {
-    paddingHorizontal: ScannerSpacing.lg,
-    paddingBottom: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
-    paddingTop: 12,
-    gap: 6,
-  },
-  tipRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  tipBullet: {
-    fontSize: 13,
-    fontWeight: '700' as const,
-    color: '#AEAEB2',
-    width: 16,
-  },
-  tipText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: '#3C3C43',
-    flex: 1,
-    lineHeight: 19,
-  },
   tryDifferentBtn: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -803,7 +1110,10 @@ const st = StyleSheet.create({
     color: '#8E8E93',
   },
   deleteBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 10,
     marginTop: 2,
   },

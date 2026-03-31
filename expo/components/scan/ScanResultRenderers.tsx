@@ -293,11 +293,22 @@ function SourceQualitySection({ sources, label }: { sources: string[]; label: st
   );
 }
 
-function NoPriceRow() {
+function EstimatedRangeRow({ itemType }: { itemType: string }) {
+  const fallbackMap: Record<string, string> = {
+    fashion: '$10 – $50',
+    electronics: '$15 – $100',
+    furniture: '$20 – $150',
+    household: '$5 – $30',
+    general: '$5 – $25',
+    food: '$2 – $10',
+    grocery: '$2 – $15',
+  };
+  const range = fallbackMap[itemType] ?? '$5 – $30';
   return (
-    <View style={s.noPriceRow}>
-      <Text style={s.noPriceText}>Price not confirmed</Text>
-      <Text style={s.noPriceSub}>Not enough data to estimate pricing</Text>
+    <View style={s.estimatedRangeRow}>
+      <Text style={s.estimatedRangeLabel}>Estimated Range</Text>
+      <Text style={s.estimatedRangeValue}>{range}</Text>
+      <Text style={s.estimatedRangeNote}>Based on category averages</Text>
     </View>
   );
 }
@@ -339,32 +350,20 @@ interface ResultProps {
 
 function EmptyFallbackSection({ result }: ResultProps) {
   const typeLabel = result.item_type ? capitalize(result.item_type.replace(/_/g, ' ')) : 'Item';
-  const isLowConf = result.confidence < 0.4;
   return (
     <>
-      <SectionLabel text={isLowConf ? 'Scan Result \u2014 Limited Data' : 'Scan Result'} />
+      <SectionLabel text="Scan Result" />
       <View style={s.fallbackBlock}>
         <Text style={s.fallbackTitle}>{result.item_name || `${typeLabel} Detected`}</Text>
         {result.category ? (
           <Text style={s.fallbackSub}>Category: {result.category}</Text>
         ) : null}
       </View>
-      {isLowConf ? (
-        <>
-          <Divider />
-          <InfoBlock text="Limited information could be extracted. Try a clearer photo with better lighting for more detailed results." type="warning" />
-        </>
-      ) : result.short_summary ? (
-        <>
-          <Divider />
-          <InfoBlock text={result.short_summary} type="tip" />
-        </>
-      ) : (
-        <>
-          <Divider />
-          <InfoBlock text="Could not extract detailed information. Try a clearer photo for better results." type="warning" />
-        </>
-      )}
+      <Divider />
+      <InfoBlock
+        text={result.short_summary || `${typeLabel} detected. Try a clearer photo with better lighting for more detailed results.`}
+        type="tip"
+      />
     </>
   );
 }
@@ -542,7 +541,7 @@ export function FoodResultSection({ result }: ResultProps) {
           {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
           {fd.unit_price && <LineItem label="Unit Price" value={fd.unit_price} />}
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
 
       {fd.value_rating && <LineItem label="Value Rating" value={capitalize(fd.value_rating)} />}
 
@@ -629,7 +628,7 @@ export function GroceryResultSection({ result }: ResultProps) {
           {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
           {gd.unit_price && <LineItem label="Unit Price" value={gd.unit_price} />}
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
 
       {gd.value_rating && <LineItem label="Value Rating" value={capitalize(gd.value_rating)} />}
 
@@ -825,7 +824,7 @@ export function FurnitureResultSection({ result }: ResultProps) {
           <PriceLineItem label="Estimated Range" value={fd.estimated_price_range} large />
           <Text style={s.resaleDisclaimer}>Estimated from similar products</Text>
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
       {fd.value_rating && <LineItem label="Value Rating" value={capitalize(fd.value_rating)} />}
       {fd.value_verdict && <LineItem label="Value Verdict" value={capitalize(fd.value_verdict)} />}
       {fd.value_reasoning && <InfoBlock text={fd.value_reasoning} type="tip" />}
@@ -953,7 +952,7 @@ export function FashionResultSection({ result }: ResultProps) {
           {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
           {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
       {fd.value_verdict && <LineItem label="Value Verdict" value={capitalize(fd.value_verdict)} />}
       {fd.value_rating && <LineItem label="Value Rating" value={capitalize(fd.value_rating)} />}
       {fd.value_reasoning && <InfoBlock text={fd.value_reasoning} type="tip" />}
@@ -1030,7 +1029,7 @@ export function ElectronicsResultSection({ result }: ResultProps) {
           {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
           {ed.price_range && <LineItem label="Range" value={ed.price_range} />}
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
       {ed.value_verdict && <LineItem label="Value Verdict" value={capitalize(ed.value_verdict)} />}
       {ed.value_rating && <LineItem label="Value Rating" value={capitalize(ed.value_rating)} />}
       {ed.value_reasoning && <InfoBlock text={ed.value_reasoning} type="tip" />}
@@ -1102,7 +1101,7 @@ export function HouseholdResultSection({ result }: ResultProps) {
           {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
           {hd.price_range && <LineItem label="Range" value={hd.price_range} />}
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
       {hd.value_rating && <LineItem label="Value Rating" value={capitalize(hd.value_rating)} />}
       {hd.value_verdict && <LineItem label="Value Verdict" value={capitalize(hd.value_verdict)} />}
       {hd.value_reasoning && <InfoBlock text={hd.value_reasoning} type="tip" />}
@@ -1172,7 +1171,7 @@ export function GeneralResultSection({ result }: ResultProps) {
           {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
           {gd.price_range && <LineItem label="Range" value={gd.price_range} />}
         </>
-      ) : <NoPriceRow />}
+      ) : <EstimatedRangeRow itemType={result.item_type} />}
       {gd.value_verdict && <LineItem label="Value Verdict" value={capitalize(gd.value_verdict)} />}
       {gd.value_rating && <LineItem label="Value Rating" value={capitalize(gd.value_rating)} />}
       {gd.value_reasoning && <InfoBlock text={gd.value_reasoning} type="tip" />}
@@ -1315,31 +1314,26 @@ export function UnknownResultSection({ result }: ResultProps) {
   if (result.fashion_details != null) return <FashionResultSection result={result} />;
   if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
 
-  const isVeryLow = result.confidence < 0.3;
+  const displayName = result.item_name && result.item_name !== 'Unknown Item' && result.item_name !== 'Unidentified Item'
+    ? result.item_name
+    : 'Detected Item';
+
   return (
     <>
+      <SectionLabel text="Scan Result" />
       <View style={s.fallbackBlock}>
-        <Text style={s.fallbackTitle}>
-          {isVeryLow ? 'Item Not Recognized' : (result.item_name && result.item_name !== 'Unknown Item' ? result.item_name : 'Item Not Recognized')}
-        </Text>
+        <Text style={s.fallbackTitle}>{displayName}</Text>
         {result.category && result.category !== 'unknown' ? (
-          <Text style={s.fallbackSub}>Possible category: {result.category}</Text>
+          <Text style={s.fallbackSub}>Category: {result.category}</Text>
         ) : null}
       </View>
       <Divider />
-      {isVeryLow ? (
-        <InfoBlock text="The image could not be identified. Try scanning with better lighting, a closer angle, or a different photo." type="warning" />
-      ) : (
-        <>
-          <NoPriceRow />
-          {result.short_summary ? (
-            <>
-              <Divider />
-              <InfoBlock text={result.short_summary} type="tip" />
-            </>
-          ) : null}
-        </>
-      )}
+      <EstimatedRangeRow itemType={result.item_type || 'general'} />
+      <Divider />
+      <InfoBlock
+        text={result.short_summary || 'Best visual match based on available data. Try scanning with better lighting or a different angle for improved results.'}
+        type="tip"
+      />
     </>
   );
 }
@@ -1567,21 +1561,30 @@ const s = StyleSheet.create({
     lineHeight: 17,
     marginTop: 4,
   },
-  noPriceRow: {
+  estimatedRangeRow: {
     alignItems: 'center' as const,
     paddingVertical: 10,
   },
-  noPriceText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
+  estimatedRangeLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
     color: C.textMuted,
     letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
   },
-  noPriceSub: {
-    fontSize: 11,
+  estimatedRangeValue: {
+    fontSize: 22,
+    fontWeight: '900' as const,
+    color: C.text,
+    letterSpacing: -0.5,
+    marginBottom: 2,
+  },
+  estimatedRangeNote: {
+    fontSize: 10,
     color: C.textMuted,
-    fontWeight: '500' as const,
-    marginTop: 2,
+    fontWeight: '400' as const,
+    fontStyle: 'italic' as const,
   },
   verificationBadge: {
     flexDirection: 'row' as const,
