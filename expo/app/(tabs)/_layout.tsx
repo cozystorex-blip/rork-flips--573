@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, Bookmark, Camera, User } from "lucide-react-native";
+import { Home, Camera, User } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -53,8 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saved"
         options={{
-          title: "",
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />,
+          href: null,
         }}
       />
       <Tabs.Screen
