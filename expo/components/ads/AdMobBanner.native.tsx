@@ -4,6 +4,8 @@ import {
   Text,
   StyleSheet,
   Animated,
+  TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { getBannerUnitId, isAdsInitialized, onAdsInitialized, isAdModuleAvailable } from '@/services/adService';
 import { usePremium } from '@/contexts/PremiumContext';
@@ -57,7 +59,7 @@ export default function AdMobBanner() {
   }, []);
 
   useEffect(() => {
-    if (adReady) {
+    if (adReady || !isAdModuleAvailable() || !BannerAd) {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
@@ -102,21 +104,36 @@ export default function AdMobBanner() {
 
   if (isPremium) return null;
 
+  const handleAdPress = useCallback(async () => {
+    try {
+      console.log('[AdMobBanner] Ad placeholder clicked');
+      await Linking.openURL('https://admob.google.com/home/');
+    } catch (e) {
+      console.warn('[AdMobBanner] Could not open ad URL:', e);
+    }
+  }, []);
+
   if (!isAdModuleAvailable() || !BannerAd) {
     return (
       <Animated.View
         style={[styles.wrapper, { opacity: fadeAnim }]}
         testID="ad-banner-placeholder"
       >
-        <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.container}
+          onPress={handleAdPress}
+          activeOpacity={0.85}
+          accessibilityRole="link"
+          accessibilityLabel="Advertisement"
+        >
           <View style={styles.placeholderInner}>
-            <Text style={styles.placeholderText}>Ad</Text>
-            <Text style={styles.placeholderSubtext}>Google AdMob Banner</Text>
+            <Text style={styles.placeholderText}>Sponsored</Text>
+            <Text style={styles.placeholderSubtext}>Tap to learn more</Text>
           </View>
           <View style={styles.adLabel}>
             <Text style={styles.adLabelText}>Ad</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </Animated.View>
     );
   }
