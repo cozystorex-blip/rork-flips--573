@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { usePremium } from '@/contexts/PremiumContext';
 
-const AD_CLICK_URL = 'https://admob.google.com/home/';
+const AD_UNIT_ID = 'ca-app-pub-3643873601626975/1979589861';
+const AD_CLICK_URL = `https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-3643873601626975&output=html&slotname=${AD_UNIT_ID}`;
 
 export default function AdMobBanner() {
   const { isPremium } = usePremium();
@@ -26,10 +27,15 @@ export default function AdMobBanner() {
 
   const handleAdPress = useCallback(async () => {
     try {
-      console.log('[AdMobBanner] Ad clicked');
+      console.log('[AdMobBanner] Ad clicked, opening real ad URL');
       await Linking.openURL(AD_CLICK_URL);
     } catch (e) {
       console.warn('[AdMobBanner] Could not open ad URL:', e);
+      try {
+        await Linking.openURL('https://www.google.com/ads');
+      } catch (e2) {
+        console.warn('[AdMobBanner] Fallback URL also failed:', e2);
+      }
     }
   }, []);
 

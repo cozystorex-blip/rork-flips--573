@@ -22,11 +22,11 @@ export function onAdsInitialized(cb: () => void): () => void {
 }
 
 export function getBannerUnitId(): string {
-  return '';
+  return 'ca-app-pub-3643873601626975/1979589861';
 }
 
 export function getInterstitialUnitId(): string {
-  return '';
+  return 'ca-app-pub-3643873601626975/1979589861';
 }
 
 export async function initializeAds(): Promise<void> {

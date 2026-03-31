@@ -106,10 +106,15 @@ export default function AdMobBanner() {
 
   const handleAdPress = useCallback(async () => {
     try {
-      console.log('[AdMobBanner] Ad placeholder clicked');
-      await Linking.openURL('https://admob.google.com/home/');
+      console.log('[AdMobBanner] Ad placeholder clicked, opening real ad');
+      await Linking.openURL('https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-3643873601626975&output=html&slotname=ca-app-pub-3643873601626975/1979589861');
     } catch (e) {
       console.warn('[AdMobBanner] Could not open ad URL:', e);
+      try {
+        await Linking.openURL('https://www.google.com/ads');
+      } catch (e2) {
+        console.warn('[AdMobBanner] Fallback URL also failed:', e2);
+      }
     }
   }, []);
 
