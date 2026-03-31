@@ -15,6 +15,11 @@
       "name": "Flips",
       "path": "expo",
       "framework": "react-native"
+    },
+    {
+      "name": "Vision Scanner",
+      "path": "expo",
+      "framework": "react-native"
     }
   ]
 }

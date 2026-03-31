@@ -3,13 +3,15 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { PremiumProvider } from "@/contexts/PremiumContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
+import { PremiumProvider } from "@/contexts/PremiumContext";
 import { ScanHistoryProvider } from "@/contexts/ScanHistoryContext";
-import { ScanProcessProvider } from "@/contexts/ScanProcessContext";
 import { SavedItemsProvider } from "@/contexts/SavedItemsContext";
-import { OnlinePeopleProvider } from "@/contexts/OnlinePeopleContext";
+import { ScanProcessProvider } from "@/contexts/ScanProcessContext";
+import { ExpenseProvider } from "@/contexts/ExpenseContext";
+import { BlocksProvider } from "@/contexts/BlocksContext";
+import { BusinessProvider } from "@/contexts/BusinessContext";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -20,6 +22,17 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="smart-scan" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="code-scanner" options={{ headerShown: false, presentation: "fullScreenModal" }} />
+      <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="log-entry" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="post-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="receipt-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="place-profile" options={{ headerShown: false }} />
+      <Stack.Screen name="edit-profile" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="map-full" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="post-deal" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="create-block" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }
@@ -32,21 +45,25 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <PremiumProvider>
-          <AuthProvider>
-            <ProfileProvider>
-              <OnlinePeopleProvider>
-                <ScanHistoryProvider>
-                  <SavedItemsProvider>
-                    <ScanProcessProvider>
-                      <RootLayoutNav />
-                    </ScanProcessProvider>
-                  </SavedItemsProvider>
-                </ScanHistoryProvider>
-              </OnlinePeopleProvider>
-            </ProfileProvider>
-          </AuthProvider>
-        </PremiumProvider>
+        <AuthProvider>
+          <ProfileProvider>
+            <PremiumProvider>
+              <ScanHistoryProvider>
+                <SavedItemsProvider>
+                  <ExpenseProvider>
+                    <BlocksProvider>
+                      <BusinessProvider>
+                        <ScanProcessProvider>
+                          <RootLayoutNav />
+                        </ScanProcessProvider>
+                      </BusinessProvider>
+                    </BlocksProvider>
+                  </ExpenseProvider>
+                </SavedItemsProvider>
+              </ScanHistoryProvider>
+            </PremiumProvider>
+          </ProfileProvider>
+        </AuthProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );
