@@ -906,89 +906,61 @@ DO NOT fill furniture_details, electronics_details, food_details, grocery_detail
 DO NOT fill furniture_details, fashion_details, food_details, grocery_details, household_details, or general_details.`;
 
     case 'furniture':
-      return base + `Analyze this FURNITURE item like an IKEA expert, interior designer, and resale consultant combined. Fill furniture_details ONLY. Set all other detail fields to null.
+      return base + `Analyze this FURNITURE item like a furniture expert, interior designer, and resale consultant combined. Fill furniture_details ONLY. Set all other detail fields to null.
 
-You are an IKEA FURNITURE EXPERT. This app is specifically optimized for IKEA items. The user is most likely scanning IKEA furniture, flat-pack boxes, shelf labels, instruction manuals, or room scenes with IKEA items.
+You are a FURNITURE EXPERT. The user is scanning furniture they found — at a garage sale, thrift store, estate sale, or around the house. Identify the item, estimate its value, and give practical resale and usage advice.
 
-IKEA IDENTIFICATION (THIS IS THE #1 PRIORITY):
-- ALWAYS check if this is an IKEA product FIRST before anything else.
-- Look for these IKEA-specific visual cues:
-  * Article numbers (8-digit format like 302.758.75 or 10-digit format)
-  * Product labels with "IKEA" text
-  * Flat-pack packaging with IKEA sticker labels
-  * Characteristic cam lock holes, dowel patterns, hex key assembly points
-  * IKEA-specific design signatures: KALLAX cube proportions, BILLY shelf spacing, MALM drawer fronts, LACK simple edges, HEMNES traditional style, BESTA modular shapes, PAX wardrobe frames, ALEX drawer units, DETOLF glass cabinets, POANG bent wood, EKTORP slipcover style, MICKE desk design, LINNMON tabletops, FJALKINGE shelving
-  * Assembly instruction booklet style (IKEA's distinctive wordless cartoon format)
-  * Swedish product naming pattern (single Swedish word in CAPS)
-
-- is_likely_ikea: Set true if there is ANY indication this could be IKEA
-- ikea_match_confidence: exact (article number found or product clearly identified) / strong (design matches known IKEA product) / possible (looks like IKEA style) / weak (could be IKEA or similar)
-- ikea_article_number: Extract ANY visible article number. Check labels, stickers, manual pages. Format: XXX.XXX.XX
-- ikea_product_name: The EXACT IKEA product name if recognized (e.g. "KALLAX", "BILLY", "MALM", "LACK", "HEMNES")
-- ikea_product_family: The product family/series if known (e.g. "KALLAX", "BESTA", "PAX")
-- ikea_variant: Color/size/finish variant (e.g. "White, 2x4", "Black-brown, 77x147 cm", "Oak effect")
-- ikea_category: IKEA department category (e.g. "Storage & Organisation", "Desks", "Bookcases", "Bedroom furniture", "Living room storage")
+BRAND IDENTIFICATION:
+- Check if this is a recognizable brand (IKEA, West Elm, Pottery Barn, Crate & Barrel, Ashley, Restoration Hardware, etc.)
+- Look for labels, stamps, stickers, or design signatures
+- is_likely_ikea: Set true only if there is clear IKEA branding or a recognizable IKEA product
+- ikea_match_confidence: exact / strong / possible / weak
+- ikea_article_number, ikea_product_name, ikea_product_family, ikea_variant, ikea_category: Fill if IKEA identified
 - packaging_type: flat-pack / assembled / boxed / unpackaged / unknown
-- packaging_count: Number of packages if visible (e.g. "2 of 3", "1 box")
-- manual_detected: true if an instruction manual or assembly guide is visible
-- label_detected: true if a product label, sticker, or tag is visible
-- ikea_clues: List ALL visual clues that suggest this is IKEA — specific things you see (e.g. "Article number 302.758.75 visible on sticker", "KALLAX cube proportions match", "Cam lock assembly holes visible", "IKEA logo on box")
-- resale_title_suggestion: Suggested marketplace listing title (e.g. "IKEA KALLAX 4x2 Shelf Unit - White")
+- packaging_count: if visible
+- manual_detected: true if instruction manual visible
+- label_detected: true if product label visible
+- ikea_clues: List visual clues if IKEA-related
+- resale_title_suggestion: Suggested marketplace listing title (e.g. "Mid-Century Walnut Dresser" or "IKEA KALLAX 4x2 Shelf - White")
 - condition_estimate: new-sealed / new-open / like-new / good / fair / worn / damaged
-- best_next_scan: 2-4 suggestions for what to scan next for better accuracy (e.g. ["Scan the box sticker label", "Scan the instruction manual page 1", "Scan the article number on the back"])
+- best_next_scan: 2-4 suggestions for what to scan next
 
 IDENTIFICATION:
-- item_type_specific: Be very specific (e.g. "4-cube storage shelving unit", "L-shaped corner desk with cable management", "mid-century modern accent chair")
-- material: Identify from image — "Engineered wood with oak veneer", "Solid pine", "Powder-coated steel frame with MDF shelves", "likely particle board with melamine finish"
+- item_type_specific: Be very specific (e.g. "4-cube storage shelving unit", "mid-century modern accent chair", "oak farmhouse dining table")
+- material: Identify from image — "Solid oak", "Engineered wood with walnut veneer", "Powder-coated steel frame"
 - finish_color, style: Describe precisely what you see
-- estimated_dimensions: Estimate if you can based on proportions and known products. For IKEA items, use REAL IKEA dimensions.
+- estimated_dimensions: Estimate based on proportions
 
-PRICE & VALUE:
-- estimated_retail_price: For IKEA items, use the REAL current IKEA price. For non-IKEA, best estimate.
+PRICE & VALUE (focus on garage sale / resale context):
+- estimated_retail_price: What this would cost new
 - estimated_price_range: Always provide a realistic range
-- estimated_resale_value: What this sells for on Facebook Marketplace, Craigslist, OfferUp. IKEA furniture typically resells at 30-60% of retail.
+- estimated_resale_value: What this sells for on Facebook Marketplace, Craigslist, OfferUp. Consider condition heavily.
 - value_level: budget/mid-range/premium
 - value_rating, value_verdict: Always assess
-- worth_it_verdict: Give an honest "is it worth the money" assessment
+- worth_it_verdict: Give an honest "is it worth buying at a garage sale" assessment
 
-ASSEMBLY (think IKEA instruction booklet level of detail):
-- assembly_required: true/false
-- assembly_difficulty: easy/moderate/complex — be specific about WHY
-- estimated_build_time: Realistic time estimate (e.g. "45-60 minutes" or "2-3 hours for beginners")
-- people_needed: "1"/"2"/"2+" — be honest about whether you need help
-- likely_tools_needed: List ALL tools needed ("Phillips head screwdriver", "Allen key (usually included)", "Rubber mallet", "Level", "Power drill recommended")
-- likely_parts: List major components ("4 shelf panels", "2 side panels", "Back panel", "Hardware bag with cam locks and dowels")
+ASSEMBLY:
+- assembly_required, assembly_difficulty, estimated_build_time, people_needed
+- likely_tools_needed, likely_parts
 - mounting_type: wall-mounted/freestanding/modular/flat-pack/unknown
-- assembly_summary: Detailed 2-3 sentence assembly overview — what to expect, common pitfalls, pro tips
-- wall_anchor_note: IMPORTANT — note if this MUST be wall-anchored for safety (especially tall bookshelves, dressers)
-- setup_notes: Any additional setup advice
+- assembly_summary, wall_anchor_note, setup_notes
 
 ROOM & STYLING:
-- use_case, room_fit: Where this works best in a home
-- room_fit_labels: 3-5 room types ("Living Room", "Home Office", "Bedroom", "Entryway")
-- matching_products: 4-6 items that complement this (storage bins, desk accessories, decorative items, lighting)
+- use_case, room_fit, room_fit_labels, matching_products
 
 EXTRA COSTS:
-- extra_purchase_items: Items you'll likely need to buy separately — each with item name, estimated_cost, and reason
-- total_estimated_cost: Total including the furniture + extras
+- extra_purchase_items, total_estimated_cost
 
 RESALE:
-- resale_demand, best_selling_platform, resale_suggestion
-- comparable_model: Similar furniture at a different price point
-- long_term_value: How well this holds up over time
+- resale_demand, best_selling_platform, resale_suggestion, comparable_model, long_term_value
 
 CARE:
-- care_tip: Specific care advice for this material
-- budget_insight: Money-saving tip
-- cheaper_alternative: A more affordable alternative
+- care_tip, budget_insight, cheaper_alternative
 
 - tags (8-12), complementary_items (5+)
-- purpose: Detailed description of what this furniture is for and who it's ideal for
-- value_insight: Key insight about quality, durability, and value proposition
-- next_scan_suggestion: Where to find model info (back sticker, underside label, instruction booklet)
-
-IKEA-SPECIFIC CATEGORIES TO PRIORITIZE:
-shelving units, desks, office chairs, dining tables, coffee tables, bed frames, dressers, storage boxes, wardrobes, bookcases, lamps, wall shelves, TV stands, kids furniture, kitchen carts, drawer systems, plant stands, mirrors, small decor and organizers
+- purpose: What this furniture is for and who it's ideal for
+- value_insight: Key insight about quality, durability, and value
+- next_scan_suggestion: Where to find model info (back sticker, underside label, etc.)
 
 DO NOT fill fashion_details, electronics_details, food_details, grocery_details, household_details, or general_details.`;
 

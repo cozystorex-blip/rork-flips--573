@@ -68,14 +68,13 @@ import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scanne
 import { getScanHealthLabel } from '@/services/scanValidator';
 
 const SCAN_MODE_OPTIONS: { mode: IkeaScanMode; label: string; icon: string }[] = [
-  { mode: 'food_scan', label: 'Food', icon: 'food' },
-  { mode: 'fashion_scan', label: 'Fashion', icon: 'fashion' },
+  { mode: 'general_scan', label: 'Anything', icon: 'general' },
+  { mode: 'fashion_scan', label: 'Clothing', icon: 'fashion' },
   { mode: 'electronics_scan', label: 'Electronics', icon: 'electronics' },
+  { mode: 'household_scan', label: 'Home', icon: 'household' },
   { mode: 'assembled', label: 'Furniture', icon: 'armchair' },
-  { mode: 'household_scan', label: 'Household', icon: 'household' },
-  { mode: 'general_scan', label: 'General', icon: 'general' },
-  { mode: 'box_label', label: 'Label', icon: 'box' },
-  { mode: 'product_tag', label: 'Tag', icon: 'tag' },
+  { mode: 'food_scan', label: 'Food', icon: 'food' },
+  { mode: 'product_tag', label: 'Price Tag', icon: 'tag' },
 ];
 
 function ScanModeIcon({ icon, size, color }: { icon: string; size: number; color: string }) {
@@ -94,15 +93,12 @@ function ScanModeIcon({ icon, size, color }: { icon: string; size: number; color
 
 const SCAN_MODE_HINT_TEXT: Record<string, string> = {
   food_scan: 'Point at food, ingredients, or packaged products',
-  fashion_scan: 'Point at clothing, shoes, bags, or accessories',
-  electronics_scan: 'Point at devices, gadgets, or tech products',
-  assembled: 'Capture the full assembled furniture piece',
-  household_scan: 'Point at kitchenware, tools, decor, or home items',
-  general_scan: 'Point at any item for identification',
-  box_label: 'Point at the product label or sticker',
-  product_tag: 'Point at the shelf tag or price label',
-  manual: 'Point at the instruction manual cover',
-  room_scene: 'Capture the room with the item visible',
+  fashion_scan: 'Scan clothing, shoes, bags, or accessories',
+  electronics_scan: 'Scan devices, gadgets, or tech products',
+  assembled: 'Scan furniture, tables, chairs, shelves',
+  household_scan: 'Scan kitchenware, tools, decor, or home items',
+  general_scan: 'Point at anything — we\'ll figure it out',
+  product_tag: 'Scan a price tag, label, or sticker',
 };
 
 function ScanModeChips({ activeMode, onSelect, disabled }: { activeMode: IkeaScanMode; onSelect: (mode: IkeaScanMode) => void; disabled: boolean }) {
@@ -338,7 +334,7 @@ export default function SmartScanScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScannerTopBar
-        title="Smart Scanner"
+        title="Scan Anything"
         onClose={() => router.back()}
         paddingTop={insets.top}
         testID="close-smart-scan"
@@ -795,10 +791,10 @@ const st = StyleSheet.create({
   scanModeLabel: { fontSize: 11, fontWeight: '700' as const, color: ScannerColors.textMuted, letterSpacing: 0.8, textTransform: 'uppercase' as const, marginBottom: 8 },
   scanModeRow: { flexDirection: 'row' as const, gap: 8, paddingRight: ScannerSpacing.xl },
   scanModeChip: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: ScannerRadius.pill, backgroundColor: ScannerColors.card, borderWidth: 1, borderColor: ScannerColors.cardBorder },
-  scanModeChipActive: { backgroundColor: ScannerColors.ikeaBlue ?? ScannerColors.accent, borderColor: ScannerColors.ikeaBlue ?? ScannerColors.accent },
+  scanModeChipActive: { backgroundColor: ScannerColors.accent, borderColor: ScannerColors.accent },
   scanModeChipText: { fontSize: 12, fontWeight: '600' as const, color: ScannerColors.textSecondary },
   scanModeChipTextActive: { color: '#FFFFFF' },
-  scanModeHint: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.ikeaBlue ?? ScannerColors.accent, marginTop: 8, paddingLeft: 2 },
+  scanModeHint: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.accent, marginTop: 8, paddingLeft: 2 },
 
   validationBadge: { flexDirection: 'row' as const, alignItems: 'center' as const, flexWrap: 'wrap' as const, gap: 8, backgroundColor: ScannerColors.card, borderRadius: ScannerRadius.lg, padding: 12, marginBottom: ScannerSpacing.lg, borderWidth: 1, borderColor: ScannerColors.cardBorder },
   validationDot: { width: 8, height: 8, borderRadius: 4 },

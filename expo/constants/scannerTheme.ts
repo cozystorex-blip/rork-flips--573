@@ -1,29 +1,28 @@
 export const ScannerColors = {
-  bg: '#FAFAFA',
+  bg: '#FAFAF8',
   surface: '#FFFFFF',
   card: '#FFFFFF',
-  cardBorder: '#E8E8E8',
+  cardBorder: '#E8E5DF',
   cardElevated: '#FFFFFF',
 
-  text: '#111111',
-  textSecondary: '#555555',
-  textMuted: '#888888',
-  textDim: '#AAAAAA',
+  text: '#1A1A1A',
+  textSecondary: '#5C5C5C',
+  textMuted: '#8E8E8E',
+  textDim: '#B0B0B0',
 
-  accent: '#0058A3',
-  accentSoft: '#0058A310',
-  accentBorder: '#0058A322',
+  accent: '#2D6A4F',
+  accentSoft: '#2D6A4F10',
+  accentBorder: '#2D6A4F22',
 
-  ikeaBlue: '#0058A3',
-  ikeaYellow: '#FFDA1A',
-  ikeaYellowSoft: '#FFDA1A18',
-  ikeaYellowBorder: '#FFDA1A40',
+  warmOrange: '#E07C3E',
+  warmOrangeSoft: '#E07C3E14',
+  warmOrangeBorder: '#E07C3E30',
 
   success: '#2D8C3C',
   successBg: '#EFF8F0',
   successBorder: '#C3E6C7',
 
-  warning: '#E07000',
+  warning: '#C27800',
   warningBg: '#FFF5EB',
   warningBorder: '#FDCB94',
 
@@ -35,7 +34,7 @@ export const ScannerColors = {
   errorBg: '#FDF0EE',
   errorBorder: '#F5C0B8',
 
-  divider: '#EBEBEB',
+  divider: '#ECEAE6',
   overlay: 'rgba(0,0,0,0.4)',
 } as const;
 
