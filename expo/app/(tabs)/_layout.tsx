@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, Camera, Bookmark, User } from "lucide-react-native";
+import { Home, Camera, User } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -48,13 +48,6 @@ export default function TabLayout() {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             router.push("/smart-scan");
           },
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: "Saves",
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} fill={color === "#16A34A" ? color : "transparent"} />,
         }}
       />
       <Tabs.Screen
