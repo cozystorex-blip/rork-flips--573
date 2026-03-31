@@ -18,7 +18,7 @@ if (Platform.OS !== 'web') {
 }
 
 const AD_CLIENT = 'ca-pub-3643873601626975';
-const IOS_AD_SLOT = '1979589861';
+const IOS_AD_SLOT = '9727556676';
 const ANDROID_AD_SLOT = '9727556676';
 
 function getAdSlot(): string {

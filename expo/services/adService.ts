@@ -22,7 +22,7 @@ export function onAdsInitialized(cb: () => void): () => void {
 }
 
 export function getBannerUnitId(): string {
-  return 'ca-app-pub-3643873601626975/1979589861';
+  return 'ca-app-pub-3643873601626975/9727556676';
 }
 
 export function getInterstitialUnitId(): string {
