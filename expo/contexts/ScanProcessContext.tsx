@@ -184,6 +184,9 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       if (!pickerResult || pickerResult.canceled || !pickerResult.assets?.[0]?.uri) {
         console.log('[ScanProcess] User cancelled image selection');
         scanInProgressRef.current = false;
+        clearScanTimeout();
+        setScanning(false);
+        setScanPhase('idle');
         return;
       }
 
