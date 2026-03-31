@@ -1,5 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { AppState, AppStateStatus, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
@@ -19,30 +21,93 @@ export interface OnlineUser {
 }
 
 const CHANNEL_NAME = 'flips-online-presence';
+const ONLINE_STATE_KEY = 'flips_online_state';
+const HEARTBEAT_INTERVAL = 12000;
+const RECONNECT_DELAY = 3000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+interface PersistedOnlineState {
+  wantsOnline: boolean;
+  userId: string | null;
+  timestamp: number;
+}
+
+async function loadPersistedState(): Promise<PersistedOnlineState | null> {
+  try {
+    const raw = await AsyncStorage.getItem(ONLINE_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedOnlineState;
+    const age = Date.now() - parsed.timestamp;
+    if (age > 24 * 60 * 60 * 1000) {
+      console.log('[OnlinePeople] Persisted state too old, clearing');
+      await AsyncStorage.removeItem(ONLINE_STATE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function savePersistedState(state: PersistedOnlineState): Promise<void> {
+  try {
+    await AsyncStorage.setItem(ONLINE_STATE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.log('[OnlinePeople] Failed to persist state:', e);
+  }
+}
+
+async function clearPersistedState(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(ONLINE_STATE_KEY);
+  } catch {}
+}
 
 export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
-  const { userId } = useAuth();
+  const { userId, isAuthenticated } = useAuth();
   const { profile } = useProfile();
   const [isUserOnline, setIsUserOnline] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+
   const channelRef = useRef<RealtimeChannel | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectAttempts = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isGoingOnlineRef = useRef(false);
+  const wantsOnlineRef = useRef(false);
+  const mountedRef = useRef(true);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const lastUserIdRef = useRef<string | null>(null);
 
   const cleanup = useCallback(() => {
+    console.log('[OnlinePeople] Cleanup called');
     if (heartbeatRef.current) {
       clearInterval(heartbeatRef.current);
       heartbeatRef.current = null;
     }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     if (channelRef.current) {
-      console.log('[OnlinePeople] Removing channel');
-      void supabase.removeChannel(channelRef.current);
+      try {
+        void supabase.removeChannel(channelRef.current);
+      } catch (e) {
+        console.log('[OnlinePeople] Channel removal error:', e);
+      }
       channelRef.current = null;
     }
+    reconnectAttempts.current = 0;
   }, []);
 
   useEffect(() => {
-    return () => cleanup();
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      cleanup();
+    };
   }, [cleanup]);
 
   const buildPresencePayload = useCallback(() => {
@@ -60,57 +125,60 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
   }, [userId, profile]);
 
   const syncPresenceState = useCallback((channel: RealtimeChannel) => {
-    const state = channel.presenceState();
-    console.log('[OnlinePeople] Syncing presence state, keys:', Object.keys(state).length);
-    const now = Date.now();
-    const users: OnlineUser[] = [];
+    if (!mountedRef.current) return;
+    try {
+      const state = channel.presenceState();
+      const now = Date.now();
+      const users: OnlineUser[] = [];
+      const seenIds = new Set<string>();
 
-    const seenIds = new Set<string>();
-    for (const key of Object.keys(state)) {
-      const presences = state[key] as Array<Record<string, unknown>>;
-      for (const p of presences) {
-        const pUserId = (p.user_id as string) ?? key;
-        if (pUserId === userId) continue;
+      for (const key of Object.keys(state)) {
+        const presences = state[key] as Array<Record<string, unknown>>;
+        for (const p of presences) {
+          const pUserId = (p.user_id as string) ?? key;
+          if (pUserId === userId) continue;
 
-        let uniqueId = pUserId || `presence_${key}`;
-        if (seenIds.has(uniqueId)) {
-          uniqueId = `${uniqueId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          let uniqueId = pUserId || `presence_${key}`;
+          if (seenIds.has(uniqueId)) {
+            uniqueId = `${uniqueId}_${now}_${Math.random().toString(36).slice(2, 8)}`;
+          }
+          seenIds.add(uniqueId);
+
+          users.push({
+            id: uniqueId,
+            name: (p.name as string) ?? 'User',
+            avatar_url: (p.avatar_url as string) ?? '',
+            joinedAt: (p.joined_at as number) ?? now,
+            status: 'active',
+            activity: (p.activity as UserActivity) ?? 'browsing',
+            scanCount: (p.scan_count as number) ?? 0,
+            lastActive: now,
+          });
         }
-        seenIds.add(uniqueId);
-
-        users.push({
-          id: uniqueId,
-          name: (p.name as string) ?? 'User',
-          avatar_url: (p.avatar_url as string) ?? '',
-          joinedAt: (p.joined_at as number) ?? now,
-          status: 'active',
-          activity: (p.activity as UserActivity) ?? 'browsing',
-          scanCount: (p.scan_count as number) ?? 0,
-          lastActive: now,
-        });
       }
-    }
 
-    setOnlineUsers(users);
-    setLastSyncedAt(now);
-    console.log('[OnlinePeople] Users online (excluding self):', users.length);
+      setOnlineUsers(users);
+      setLastSyncedAt(now);
+      console.log('[OnlinePeople] Synced users (excluding self):', users.length);
+    } catch (e) {
+      console.log('[OnlinePeople] Sync error:', e);
+    }
   }, [userId]);
 
-  const goOnline = useCallback(async (): Promise<boolean> => {
-    if (isUserOnline) {
-      console.log('[OnlinePeople] Already online');
-      return true;
-    }
-
+  const connectChannel = useCallback(async (): Promise<boolean> => {
     if (!isSupabaseConfigured) {
-      console.log('[OnlinePeople] Supabase not configured, going online in local-only mode');
-      setIsUserOnline(true);
-      setLastSyncedAt(Date.now());
-      setOnlineUsers([]);
+      console.log('[OnlinePeople] Supabase not configured, local-only mode');
+      if (mountedRef.current) {
+        setIsUserOnline(true);
+        setConnectionState('connected');
+        setLastSyncedAt(Date.now());
+        setOnlineUsers([]);
+      }
       return true;
     }
 
-    console.log('[OnlinePeople] Going online with Supabase Presence');
+    console.log('[OnlinePeople] Connecting channel for user:', userId);
+    if (mountedRef.current) setConnectionState('connecting');
 
     try {
       cleanup();
@@ -124,50 +192,210 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
           console.log('[OnlinePeople] Presence sync event');
           syncPresenceState(channel);
         })
-        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          console.log('[OnlinePeople] User joined:', key, newPresences);
+        .on('presence', { event: 'join' }, ({ key }) => {
+          console.log('[OnlinePeople] User joined:', key);
           syncPresenceState(channel);
         })
-        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-          console.log('[OnlinePeople] User left:', key, leftPresences);
+        .on('presence', { event: 'leave' }, ({ key }) => {
+          console.log('[OnlinePeople] User left:', key);
           syncPresenceState(channel);
         });
 
-      const subResult = channel.subscribe(async (status) => {
-        console.log('[OnlinePeople] Channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          const payload = buildPresencePayload();
-          console.log('[OnlinePeople] Tracking presence with payload:', payload.name);
-          await channel.track(payload);
-        }
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Channel subscribe timeout'));
+        }, 10000);
+
+        channel.subscribe(async (status) => {
+          console.log('[OnlinePeople] Channel status:', status);
+          if (status === 'SUBSCRIBED') {
+            clearTimeout(timeout);
+            try {
+              const payload = buildPresencePayload();
+              console.log('[OnlinePeople] Tracking presence:', payload.name);
+              await channel.track(payload);
+              resolve();
+            } catch (trackErr) {
+              reject(trackErr);
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            clearTimeout(timeout);
+            reject(new Error(`Channel ${status}`));
+          }
+        });
       });
 
-      console.log('[OnlinePeople] Subscribe result:', subResult);
       channelRef.current = channel;
+      reconnectAttempts.current = 0;
 
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       heartbeatRef.current = setInterval(() => {
-        if (channelRef.current) {
+        if (!channelRef.current || !mountedRef.current) return;
+        try {
+          const payload = buildPresencePayload();
+          channelRef.current.track(payload).catch((e: unknown) => {
+            console.log('[OnlinePeople] Heartbeat track failed:', e);
+          });
           syncPresenceState(channelRef.current);
+        } catch (e) {
+          console.log('[OnlinePeople] Heartbeat error:', e);
         }
-      }, 15000);
+      }, HEARTBEAT_INTERVAL);
 
-      setIsUserOnline(true);
-      setLastSyncedAt(Date.now());
+      if (mountedRef.current) {
+        setIsUserOnline(true);
+        setConnectionState('connected');
+        setLastSyncedAt(Date.now());
+      }
+
+      console.log('[OnlinePeople] Connected successfully');
       return true;
     } catch (e) {
-      console.log('[OnlinePeople] Error going online:', e);
+      console.log('[OnlinePeople] Connection failed:', e);
       cleanup();
+      if (mountedRef.current) {
+        setConnectionState('disconnected');
+      }
       return false;
     }
-  }, [isUserOnline, userId, cleanup, syncPresenceState, buildPresencePayload]);
+  }, [userId, cleanup, syncPresenceState, buildPresencePayload]);
+
+  const scheduleReconnect = useCallback(() => {
+    if (!wantsOnlineRef.current || !mountedRef.current) return;
+    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.log('[OnlinePeople] Max reconnect attempts reached');
+      if (mountedRef.current) {
+        setIsUserOnline(false);
+        setConnectionState('disconnected');
+        wantsOnlineRef.current = false;
+        void clearPersistedState();
+      }
+      return;
+    }
+
+    reconnectAttempts.current += 1;
+    const delay = RECONNECT_DELAY * reconnectAttempts.current;
+    console.log('[OnlinePeople] Scheduling reconnect attempt', reconnectAttempts.current, 'in', delay, 'ms');
+
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = setTimeout(async () => {
+      if (!wantsOnlineRef.current || !mountedRef.current) return;
+      console.log('[OnlinePeople] Reconnecting...');
+      const success = await connectChannel();
+      if (!success && wantsOnlineRef.current) {
+        scheduleReconnect();
+      }
+    }, delay);
+  }, [connectChannel]);
+
+  const goOnline = useCallback(async (): Promise<boolean> => {
+    if (isGoingOnlineRef.current) {
+      console.log('[OnlinePeople] Already going online, skipping');
+      return false;
+    }
+    if (isUserOnline && connectionState === 'connected') {
+      console.log('[OnlinePeople] Already online');
+      return true;
+    }
+
+    isGoingOnlineRef.current = true;
+    wantsOnlineRef.current = true;
+    console.log('[OnlinePeople] Going online...');
+
+    try {
+      const success = await connectChannel();
+      if (success) {
+        await savePersistedState({
+          wantsOnline: true,
+          userId: userId ?? null,
+          timestamp: Date.now(),
+        });
+        console.log('[OnlinePeople] Online state persisted');
+        return true;
+      } else {
+        scheduleReconnect();
+        return false;
+      }
+    } finally {
+      isGoingOnlineRef.current = false;
+    }
+  }, [isUserOnline, connectionState, userId, connectChannel, scheduleReconnect]);
 
   const goOffline = useCallback(() => {
     console.log('[OnlinePeople] Going offline');
-    setIsUserOnline(false);
-    setOnlineUsers([]);
-    setLastSyncedAt(null);
+    wantsOnlineRef.current = false;
+    isGoingOnlineRef.current = false;
     cleanup();
+
+    if (mountedRef.current) {
+      setIsUserOnline(false);
+      setOnlineUsers([]);
+      setLastSyncedAt(null);
+      setConnectionState('disconnected');
+    }
+
+    void clearPersistedState();
   }, [cleanup]);
+
+  useEffect(() => {
+    if (!userId || !isAuthenticated) return;
+    if (lastUserIdRef.current === userId) return;
+    lastUserIdRef.current = userId;
+
+    console.log('[OnlinePeople] Checking persisted state for user:', userId);
+    loadPersistedState().then((state) => {
+      if (!mountedRef.current) return;
+      if (state && state.wantsOnline && state.userId === userId) {
+        console.log('[OnlinePeople] Restoring online state for user:', userId);
+        wantsOnlineRef.current = true;
+        void connectChannel();
+      }
+    }).catch((e) => {
+      console.log('[OnlinePeople] Failed to load persisted state:', e);
+    });
+  }, [userId, isAuthenticated, connectChannel]);
+
+  useEffect(() => {
+    if (!userId) {
+      if (isUserOnline) {
+        console.log('[OnlinePeople] User signed out, going offline');
+        goOffline();
+      }
+      lastUserIdRef.current = null;
+    }
+  }, [userId, isUserOnline, goOffline]);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const prevState = appStateRef.current;
+      appStateRef.current = nextAppState;
+
+      console.log('[OnlinePeople] AppState:', prevState, '->', nextAppState);
+
+      if (prevState.match(/inactive|background/) && nextAppState === 'active') {
+        if (wantsOnlineRef.current && userId) {
+          console.log('[OnlinePeople] App foregrounded, reconnecting...');
+          if (!channelRef.current || connectionState !== 'connected') {
+            reconnectAttempts.current = 0;
+            void connectChannel();
+          } else {
+            const payload = buildPresencePayload();
+            channelRef.current.track(payload).catch((e: unknown) => {
+              console.log('[OnlinePeople] Foreground re-track failed, reconnecting:', e);
+              void connectChannel();
+            });
+          }
+        }
+      }
+
+      if (nextAppState === 'background' && Platform.OS !== 'web') {
+        console.log('[OnlinePeople] App backgrounded');
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [userId, connectionState, connectChannel, buildPresencePayload]);
 
   const updateActivity = useCallback((activity: UserActivity) => {
     if (!channelRef.current || !isUserOnline) return;
@@ -190,5 +418,6 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     activeCount,
     lastSyncedAt,
     updateActivity,
-  }), [goOnline, goOffline, isUserOnline, onlineUsers, activeCount, lastSyncedAt, updateActivity]);
+    connectionState,
+  }), [goOnline, goOffline, isUserOnline, onlineUsers, activeCount, lastSyncedAt, updateActivity, connectionState]);
 });

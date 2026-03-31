@@ -9,7 +9,8 @@ interface OnlineStatusBarProps {
 }
 
 function OnlineStatusBar({ compact = false, onPress }: OnlineStatusBarProps) {
-  const { isUserOnline, onlineUsers, activeCount, lastSyncedAt } = useOnlinePeople();
+  const { isUserOnline, onlineUsers, activeCount, lastSyncedAt, connectionState } = useOnlinePeople();
+  const isConnecting = connectionState === 'connecting';
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -62,6 +63,11 @@ function OnlineStatusBar({ compact = false, onPress }: OnlineStatusBarProps) {
               <Text style={styles.compactText}>{activeCount} active</Text>
               <Cloud size={12} color="#16A34A" strokeWidth={2} />
             </>
+          ) : isConnecting ? (
+            <>
+              <Wifi size={12} color="#FF9500" strokeWidth={2} />
+              <Text style={styles.compactTextConnecting}>Connecting…</Text>
+            </>
           ) : (
             <>
               <CloudOff size={12} color="#8E8E93" strokeWidth={1.8} />
@@ -96,6 +102,11 @@ function OnlineStatusBar({ compact = false, onPress }: OnlineStatusBarProps) {
                   <Text style={styles.barSync}>Synced {syncLabel}</Text>
                 ) : null}
               </View>
+            </>
+          ) : isConnecting ? (
+            <>
+              <Wifi size={16} color="#FF9500" strokeWidth={1.8} />
+              <Text style={styles.barTitleConnecting}>Connecting…</Text>
             </>
           ) : (
             <>
@@ -170,6 +181,12 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: '#AEAEB2',
   },
+  barTitleConnecting: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#FF9500',
+    letterSpacing: -0.1,
+  },
   compactWrap: {
     alignSelf: 'flex-start',
   },
@@ -202,5 +219,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500' as const,
     color: '#AEAEB2',
+  },
+  compactTextConnecting: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FF9500',
   },
 });

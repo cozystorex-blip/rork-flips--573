@@ -115,14 +115,14 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated } = useAuth();
   const { profile, saveProfile, userId } = useProfile();
-  const { goOnline, goOffline, isUserOnline, onlineUsers, activeCount } = useOnlinePeople();
+  const { goOnline, goOffline, isUserOnline, onlineUsers, activeCount, connectionState } = useOnlinePeople();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [savingName, setSavingName] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [goingOnline, setGoingOnline] = useState(false);
+  const isConnecting = connectionState === 'connecting';
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const onlineListFade = useRef(new Animated.Value(0)).current;
   const onlineDotPulse = useRef(new Animated.Value(0.4)).current;
@@ -159,7 +159,7 @@ export default function ProfileScreen() {
   }, [isUserOnline, onlineDotPulse]);
 
   const handleGoOnline = useCallback(async () => {
-    if (goingOnline) return;
+    if (isConnecting) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (isUserOnline) {
@@ -168,7 +168,6 @@ export default function ProfileScreen() {
       return;
     }
 
-    setGoingOnline(true);
     Animated.sequence([
       Animated.timing(pulseAnim, { toValue: 1.15, duration: 120, useNativeDriver: true }),
       Animated.timing(pulseAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
@@ -179,14 +178,12 @@ export default function ProfileScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         console.log('[Profile] Went online successfully');
       } else {
-        Alert.alert('Error', 'Could not go online. Try again.');
+        Alert.alert('Connecting', 'Trying to connect. Please wait a moment.');
       }
     } catch {
-      Alert.alert('Error', 'Could not go online. Try again.');
-    } finally {
-      setGoingOnline(false);
+      Alert.alert('Error', 'Could not go online. Check your connection and try again.');
     }
-  }, [goingOnline, isUserOnline, goOnline, goOffline, pulseAnim]);
+  }, [isConnecting, isUserOnline, goOnline, goOffline, pulseAnim]);
 
   const memberSince = useMemo(() => {
     if (profile?.created_at) {
@@ -436,7 +433,7 @@ export default function ProfileScreen() {
                 ]}
                 testID="go-online-btn"
               >
-                {goingOnline ? (
+                {isConnecting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
