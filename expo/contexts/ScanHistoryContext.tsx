@@ -53,8 +53,8 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
 
   const addEntry = useCallback(
     (result: SmartScanResult, imageUri?: string, existingId?: string): string | null => {
-      if (result.item_type === 'receipt' || result.item_type === 'unknown') {
-        console.log('[ScanHistory] Skipping receipt/unknown type');
+      if (result.item_type === 'receipt') {
+        console.log('[ScanHistory] Skipping receipt type');
         return null;
       }
       const entryId = existingId ?? (Date.now().toString() + Math.random().toString(36).substring(2, 6));
@@ -65,12 +65,14 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
         scannedAt: new Date().toISOString(),
       };
       console.log('[ScanHistory] Adding entry:', newEntry.result.item_name, 'id:', entryId, 'imageUri:', imageUri ? 'yes' : 'no');
-      const updated = [newEntry, ...entries];
-      setEntries(updated);
-      mutate(updated);
+      setEntries((prev) => {
+        const updated = [newEntry, ...prev];
+        mutate(updated);
+        return updated;
+      });
       return entryId;
     },
-    [entries, mutate]
+    [mutate]
   );
 
   const getEntryById = useCallback(
@@ -82,44 +84,50 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
 
   const updateEntryImage = useCallback(
     (id: string, newImageUri: string) => {
-      const idx = entries.findIndex((e) => e.id === id);
-      if (idx === -1) {
-        console.log('[ScanHistory] updateEntryImage: entry not found:', id);
-        return;
-      }
       console.log('[ScanHistory] Updating image for entry:', id);
-      const updated = [...entries];
-      updated[idx] = { ...updated[idx], imageUri: newImageUri };
-      setEntries(updated);
-      mutate(updated);
+      setEntries((prev) => {
+        const idx = prev.findIndex((e) => e.id === id);
+        if (idx === -1) {
+          console.log('[ScanHistory] updateEntryImage: entry not found:', id);
+          return prev;
+        }
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], imageUri: newImageUri };
+        mutate(updated);
+        return updated;
+      });
     },
-    [entries, mutate]
+    [mutate]
   );
 
   const deleteEntry = useCallback(
     (id: string) => {
-      const entry = entries.find((e) => e.id === id);
-      if (entry?.imageUri) {
-        void deleteScanImage(entry.imageUri);
-      }
       console.log('[ScanHistory] Deleting entry:', id);
-      const updated = entries.filter((e) => e.id !== id);
-      setEntries(updated);
-      mutate(updated);
+      setEntries((prev) => {
+        const entry = prev.find((e) => e.id === id);
+        if (entry?.imageUri) {
+          void deleteScanImage(entry.imageUri);
+        }
+        const updated = prev.filter((e) => e.id !== id);
+        mutate(updated);
+        return updated;
+      });
     },
-    [entries, mutate]
+    [mutate]
   );
 
   const clearHistory = useCallback(() => {
     console.log('[ScanHistory] Clearing all history');
-    for (const entry of entries) {
-      if (entry.imageUri) {
-        void deleteScanImage(entry.imageUri);
+    setEntries((prev) => {
+      for (const entry of prev) {
+        if (entry.imageUri) {
+          void deleteScanImage(entry.imageUri);
+        }
       }
-    }
-    setEntries([]);
-    mutate([]);
-  }, [entries, mutate]);
+      mutate([]);
+      return [];
+    });
+  }, [mutate]);
 
   const visibleEntries = useMemo(() => {
     if (isPremium) return entries;
