@@ -17,12 +17,15 @@ import {
   Scan,
   Bookmark,
   Camera,
+  Wifi,
+  WifiOff,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
+import { useOnlinePeople } from '@/contexts/OnlinePeopleContext';
 import { pickAndCropAvatar, uploadAvatarToSupabase } from '@/services/uploadService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
@@ -33,10 +36,27 @@ export default function ProfileScreen() {
   const { profile, saveProfile } = useProfile();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
+  const { isUserOnline, handleToggleOnline, isToggling, connectionState } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const [savingName, setSavingName] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+
+  useEffect(() => {
+    if (isUserOnline) {
+      const anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      );
+      anim.start();
+      return () => anim.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isUserOnline, pulseAnim]);
 
 
   useEffect(() => {
@@ -241,6 +261,32 @@ export default function ProfileScreen() {
               </View>
             </View>
 
+            <Pressable
+              onPress={handleToggleOnline}
+              disabled={isToggling || connectionState === 'connecting'}
+              style={({ pressed }) => [
+                styles.onlineBtn,
+                isUserOnline ? styles.onlineBtnActive : styles.onlineBtnInactive,
+                (isToggling || connectionState === 'connecting') && { opacity: 0.6 },
+                pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+              ]}
+              testID="profile-online-toggle"
+            >
+              {isUserOnline ? (
+                <Animated.View style={[styles.onlineDot, { opacity: pulseAnim }]} />
+              ) : null}
+              {connectionState === 'connecting' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+              ) : isUserOnline ? (
+                <Wifi size={16} color="#FFFFFF" strokeWidth={2.2} />
+              ) : (
+                <WifiOff size={16} color="rgba(255,255,255,0.7)" strokeWidth={2} />
+              )}
+              <Text style={styles.onlineBtnText}>
+                {connectionState === 'connecting' ? 'Connecting…' : isUserOnline ? 'Online' : 'Go Online'}
+              </Text>
+            </Pressable>
+
           </View>
         </View>
 
@@ -395,6 +441,39 @@ const styles = StyleSheet.create({
     height: 36,
     backgroundColor: 'rgba(255,255,255,0.15)',
     marginHorizontal: 4,
+  },
+  onlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 24,
+    alignSelf: 'center',
+  },
+  onlineBtnActive: {
+    backgroundColor: 'rgba(52,199,89,0.35)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(52,199,89,0.6)',
+  },
+  onlineBtnInactive: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  onlineBtnText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34C759',
   },
 
 
