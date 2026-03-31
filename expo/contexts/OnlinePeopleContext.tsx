@@ -1,10 +1,20 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
-import { AppState, AppStateStatus, Platform } from 'react-native';
+import { AppState, AppStateStatus, Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
+import {
+  upsertPresence,
+  fetchOnlineUsers,
+  sendHeartbeat,
+  markOffline,
+  PresenceRecord,
+  ToggleOnlineInput,
+} from '@/services/presenceService';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type UserActivity = 'scanning' | 'browsing' | 'saving' | 'idle';
@@ -25,6 +35,7 @@ const ONLINE_STATE_KEY = 'flips_online_state';
 const HEARTBEAT_INTERVAL = 12000;
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
+const ONLINE_USERS_POLL_INTERVAL = 5000;
 
 interface PersistedOnlineState {
   wantsOnline: boolean;
@@ -63,7 +74,23 @@ async function clearPersistedState(): Promise<void> {
   } catch {}
 }
 
+function presenceRecordToOnlineUser(record: PresenceRecord): OnlineUser {
+  const lastSeenMs = new Date(record.last_seen).getTime();
+  const isStale = Date.now() - lastSeenMs > 30000;
+  return {
+    id: record.user_id,
+    name: record.full_name || 'Flip User',
+    avatar_url: record.avatar_url || '',
+    joinedAt: lastSeenMs,
+    status: isStale ? 'idle' : 'active',
+    activity: (record.activity as UserActivity) || 'browsing',
+    scanCount: record.scan_count ?? 0,
+    lastActive: lastSeenMs,
+  };
+}
+
 export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
+  const queryClient = useQueryClient();
   const { userId, isAuthenticated } = useAuth();
   const { profile } = useProfile();
   const [isUserOnline, setIsUserOnline] = useState(false);
@@ -159,11 +186,67 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
 
       setOnlineUsers(users);
       setLastSyncedAt(now);
-      console.log('[OnlinePeople] Synced users (excluding self):', users.length);
+      console.log('[OnlinePeople] Realtime synced users (excluding self):', users.length);
     } catch (e) {
       console.log('[OnlinePeople] Sync error:', e);
     }
   }, [userId]);
+
+  const toggleMutation = useMutation({
+    mutationFn: async (input: ToggleOnlineInput): Promise<PresenceRecord> => {
+      console.log('[OnlinePeople] toggleMutation called:', input.id, 'isOnline:', input.isOnline);
+      return upsertPresence(input);
+    },
+    onSuccess: (data) => {
+      if (!mountedRef.current) return;
+      const nowOnline = data.is_online;
+      console.log('[OnlinePeople] toggleMutation success, is_online:', nowOnline);
+      setIsUserOnline(nowOnline);
+      setConnectionState(nowOnline ? 'connected' : 'disconnected');
+      if (nowOnline) {
+        setLastSyncedAt(Date.now());
+      }
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    onError: (error) => {
+      console.log('[OnlinePeople] toggleMutation error:', error);
+      Alert.alert('Error', 'Could not update your status.');
+    },
+  });
+
+  const onlineUsersQuery = useQuery({
+    queryKey: ['online_users', userId],
+    queryFn: async () => {
+      const records = await fetchOnlineUsers(userId ?? undefined);
+      return records.map(presenceRecordToOnlineUser);
+    },
+    enabled: isUserOnline,
+    refetchInterval: isUserOnline ? ONLINE_USERS_POLL_INTERVAL : false,
+    staleTime: 3000,
+  });
+
+  useEffect(() => {
+    if (onlineUsersQuery.data && isUserOnline) {
+      setOnlineUsers((prev) => {
+        const dbUsers = onlineUsersQuery.data;
+        const merged = new Map<string, OnlineUser>();
+
+        for (const u of prev) {
+          merged.set(u.id, u);
+        }
+        for (const u of dbUsers) {
+          if (!merged.has(u.id)) {
+            merged.set(u.id, u);
+          }
+        }
+
+        const mergedArray = Array.from(merged.values());
+        console.log('[OnlinePeople] Merged users (realtime+db):', mergedArray.length);
+        return mergedArray;
+      });
+      setLastSyncedAt(Date.now());
+    }
+  }, [onlineUsersQuery.data, isUserOnline]);
 
   const connectChannel = useCallback(async (): Promise<boolean> => {
     if (!isSupabaseConfigured) {
@@ -237,6 +320,10 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
             console.log('[OnlinePeople] Heartbeat track failed:', e);
           });
           syncPresenceState(channelRef.current);
+
+          if (userId) {
+            void sendHeartbeat(userId);
+          }
         } catch (e) {
           console.log('[OnlinePeople] Heartbeat error:', e);
         }
@@ -288,6 +375,57 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     }, delay);
   }, [connectChannel]);
 
+  const handleToggleOnline = useCallback(async () => {
+    if (!userId || !profile) {
+      console.log('[OnlinePeople] Cannot toggle: no user/profile');
+      return;
+    }
+    if (isGoingOnlineRef.current) {
+      console.log('[OnlinePeople] Already toggling, skipping');
+      return;
+    }
+
+    const goingOnline = !isUserOnline;
+    isGoingOnlineRef.current = true;
+    wantsOnlineRef.current = goingOnline;
+
+    console.log('[OnlinePeople] handleToggleOnline:', goingOnline ? 'GOING ONLINE' : 'GOING OFFLINE');
+
+    try {
+      toggleMutation.mutate({
+        id: userId,
+        isOnline: goingOnline,
+        fullName: profile.display_name || undefined,
+        avatarUrl: profile.avatar_url || undefined,
+        scanCount: 0,
+      });
+
+      if (goingOnline) {
+        const channelSuccess = await connectChannel();
+        if (channelSuccess) {
+          await savePersistedState({
+            wantsOnline: true,
+            userId,
+            timestamp: Date.now(),
+          });
+          console.log('[OnlinePeople] Online state persisted');
+        } else {
+          scheduleReconnect();
+        }
+      } else {
+        cleanup();
+        if (mountedRef.current) {
+          setOnlineUsers([]);
+          setLastSyncedAt(null);
+        }
+        void clearPersistedState();
+        void markOffline(userId);
+      }
+    } finally {
+      isGoingOnlineRef.current = false;
+    }
+  }, [userId, profile, isUserOnline, toggleMutation, connectChannel, scheduleReconnect, cleanup]);
+
   const goOnline = useCallback(async (): Promise<boolean> => {
     if (isGoingOnlineRef.current) {
       console.log('[OnlinePeople] Already going online, skipping');
@@ -303,6 +441,16 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     console.log('[OnlinePeople] Going online...');
 
     try {
+      if (userId && profile) {
+        toggleMutation.mutate({
+          id: userId,
+          isOnline: true,
+          fullName: profile.display_name || undefined,
+          avatarUrl: profile.avatar_url || undefined,
+          scanCount: 0,
+        });
+      }
+
       const success = await connectChannel();
       if (success) {
         await savePersistedState({
@@ -319,13 +467,23 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     } finally {
       isGoingOnlineRef.current = false;
     }
-  }, [isUserOnline, connectionState, userId, connectChannel, scheduleReconnect]);
+  }, [isUserOnline, connectionState, userId, profile, connectChannel, scheduleReconnect, toggleMutation]);
 
   const goOffline = useCallback(() => {
     console.log('[OnlinePeople] Going offline');
     wantsOnlineRef.current = false;
     isGoingOnlineRef.current = false;
     cleanup();
+
+    if (userId) {
+      toggleMutation.mutate({
+        id: userId,
+        isOnline: false,
+        fullName: profile?.display_name || undefined,
+        avatarUrl: profile?.avatar_url || undefined,
+      });
+      void markOffline(userId);
+    }
 
     if (mountedRef.current) {
       setIsUserOnline(false);
@@ -335,7 +493,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     }
 
     void clearPersistedState();
-  }, [cleanup]);
+  }, [cleanup, userId, profile, toggleMutation]);
 
   useEffect(() => {
     if (!userId || !isAuthenticated) return;
@@ -348,12 +506,22 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
       if (state && state.wantsOnline && state.userId === userId) {
         console.log('[OnlinePeople] Restoring online state for user:', userId);
         wantsOnlineRef.current = true;
+
+        if (profile) {
+          toggleMutation.mutate({
+            id: userId,
+            isOnline: true,
+            fullName: profile.display_name || undefined,
+            avatarUrl: profile.avatar_url || undefined,
+          });
+        }
+
         void connectChannel();
       }
     }).catch((e) => {
       console.log('[OnlinePeople] Failed to load persisted state:', e);
     });
-  }, [userId, isAuthenticated, connectChannel]);
+  }, [userId, isAuthenticated, connectChannel, profile, toggleMutation]);
 
   useEffect(() => {
     if (!userId) {
@@ -375,6 +543,16 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
       if (prevState.match(/inactive|background/) && nextAppState === 'active') {
         if (wantsOnlineRef.current && userId) {
           console.log('[OnlinePeople] App foregrounded, reconnecting...');
+
+          if (profile) {
+            toggleMutation.mutate({
+              id: userId,
+              isOnline: true,
+              fullName: profile.display_name || undefined,
+              avatarUrl: profile.avatar_url || undefined,
+            });
+          }
+
           if (!channelRef.current || connectionState !== 'connected') {
             reconnectAttempts.current = 0;
             void connectChannel();
@@ -385,6 +563,8 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
               void connectChannel();
             });
           }
+
+          void queryClient.invalidateQueries({ queryKey: ['online_users'] });
         }
       }
 
@@ -395,7 +575,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [userId, connectionState, connectChannel, buildPresencePayload]);
+  }, [userId, connectionState, connectChannel, buildPresencePayload, profile, toggleMutation, queryClient]);
 
   const updateActivity = useCallback((activity: UserActivity) => {
     if (!channelRef.current || !isUserOnline) return;
@@ -410,7 +590,10 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     return onlineUsers.filter(u => u.status === 'active').length;
   }, [onlineUsers]);
 
+  const isToggling = toggleMutation.isPending;
+
   return useMemo(() => ({
+    handleToggleOnline,
     goOnline,
     goOffline,
     isUserOnline,
@@ -419,5 +602,6 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     lastSyncedAt,
     updateActivity,
     connectionState,
-  }), [goOnline, goOffline, isUserOnline, onlineUsers, activeCount, lastSyncedAt, updateActivity, connectionState]);
+    isToggling,
+  }), [handleToggleOnline, goOnline, goOffline, isUserOnline, onlineUsers, activeCount, lastSyncedAt, updateActivity, connectionState, isToggling]);
 });
