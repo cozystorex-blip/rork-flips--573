@@ -65,14 +65,21 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     const now = Date.now();
     const users: OnlineUser[] = [];
 
+    const seenIds = new Set<string>();
     for (const key of Object.keys(state)) {
       const presences = state[key] as Array<Record<string, unknown>>;
       for (const p of presences) {
         const pUserId = (p.user_id as string) ?? key;
         if (pUserId === userId) continue;
 
+        let uniqueId = pUserId || `presence_${key}`;
+        if (seenIds.has(uniqueId)) {
+          uniqueId = `${uniqueId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+        seenIds.add(uniqueId);
+
         users.push({
-          id: pUserId,
+          id: uniqueId,
           name: (p.name as string) ?? 'User',
           avatar_url: (p.avatar_url as string) ?? '',
           joinedAt: (p.joined_at as number) ?? now,
