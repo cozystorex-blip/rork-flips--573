@@ -16,8 +16,6 @@ import {
   LogOut,
   Scan,
   Bookmark,
-  Clock,
-  ShoppingBag,
   Camera,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -247,50 +245,9 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {(totalScans > 0 || totalSaved > 0) && (
-            <View style={styles.activitySection}>
-              <Text style={styles.activityTitle}>Your Activity</Text>
-              <View style={styles.activityGrid}>
-                {totalScans > 0 && (
-                  <View style={styles.activityCard}>
-                    <View style={[styles.activityCardIcon, { backgroundColor: 'rgba(22,163,74,0.1)' }]}>
-                      <Scan size={18} color="#16A34A" strokeWidth={2} />
-                    </View>
-                    <Text style={styles.activityCardValue}>{totalScans}</Text>
-                    <Text style={styles.activityCardLabel}>Items Scanned</Text>
-                  </View>
-                )}
-                {totalSaved > 0 && (
-                  <View style={styles.activityCard}>
-                    <View style={[styles.activityCardIcon, { backgroundColor: 'rgba(255,149,0,0.1)' }]}>
-                      <ShoppingBag size={18} color="#FF9500" strokeWidth={2} />
-                    </View>
-                    <Text style={styles.activityCardValue}>{totalSaved}</Text>
-                    <Text style={styles.activityCardLabel}>Deals Saved</Text>
-                  </View>
-                )}
-                <View style={styles.activityCard}>
-                  <View style={[styles.activityCardIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
-                    <Clock size={18} color="#007AFF" strokeWidth={2} />
-                  </View>
-                  <Text style={styles.activityCardValue}>{memberSince.split(' ')[0]}</Text>
-                  <Text style={styles.activityCardLabel}>Joined</Text>
-                </View>
-              </View>
-
-              <View style={styles.adContainer}>
-                <AdMobBanner />
-              </View>
-            </View>
-          )}
-
-          {totalScans === 0 && totalSaved === 0 && (
-            <View style={styles.activitySection}>
-              <View style={styles.adContainer}>
-                <AdMobBanner />
-              </View>
-            </View>
-          )}
+          <View style={styles.adSection}>
+            <AdMobBanner />
+          </View>
 
           <Animated.View style={[styles.bottomArea, { opacity: fadeAnim }]}>
             {isAuthenticated && (
@@ -440,12 +397,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
 
-  adContainer: {
-    marginTop: 14,
-    width: '100%',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
+
   whiteContent: {
     flex: 1,
     backgroundColor: '#F2F2F7',
@@ -457,54 +409,12 @@ const styles = StyleSheet.create({
   },
 
 
-  activitySection: {
+  adSection: {
     marginHorizontal: 16,
     marginTop: 4,
     marginBottom: 12,
-  },
-  activityTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-    marginBottom: 12,
-  },
-  activityGrid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  activityCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  activityCardIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  activityCardValue: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  activityCardLabel: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-    color: '#8E8E93',
-    marginTop: 2,
-    textAlign: 'center' as const,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   bottomArea: {
     paddingTop: 16,
