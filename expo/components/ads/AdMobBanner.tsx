@@ -1,17 +1,12 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Animated,
-  TouchableOpacity,
-  Linking,
   Platform,
 } from 'react-native';
 import { usePremium } from '@/contexts/PremiumContext';
-
-const AD_UNIT_ID = 'ca-app-pub-3643873601626975/1979589861';
-const AD_CLICK_URL = `https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-3643873601626975&output=html&slotname=${AD_UNIT_ID}`;
 
 export default function AdMobBanner() {
   const { isPremium } = usePremium();
@@ -25,20 +20,6 @@ export default function AdMobBanner() {
     }).start();
   }, [fadeAnim]);
 
-  const handleAdPress = useCallback(async () => {
-    try {
-      console.log('[AdMobBanner] Ad clicked, opening real ad URL');
-      await Linking.openURL(AD_CLICK_URL);
-    } catch (e) {
-      console.warn('[AdMobBanner] Could not open ad URL:', e);
-      try {
-        await Linking.openURL('https://www.google.com/ads');
-      } catch (e2) {
-        console.warn('[AdMobBanner] Fallback URL also failed:', e2);
-      }
-    }
-  }, []);
-
   if (isPremium) return null;
 
   return (
@@ -46,21 +27,14 @@ export default function AdMobBanner() {
       style={[styles.wrapper, { opacity: fadeAnim }]}
       testID="ad-banner"
     >
-      <TouchableOpacity
-        style={styles.container}
-        onPress={handleAdPress}
-        activeOpacity={0.85}
-        accessibilityRole="link"
-        accessibilityLabel="Advertisement"
-      >
+      <View style={styles.container}>
         <View style={styles.inner}>
           <Text style={styles.adText}>Sponsored</Text>
-          <Text style={styles.adSubtext}>Tap to learn more</Text>
         </View>
         <View style={styles.adLabel}>
           <Text style={styles.adLabelText}>Ad</Text>
         </View>
-      </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 }
