@@ -135,7 +135,7 @@ export default function AdMobBanner() {
         { opacity: fadeAnim },
       ]}
     >
-      <View style={styles.container}>
+      <View style={styles.container} pointerEvents="box-none">
         <BannerAd
           unitId={unitId}
           size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
@@ -146,7 +146,7 @@ export default function AdMobBanner() {
           onAdFailedToLoad={handleAdFailed}
         />
         {adReady && (
-          <View style={styles.adLabel}>
+          <View style={styles.adLabel} pointerEvents="none">
             <Text style={styles.adLabelText}>Ad</Text>
           </View>
         )}
