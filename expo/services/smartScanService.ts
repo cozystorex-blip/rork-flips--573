@@ -1595,19 +1595,27 @@ function buildDocumentResult(
   };
 }
 
-export async function generateReferenceImage(description: string, scannedImageBase64?: string): Promise<string | null> {
+export async function generateReferenceImage(description: string, scannedImageBase64?: string, confidence?: number): Promise<string | null> {
   try {
+    if (confidence !== undefined && confidence < 0.5) {
+      console.log('[SmartScan] Skipping reference image generation — confidence too low:', confidence);
+      return null;
+    }
+
     console.log('[SmartScan] Generating reference image for:', description.substring(0, 80));
 
     if (scannedImageBase64) {
       console.log('[SmartScan] Using image edit API with scanned image');
-      const editPrompt = `Transform this photo into a clean, professional product catalog image. Instructions:
-- Remove all background clutter and replace with a clean white or light gradient background
-- Keep the EXACT same item — do not change, replace, or alter the product
-- Center the item with studio-quality lighting
-- Make it look like an e-commerce product listing photo
-- Sharp focus, clean edges, no shadows except subtle product shadow
-- No text overlays, no watermarks, no hands, no other objects`;
+      const editPrompt = `You are a professional product photographer. Clean up this photo to look like a professional product listing. Rules:
+- Keep the EXACT same item — do NOT replace, reimagine, or alter the product
+- Remove background clutter, replace with a clean solid white or very light gray background
+- Improve lighting and exposure to look like studio photography
+- Maintain exact colors, textures, details, proportions, and branding of the original item
+- Center the item with natural soft shadow beneath
+- Ensure sharp focus and high clarity
+- Remove hands, other objects, and distracting elements
+- The result MUST be clearly recognizable as the exact same item from the original photo
+- Do NOT add any text, logos, watermarks, or elements not in the original`;
       try {
         const editResponse = await fetch('https://toolkit.rork.com/images/edit/', {
           method: 'POST',
@@ -1628,32 +1636,13 @@ export async function generateReferenceImage(description: string, scannedImageBa
             return dataUrl;
           }
         }
-        console.log('[SmartScan] Edit API response not ok, falling back to generation');
+        console.log('[SmartScan] Edit API response not ok, skipping reference image generation');
       } catch (editErr) {
-        console.log('[SmartScan] Edit API error, falling back to generation:', editErr);
+        console.log('[SmartScan] Edit API error:', editErr);
       }
     }
 
-    const prompt = `Professional product photography, single item centered on plain white background, studio lighting, high quality, sharp detail, e-commerce style: ${description}. No text, no watermarks, no hands, isolated product only, clean composition.`;
-
-    const response = await fetch('https://toolkit.rork.com/images/generate/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, size: '1024x1024' }),
-    });
-
-    if (!response.ok) {
-      console.log('[SmartScan] Image generation failed:', response.status);
-      return null;
-    }
-
-    const data = await response.json() as { image?: { base64Data?: string; mimeType?: string } };
-    if (data.image?.base64Data) {
-      const mimeType = data.image.mimeType || 'image/png';
-      const dataUrl = `data:${mimeType};base64,${data.image.base64Data}`;
-      console.log('[SmartScan] Reference image generated successfully');
-      return dataUrl;
-    }
+    console.log('[SmartScan] No scanned image base64 available, skipping AI generation to avoid inaccurate images');
     return null;
   } catch (err) {
     console.log('[SmartScan] Reference image generation error:', err);
@@ -1967,8 +1956,13 @@ function getCategoryFallbackRange(result: SmartScanResult): { low: number; high:
 
 function ensureResaleData(result: SmartScanResult): SmartScanResult {
   const r = { ...result };
-  const CONSUMABLE: SmartScanItemType[] = ['food', 'grocery', 'receipt', 'document'];
+  const CONSUMABLE: SmartScanItemType[] = ['food', 'grocery', 'receipt', 'document', 'unknown'];
   if (CONSUMABLE.includes(r.item_type)) return r;
+
+  if (r.confidence < 0.6) {
+    console.log('[SmartScan] ensureResaleData: confidence too low (' + r.confidence.toFixed(2) + '), skipping fallback resale data to avoid fake values');
+    return r;
+  }
 
   const fallback = getCategoryFallbackRange(r);
 
@@ -2068,7 +2062,7 @@ function ensureResaleData(result: SmartScanResult): SmartScanResult {
     r.general_details = gd;
   }
 
-  console.log('[SmartScan] ensureResaleData: guaranteed resale fields for', r.item_type);
+  console.log('[SmartScan] ensureResaleData: filled missing resale fields for', r.item_type, 'at confidence', r.confidence.toFixed(2));
   return r;
 }
 

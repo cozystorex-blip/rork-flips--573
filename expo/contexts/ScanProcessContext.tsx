@@ -408,7 +408,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       if (scanResult.image_description) {
         try {
           setGeneratingImage(true);
-          const refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined);
+          const refImageUrl = await generateReferenceImage(scanResult.image_description, processedBase64 ?? undefined, scanResult.confidence);
           if (refImageUrl) {
             setReferenceImageUrl(refImageUrl);
             scanResult.reference_image_url = refImageUrl;
@@ -442,10 +442,10 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       }
 
       const fallbackResult: SmartScanResult = {
-        item_type: 'general',
-        confidence: 0.35,
-        item_name: 'Detected Item',
-        category: 'General',
+        item_type: 'unknown',
+        confidence: 0.15,
+        item_name: 'Could Not Identify',
+        category: 'Unknown',
         food_details: null,
         grocery_details: null,
         household_details: null,
@@ -454,35 +454,35 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
         electronics_details: null,
         document_details: null,
         general_details: {
-          item_description: 'Item detected with best-effort analysis based on visual similarity.',
+          item_description: 'The scan could not reliably identify this item. Try again with a clearer photo.',
           subcategory: 'other',
-          brand: null, model: null, material: 'Mixed', color: null, condition: 'good',
-          estimated_retail_price: '$10 - $40',
-          estimated_resale_value: '$5',
-          price_range: '$5 - $25',
-          value_rating: 'average',
-          value_verdict: 'fair',
-          value_reasoning: 'Estimated from general category patterns. A clearer scan with visible labels or tags will improve accuracy.',
-          resale_demand: 'low',
-          resale_suggestion: 'Photograph any brand labels, tags, or distinguishing features for better resale analysis.',
-          best_selling_platform: 'Facebook Marketplace, eBay, Mercari',
-          comparable_item: 'Similar items in this category',
-          budget_insight: 'Scan labels or tags for precise value assessment.',
+          brand: null, model: null, material: null, color: null, condition: null,
+          estimated_retail_price: null,
+          estimated_resale_value: null,
+          price_range: null,
+          value_rating: null,
+          value_verdict: null,
+          value_reasoning: null,
+          resale_demand: null,
+          resale_suggestion: null,
+          best_selling_platform: null,
+          comparable_item: null,
+          budget_insight: null,
           cheaper_alternative: null,
-          care_tip: 'Store in a clean, dry place to maintain condition.',
+          care_tip: null,
           fun_fact: null,
           practical_tip: scanError.isRetryable
             ? 'Try scanning the product label, barcode, or a clearer angle for better results.'
             : scanError.userMessage,
           age_or_era: null, rarity: null,
-          tags: ['general', 'rescan-for-detail'],
-          complementary_items: ['Related accessories', 'Replacement parts'],
-          purpose: 'General item detected — scan labels or tags for full analysis.',
-          value_insight: 'A clearer scan will unlock detailed pricing, resale demand, and similar item comparisons.',
-          next_scan_suggestion: 'Try scanning the product label, barcode, or a clearer angle for better results.',
+          tags: [],
+          complementary_items: [],
+          purpose: null,
+          value_insight: null,
+          next_scan_suggestion: 'Try a clearer photo with good lighting, showing labels or brand markings.',
         },
         is_receipt: false,
-        short_summary: 'Item detected with estimated value. Try a clearer photo with visible labels for full analysis.',
+        short_summary: 'We could not identify this item. Please try again with a clearer, well-lit photo showing any labels or brand markings.',
         image_description: '',
       };
 

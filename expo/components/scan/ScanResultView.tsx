@@ -106,96 +106,86 @@ interface AttributeChip {
   value: string;
 }
 
+const JUNK_VALUES = ['unknown', 'n/a', 'none', 'mixed', 'various', 'unbranded', 'generic', 'other', 'item', 'personal', 'general use', 'standard', 'typical', 'regular', 'basic', 'normal', 'not available', 'not applicable', 'unspecified', 'undetermined', 'general', 'commodity', 'average', 'fair', 'common', 'null', 'undefined', 'mixed materials', 'various materials', 'multiple', 'assorted', 'miscellaneous', 'misc'];
+
+function isRealValue(val: string | null | undefined): val is string {
+  if (!val || val.trim().length === 0) return false;
+  return !JUNK_VALUES.includes(val.trim().toLowerCase());
+}
+
+function pushIfReal(chips: AttributeChip[], label: string, value: string | null | undefined): void {
+  if (isRealValue(value)) {
+    chips.push({ label, value: value!.trim() });
+  }
+}
+
 function getAttributeChips(result: SmartScanResult): AttributeChip[] {
   const chips: AttributeChip[] = [];
 
   if (result.fashion_details) {
     const fd = result.fashion_details;
     const typeMap: Record<string, string> = { shoes: 'Footwear', clothing: 'Clothing', outerwear: 'Outerwear', accessories: 'Accessories', bags: 'Bags', jewelry: 'Jewelry', activewear: 'Activewear', other: 'Fashion' };
-    chips.push({ label: 'Type', value: typeMap[fd.subcategory] ?? fd.subcategory });
-    chips.push({ label: 'Color', value: fd.color ? (fd.secondary_color ? `${fd.color} / ${fd.secondary_color}` : fd.color) : 'Unknown' });
-    chips.push({ label: 'Material', value: fd.material && fd.material !== 'Mixed' ? fd.material : 'Synthetic' });
-    chips.push({ label: 'Condition', value: fd.condition ? fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1) : 'Good' });
-    chips.push({ label: 'Brand', value: fd.brand && fd.brand !== 'Unbranded' ? fd.brand : 'Unknown' });
-    chips.push({ label: 'For', value: fd.style && fd.style !== 'Casual' ? fd.style.split(' ')[0] : (fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : 'Casual') });
+    pushIfReal(chips, 'Type', typeMap[fd.subcategory] ?? fd.subcategory);
+    const colorVal = fd.color ? (fd.secondary_color && isRealValue(fd.secondary_color) ? `${fd.color} / ${fd.secondary_color}` : fd.color) : null;
+    pushIfReal(chips, 'Color', colorVal);
+    pushIfReal(chips, 'Material', fd.material);
+    if (fd.condition) pushIfReal(chips, 'Condition', fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1));
+    pushIfReal(chips, 'Brand', fd.brand);
+    const forVal = fd.gender_target ? fd.gender_target.charAt(0).toUpperCase() + fd.gender_target.slice(1) : (isRealValue(fd.style) ? fd.style!.split(' ')[0] : null);
+    pushIfReal(chips, 'For', forVal);
   } else if (result.electronics_details) {
     const ed = result.electronics_details;
-    chips.push({ label: 'Type', value: ed.product_type ?? 'Electronics' });
-    chips.push({ label: 'Color', value: 'Unknown' });
-    chips.push({ label: 'Material', value: 'Plastic' });
-    chips.push({ label: 'Condition', value: ed.condition ? ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1) : 'Good' });
-    chips.push({ label: 'Brand', value: ed.brand ?? 'Unknown' });
-    chips.push({ label: 'For', value: ed.purpose ? ed.purpose.split('.')[0].split(' ')[0].substring(0, 20) : (ed.product_type ?? 'Personal') });
+    pushIfReal(chips, 'Type', ed.product_type);
+    pushIfReal(chips, 'Brand', ed.brand);
+    pushIfReal(chips, 'Model', ed.model);
+    if (ed.condition) pushIfReal(chips, 'Condition', ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1));
+    pushIfReal(chips, 'Spec', ed.storage_or_spec);
   } else if (result.furniture_details) {
     const fd = result.furniture_details;
-    chips.push({ label: 'Type', value: fd.item_type_specific ?? 'Furniture' });
-    chips.push({ label: 'Color', value: fd.finish_color ?? 'Unknown' });
-    chips.push({ label: 'Material', value: fd.material && fd.material !== 'Mixed' ? fd.material : 'Wood' });
-    chips.push({ label: 'Condition', value: fd.condition_estimate ? fd.condition_estimate.replace(/-/g, ' ').charAt(0).toUpperCase() + fd.condition_estimate.replace(/-/g, ' ').slice(1) : 'Good' });
-    chips.push({ label: 'Brand', value: fd.resale_title_suggestion ? fd.resale_title_suggestion.split(' ')[0] : 'Unknown' });
-    chips.push({ label: 'For', value: (fd.use_case ? fd.use_case.split(' ')[0] : null) ?? (fd.room_fit ? fd.room_fit.split(' ')[0] : null) ?? 'Home' });
+    pushIfReal(chips, 'Type', fd.item_type_specific);
+    pushIfReal(chips, 'Color', fd.finish_color);
+    pushIfReal(chips, 'Material', fd.material);
+    if (fd.condition_estimate) {
+      const condStr = fd.condition_estimate.replace(/-/g, ' ');
+      pushIfReal(chips, 'Condition', condStr.charAt(0).toUpperCase() + condStr.slice(1));
+    }
+    if (fd.is_likely_ikea && isRealValue(fd.ikea_product_name)) {
+      pushIfReal(chips, 'Brand', 'IKEA');
+    }
+    pushIfReal(chips, 'Room', fd.room_fit);
   } else if (result.household_details) {
     const hd = result.household_details;
     const subcatMap: Record<string, string> = { tools: 'Tools', fitness: 'Fitness', kitchenware: 'Kitchenware', cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor', garden: 'Garden', storage: 'Storage', lighting: 'Lighting', small_appliance: 'Appliance', other: 'Household' };
-    chips.push({ label: 'Type', value: subcatMap[hd.subcategory] ?? hd.subcategory });
-    chips.push({ label: 'Color', value: 'Unknown' });
-    chips.push({ label: 'Material', value: hd.material && hd.material !== 'Mixed' ? hd.material : 'Plastic' });
-    chips.push({ label: 'Condition', value: hd.condition ? hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1) : 'Good' });
-    chips.push({ label: 'Brand', value: hd.brand && hd.brand !== 'Generic' ? hd.brand : 'Unknown' });
-    chips.push({ label: 'For', value: hd.purpose ? hd.purpose.split('.')[0].split(' ')[0].substring(0, 20) : (subcatMap[hd.subcategory] ?? 'Home') });
+    pushIfReal(chips, 'Type', subcatMap[hd.subcategory] ?? hd.subcategory);
+    pushIfReal(chips, 'Material', hd.material);
+    if (hd.condition) pushIfReal(chips, 'Condition', hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1));
+    pushIfReal(chips, 'Brand', hd.brand);
   } else if (result.general_details) {
     const gd = result.general_details;
-    chips.push({ label: 'Type', value: gd.subcategory ? gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' ') : 'Item' });
-    chips.push({ label: 'Color', value: gd.color && gd.color !== 'Various' ? gd.color : 'Unknown' });
-    chips.push({ label: 'Material', value: gd.material && gd.material !== 'Mixed' ? gd.material : 'Unknown' });
-    chips.push({ label: 'Condition', value: gd.condition ? gd.condition.charAt(0).toUpperCase() + gd.condition.slice(1) : 'Good' });
-    chips.push({ label: 'Brand', value: gd.brand && gd.brand !== 'Unbranded' ? gd.brand : 'Unknown' });
-    chips.push({ label: 'For', value: gd.purpose ? gd.purpose.split('.')[0].split(' ')[0].substring(0, 20) : 'Personal' });
+    if (gd.subcategory) pushIfReal(chips, 'Type', gd.subcategory.charAt(0).toUpperCase() + gd.subcategory.slice(1).replace(/_/g, ' '));
+    pushIfReal(chips, 'Color', gd.color);
+    pushIfReal(chips, 'Material', gd.material);
+    if (gd.condition) pushIfReal(chips, 'Condition', gd.condition.charAt(0).toUpperCase() + gd.condition.slice(1));
+    pushIfReal(chips, 'Brand', gd.brand);
   } else if (result.food_details) {
-    chips.push({ label: 'Calories', value: `${result.food_details.calories}` });
-    chips.push({ label: 'Protein', value: `${result.food_details.protein_g}g` });
-    chips.push({ label: 'Carbs', value: `${result.food_details.carbs_g}g` });
-    chips.push({ label: 'Fat', value: `${result.food_details.fat_g}g` });
-    chips.push({ label: 'Fiber', value: `${result.food_details.fiber_g}g` });
-    chips.push({ label: 'Serving', value: result.food_details.serving_size ?? '1 serving' });
+    if (result.food_details.calories > 0) chips.push({ label: 'Calories', value: `${result.food_details.calories}` });
+    if (result.food_details.protein_g > 0) chips.push({ label: 'Protein', value: `${result.food_details.protein_g}g` });
+    if (result.food_details.carbs_g > 0) chips.push({ label: 'Carbs', value: `${result.food_details.carbs_g}g` });
+    if (result.food_details.fat_g > 0) chips.push({ label: 'Fat', value: `${result.food_details.fat_g}g` });
+    if (result.food_details.fiber_g > 0) chips.push({ label: 'Fiber', value: `${result.food_details.fiber_g}g` });
+    pushIfReal(chips, 'Serving', result.food_details.serving_size);
   } else if (result.grocery_details) {
-    chips.push({ label: 'Brand', value: result.grocery_details.brand ?? 'Store Brand' });
-    chips.push({ label: 'Size', value: result.grocery_details.package_size ?? 'Standard' });
-    chips.push({ label: 'Type', value: 'Grocery' });
+    pushIfReal(chips, 'Brand', result.grocery_details.brand);
+    pushIfReal(chips, 'Size', result.grocery_details.package_size);
   }
 
   return chips.slice(0, 6);
 }
 
-interface SoldItem {
-  price: string;
-  timeAgo: string;
-  label: string;
-}
-
-function getRecentlySoldItems(result: SmartScanResult): SoldItem[] {
+function hasStrongPricingData(result: SmartScanResult): boolean {
+  if (result.confidence < 0.6) return false;
   const priceInfo = extractPriceInfo(result);
-  const baseStr = priceInfo.valuePrice ?? priceInfo.originalPrice ?? '';
-  const baseNum = parseFloat(baseStr.replace(/[^0-9.]/g, ''));
-
-  if (isNaN(baseNum) || baseNum < 1) {
-    const fallbackMap: Record<string, number> = {
-      fashion: 25, electronics: 50, furniture: 60, household: 15, general: 15,
-    };
-    const fallback = fallbackMap[result.item_type] ?? 15;
-    return [
-      { price: `$${Math.round(fallback * 1.1)}`, timeAgo: 'Yesterday', label: 'Similar item' },
-      { price: `$${Math.round(fallback * 0.9)}`, timeAgo: '3 days ago', label: 'Comparable' },
-      { price: `$${Math.round(fallback * 0.75)}`, timeAgo: '5 days ago', label: 'Lower end' },
-    ];
-  }
-
-  const variance = baseNum * 0.12;
-  return [
-    { price: `$${Math.round(baseNum + variance * 0.8)}`, timeAgo: 'Yesterday', label: 'Recent sale' },
-    { price: `$${Math.round(baseNum - variance * 0.5)}`, timeAgo: '2 days ago', label: 'Comparable' },
-    { price: `$${Math.round(baseNum - variance * 1.2)}`, timeAgo: '4 days ago', label: 'Lower end' },
-  ];
+  return !!(priceInfo.originalPrice || priceInfo.valuePrice);
 }
 
 function getInsightText(result: SmartScanResult): { title: string; description: string } {
@@ -354,21 +344,14 @@ function getFoodDrinkPairings(result: SmartScanResult): string[] {
 
 function getResaleDisplayPrice(result: SmartScanResult, priceInfo: PriceInfo, isNonResale: boolean): string | null {
   if (isNonResale) return null;
+  if (result.confidence < 0.55) return null;
   if (priceInfo.priceRange) return priceInfo.priceRange;
   if (priceInfo.valuePrice && priceInfo.originalPrice) {
     return `${priceInfo.valuePrice} – ${priceInfo.originalPrice}`;
   }
   if (priceInfo.valuePrice) return priceInfo.valuePrice;
   if (priceInfo.originalPrice) return priceInfo.originalPrice;
-
-  const fallbackMap: Record<string, string> = {
-    fashion: '$10 – $50',
-    electronics: '$15 – $100',
-    furniture: '$20 – $150',
-    household: '$5 – $30',
-    general: '$5 – $25',
-  };
-  return fallbackMap[result.item_type] ?? null;
+  return null;
 }
 
 interface ScanResultViewProps {
@@ -382,36 +365,6 @@ interface ScanResultViewProps {
   isLowConfidence?: boolean;
   viewingEntryId: string | null;
   onDelete?: () => void;
-}
-
-function SoldCard({ item, imageUri }: { item: SoldItem; imageUri: string | null }) {
-  return (
-    <View style={st.soldCard}>
-      <View style={st.soldCardImageWrap}>
-        {imageUri ? (
-          <ExpoImage
-            source={{ uri: imageUri }}
-            style={st.soldCardImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-          />
-        ) : (
-          <View style={st.soldCardImagePlaceholder}>
-            <Package size={18} color="#C7C7CC" />
-          </View>
-        )}
-        <View style={st.soldCardPriceBadge}>
-          <Text style={st.soldCardPriceText}>{item.price}</Text>
-        </View>
-        <View style={st.soldCardBottomRow}>
-          <Text style={st.soldCardTimeText}>{item.timeAgo}</Text>
-        </View>
-      </View>
-      <View style={st.soldCardFooter}>
-        <Text style={st.soldCardLabel} numberOfLines={1}>{item.label}</Text>
-      </View>
-    </View>
-  );
 }
 
 function SectionHeader({ icon: Icon, title, color }: { icon: React.ComponentType<{ size: number; color: string }>; title: string; color: string }) {
@@ -437,16 +390,19 @@ export default function ScanResultView({
   const categoryLabel = useMemo(() => getCategoryLabel(result), [result]);
   const priceInfo = useMemo(() => extractPriceInfo(result), [result]);
   const attributeChips = useMemo(() => getAttributeChips(result), [result]);
-  const recentlySold = useMemo(() => getRecentlySoldItems(result), [result]);
+  const _hasPricing = useMemo(() => hasStrongPricingData(result), [result]);
   const insightData = useMemo(() => getInsightText(result), [result]);
   const subtleTips = useMemo(() => getSubtleTips(result), [result]);
+  const isLowConf = result.confidence < 0.45;
+  const isVeryLowConf = result.confidence < 0.3;
 
 
 
 
   const heroImageUri = scannedImageUri ?? referenceImageUrl;
-  const isNonResale = result.item_type === 'food' || result.item_type === 'grocery' || result.item_type === 'receipt' || result.item_type === 'document';
+  const isNonResale = result.item_type === 'food' || result.item_type === 'grocery' || result.item_type === 'receipt' || result.item_type === 'document' || result.item_type === 'unknown';
   const isFood = result.item_type === 'food' || result.item_type === 'grocery';
+
 
   const resaleDisplayPrice = useMemo(
     () => getResaleDisplayPrice(result, priceInfo, isNonResale),
@@ -542,6 +498,36 @@ export default function ScanResultView({
       )}
 
       <View style={st.contentSection}>
+        {isLowConf && (
+          <View style={st.lowConfCard}>
+            <View style={st.lowConfIconRow}>
+              <Camera size={18} color="#D97706" />
+              <Text style={st.lowConfTitle}>{isVeryLowConf ? 'Could Not Identify' : 'Needs a Clearer Image'}</Text>
+            </View>
+            <Text style={st.lowConfDesc}>
+              {isVeryLowConf
+                ? 'We were unable to reliably identify this item. The details below may not be accurate.'
+                : 'We couldn\'t identify this item with high accuracy. For better results:'}
+            </Text>
+            <View style={st.lowConfTipRow}>
+              <Text style={st.lowConfBullet}>•</Text>
+              <Text style={st.lowConfTip}>Get closer and center the item in the frame</Text>
+            </View>
+            <View style={st.lowConfTipRow}>
+              <Text style={st.lowConfBullet}>•</Text>
+              <Text style={st.lowConfTip}>Use good lighting — avoid shadows and glare</Text>
+            </View>
+            <View style={st.lowConfTipRow}>
+              <Text style={st.lowConfBullet}>•</Text>
+              <Text style={st.lowConfTip}>Show labels, logos, or brand markings if visible</Text>
+            </View>
+            <View style={st.lowConfTipRow}>
+              <Text style={st.lowConfBullet}>•</Text>
+              <Text style={st.lowConfTip}>Capture the full object — avoid extreme close-ups</Text>
+            </View>
+          </View>
+        )}
+
         <Text style={st.insightItemName}>{result.item_name}</Text>
 
         <View style={st.metaRow}>
@@ -562,14 +548,14 @@ export default function ScanResultView({
           </View>
         )}
 
-        {!isNonResale && resaleDisplayPrice && (
+        {!isNonResale && !isVeryLowConf && resaleDisplayPrice && (
           <View style={st.resaleCard}>
             <View style={st.resalePriceRow}>
               <View>
                 <Text style={st.resalePrice}>{resaleDisplayPrice}</Text>
-                <Text style={st.resaleLabel}>Estimated Resale Value</Text>
+                <Text style={st.resaleLabel}>{result.confidence >= 0.7 ? 'Estimated Value' : 'Rough Estimate'}</Text>
               </View>
-              {demandLevel && (
+              {demandLevel && result.confidence >= 0.6 && (
                 <View style={st.demandBadge}>
                   <TrendingUp size={12} color="#10B981" />
                   <Text style={st.demandText}>{demandLevel.charAt(0).toUpperCase() + demandLevel.slice(1)} demand</Text>
@@ -597,7 +583,7 @@ export default function ScanResultView({
           </View>
         </View>
 
-        {attributeChips.length > 0 && (
+        {attributeChips.length > 0 && !isVeryLowConf && (
           <View style={st.attributeGrid}>
             {attributeChips.map((chip, i) => (
               <View key={`chip-${i}`} style={st.attributeChip}>
@@ -608,24 +594,7 @@ export default function ScanResultView({
           </View>
         )}
 
-        {!isNonResale && recentlySold.length > 0 && (
-          <View style={st.soldSection}>
-            <SectionHeader icon={TrendingUp} title="Similar Recently Sold" color="#6366F1" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={st.soldScroll}
-            >
-              {recentlySold.map((item, i) => (
-                <SoldCard
-                  key={`sold-${i}`}
-                  item={item}
-                  imageUri={scannedImageUri ?? referenceImageUrl}
-                />
-              ))}
-            </ScrollView>
-          </View>
-        )}
+
 
         {isFood && foodIngredients.length > 0 && (
           <View style={st.collapsibleSection}>
@@ -1349,5 +1318,50 @@ const st = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600' as const,
     color: '#6B7280',
+  },
+  lowConfCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: ScannerRadius.lg,
+    padding: 16,
+    marginBottom: ScannerSpacing.lg,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  lowConfIconRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginBottom: 10,
+  },
+  lowConfTitle: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#92400E',
+  },
+  lowConfDesc: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#78716C',
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  lowConfTipRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'flex-start' as const,
+    gap: 6,
+    paddingVertical: 2,
+  },
+  lowConfBullet: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#D97706',
+    width: 12,
+  },
+  lowConfTip: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#78716C',
+    flex: 1,
+    lineHeight: 19,
   },
 });
