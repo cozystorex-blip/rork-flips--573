@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const { profile, saveProfile } = useProfile();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
-  const { isUserOnline, handleToggleOnline, isToggling, connectionState } = useOnlinePeople();
+  const { isUserOnline, handleToggleOnline, connectionState } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -263,11 +263,11 @@ export default function ProfileScreen() {
 
             <Pressable
               onPress={handleToggleOnline}
-              disabled={isToggling || connectionState === 'connecting'}
+              disabled={false}
               style={({ pressed }) => [
                 styles.onlineBtn,
                 isUserOnline ? styles.onlineBtnActive : styles.onlineBtnInactive,
-                (isToggling || connectionState === 'connecting') && { opacity: 0.6 },
+
                 pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
               ]}
               testID="profile-online-toggle"

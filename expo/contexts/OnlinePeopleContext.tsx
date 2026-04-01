@@ -274,7 +274,6 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     }
 
     console.log('[OnlinePeople] Connecting channel for user:', userId);
-    if (mountedRef.current) setConnectionState('connecting');
 
     try {
       cleanup();
