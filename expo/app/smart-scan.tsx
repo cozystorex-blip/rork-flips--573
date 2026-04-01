@@ -419,6 +419,7 @@ export default function SmartScanScreen() {
             result={result}
             scannedImageUri={scannedImageUri}
             referenceImageUrl={referenceImageUrl}
+            generatingImage={_generatingImage}
             resultFade={resultFade}
             onScanAgain={handleResetScan}
             onScanGallery={() => void handleCapture('gallery')}

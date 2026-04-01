@@ -1651,82 +1651,134 @@ function buildDocumentResult(
   };
 }
 
-export async function generateReferenceImage(description: string, scannedImageBase64?: string, confidence?: number): Promise<string | null> {
+function truncateBase64ForEdit(base64: string, maxSizeKB: number = 800): string {
+  const currentSizeKB = Math.round((base64.length * 3) / 4 / 1024);
+  if (currentSizeKB <= maxSizeKB) return base64;
+  console.log('[SmartScan] Base64 too large for edit API:', currentSizeKB, 'KB — truncation not possible, will skip edit');
+  return '';
+}
+
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 45000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    if (confidence !== undefined && confidence < 0.35) {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function tryEditApi(toolkitUrl: string, description: string, base64: string): Promise<string | null> {
+  const usableBase64 = truncateBase64ForEdit(base64, 1500);
+  if (!usableBase64) {
+    console.log('[SmartScan] Skipping edit API — base64 too large');
+    return null;
+  }
+
+  const editPrompt = `Transform this photo into a clean, professional product reference image.
+This is: ${description}
+Place on clean white background, studio lighting, keep exact item details, colors, logos.
+Center the item, photorealistic, no text/watermarks added. Product listing style.`;
+
+  const editUrl = new URL('/images/edit/', toolkitUrl).toString();
+  console.log('[SmartScan] Edit API URL:', editUrl, 'base64 length:', usableBase64.length);
+
+  const editResponse = await fetchWithTimeout(editUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: editPrompt,
+      images: [{ type: 'image', image: `data:image/jpeg;base64,${usableBase64}` }],
+      aspectRatio: '1:1',
+    }),
+  }, 60000);
+
+  console.log('[SmartScan] Edit API response status:', editResponse.status);
+  if (editResponse.ok) {
+    const editData = await editResponse.json() as { image?: { base64Data?: string; mimeType?: string } };
+    if (editData.image?.base64Data) {
+      const mimeType = editData.image.mimeType || 'image/png';
+      const dataUrl = `data:${mimeType};base64,${editData.image.base64Data}`;
+      console.log('[SmartScan] Reference image created via edit API, dataUrl length:', dataUrl.length);
+      return dataUrl;
+    }
+    console.log('[SmartScan] Edit API response missing image data:', JSON.stringify(editData).substring(0, 200));
+  } else {
+    const errorText = await editResponse.text().catch(() => 'unknown');
+    console.log('[SmartScan] Edit API failed:', editResponse.status, errorText.substring(0, 300));
+  }
+  return null;
+}
+
+async function tryGenerateApi(toolkitUrl: string, description: string, attempt: number = 1): Promise<string | null> {
+  const dallePrompt = `Professional product photography of ${description}. Clean white background, studio lighting, photorealistic, centered, high detail, sharp focus, no text overlays, no watermarks. E-commerce product listing style photo.`;
+
+  const genUrl = new URL('/images/generate/', toolkitUrl).toString();
+  console.log(`[SmartScan] Generate API attempt #${attempt}, URL:`, genUrl);
+
+  const genResponse = await fetchWithTimeout(genUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: dallePrompt, size: '1024x1024' }),
+  }, 60000);
+
+  console.log('[SmartScan] Generate API response status:', genResponse.status);
+  if (genResponse.ok) {
+    const genData = await genResponse.json() as { image?: { base64Data?: string; mimeType?: string } };
+    if (genData.image?.base64Data) {
+      const mimeType = genData.image.mimeType || 'image/png';
+      const dataUrl = `data:${mimeType};base64,${genData.image.base64Data}`;
+      console.log('[SmartScan] Reference image created via DALL-E, dataUrl length:', dataUrl.length);
+      return dataUrl;
+    }
+    console.log('[SmartScan] DALL-E response missing image data:', JSON.stringify(genData).substring(0, 200));
+  } else {
+    const errorText = await genResponse.text().catch(() => 'unknown');
+    console.log('[SmartScan] DALL-E failed:', genResponse.status, errorText.substring(0, 300));
+  }
+  return null;
+}
+
+export async function generateReferenceImage(description: string, scannedImageBase64?: string, confidence?: number): Promise<string | null> {
+  const toolkitUrl = process.env.EXPO_PUBLIC_TOOLKIT_URL || 'https://toolkit.rork.com';
+  try {
+    if (confidence !== undefined && confidence < 0.25) {
       console.log('[SmartScan] Skipping reference image generation — confidence too low:', confidence);
       return null;
     }
 
-    console.log('[SmartScan] Generating reference image for:', description.substring(0, 80));
+    if (!description || description.length < 3) {
+      console.log('[SmartScan] Skipping reference image — description too short:', description);
+      return null;
+    }
+
+    console.log('[SmartScan] Generating reference image for:', description.substring(0, 80), 'confidence:', confidence, 'hasBase64:', !!scannedImageBase64);
 
     if (scannedImageBase64) {
-      console.log('[SmartScan] Using image edit API with scanned image');
-      const editPrompt = `Transform this photo into a clean, professional product image. Instructions:
-- This is a photo of: ${description}
-- Place the item on a perfectly clean, pure white background
-- Remove ALL background clutter, other objects, hands, surfaces, shadows from the original scene
-- Keep the EXACT same item with identical colors, textures, proportions, brand logos, and all visible details
-- Apply professional studio lighting: soft, even illumination with no harsh shadows
-- Add only a subtle, natural drop shadow beneath the item for depth
-- Center and frame the item perfectly, filling about 70-80% of the image
-- Ensure maximum sharpness, clarity, and color accuracy
-- Do NOT change, replace, reimagine, or modify the actual product in any way
-- Do NOT add any text, labels, watermarks, or decorative elements
-- Do NOT stylize or artistically reinterpret — keep it photorealistic
-- If the item has printed text, logos, or labels, preserve them exactly
-- The result should look like an Amazon or eBay product listing photo`;
       try {
-        const editResponse = await fetch('https://toolkit.rork.com/images/edit/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: editPrompt,
-            images: [{ type: 'image', image: `data:image/jpeg;base64,${scannedImageBase64}` }],
-            aspectRatio: '1:1',
-          }),
-        });
-
-        if (editResponse.ok) {
-          const editData = await editResponse.json() as { image?: { base64Data?: string; mimeType?: string } };
-          if (editData.image?.base64Data) {
-            const mimeType = editData.image.mimeType || 'image/png';
-            const dataUrl = `data:${mimeType};base64,${editData.image.base64Data}`;
-            console.log('[SmartScan] Reference image created via edit API');
-            return dataUrl;
-          }
-        }
-        console.log('[SmartScan] Edit API failed, trying DALL-E generation as fallback');
+        const editResult = await tryEditApi(toolkitUrl, description, scannedImageBase64);
+        if (editResult) return editResult;
+        console.log('[SmartScan] Edit API did not produce image, falling back to DALL-E');
       } catch (editErr) {
-        console.log('[SmartScan] Edit API error, trying DALL-E fallback:', editErr);
+        console.log('[SmartScan] Edit API error:', editErr);
       }
     }
 
-    if (description && description.length > 10) {
-      console.log('[SmartScan] Generating reference image via DALL-E');
-      const dallePrompt = `Professional product photography of ${description}. Clean white background, studio lighting, photorealistic, centered, high detail, sharp focus, no text overlays, no watermarks. E-commerce product listing style photo.`;
+    for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const genResponse = await fetch('https://toolkit.rork.com/images/generate/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: dallePrompt, size: '1024x1024' }),
-        });
-        if (genResponse.ok) {
-          const genData = await genResponse.json() as { image?: { base64Data?: string; mimeType?: string } };
-          if (genData.image?.base64Data) {
-            const mimeType = genData.image.mimeType || 'image/png';
-            const dataUrl = `data:${mimeType};base64,${genData.image.base64Data}`;
-            console.log('[SmartScan] Reference image created via DALL-E generation');
-            return dataUrl;
-          }
-        }
-        console.log('[SmartScan] DALL-E generation also failed');
+        const genResult = await tryGenerateApi(toolkitUrl, description, attempt);
+        if (genResult) return genResult;
       } catch (genErr) {
-        console.log('[SmartScan] DALL-E generation error:', genErr);
+        console.log(`[SmartScan] DALL-E attempt #${attempt} error:`, genErr);
+      }
+      if (attempt < 2) {
+        console.log('[SmartScan] Retrying DALL-E generation after 1s delay...');
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
 
-    console.log('[SmartScan] All image generation methods failed');
+    console.log('[SmartScan] All image generation methods failed after retries');
     return null;
   } catch (err) {
     console.log('[SmartScan] Reference image generation error:', err);

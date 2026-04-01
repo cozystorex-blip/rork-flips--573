@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import {
@@ -264,7 +265,7 @@ interface ScanResultViewProps {
   result: SmartScanResult;
   scannedImageUri: string | null;
   referenceImageUrl: string | null;
-  _generatingImage?: boolean;
+  generatingImage?: boolean;
   resultFade: Animated.Value;
   onScanAgain: () => void;
   onScanGallery?: () => void;
@@ -320,6 +321,7 @@ export default function ScanResultView({
   result,
   scannedImageUri,
   referenceImageUrl,
+  generatingImage,
   resultFade,
   onScanAgain,
   viewingEntryId,
@@ -344,6 +346,7 @@ export default function ScanResultView({
 
   const heroImageUri = referenceImageUrl ?? scannedImageUri;
   const hasBothImages = !!scannedImageUri && !!referenceImageUrl;
+  const isGenerating = generatingImage === true && !referenceImageUrl;
 
   const foodIngredients = useMemo(() => getFoodIngredients(result), [result]);
   const foodGoWith = useMemo(() => getFoodGoWith(result), [result]);
@@ -396,6 +399,17 @@ export default function ScanResultView({
             contentFit="cover"
             cachePolicy="memory-disk"
           />
+          {isGenerating && (
+            <View style={st.generatingOverlay}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={st.generatingText}>Generating reference...</Text>
+            </View>
+          )}
+        </View>
+      ) : isGenerating ? (
+        <View style={st.generatingPlaceholder}>
+          <ActivityIndicator size="small" color="#0058A3" />
+          <Text style={st.generatingPlaceholderText}>Creating AI reference image...</Text>
         </View>
       ) : null}
 
@@ -1067,4 +1081,39 @@ const st = StyleSheet.create({
     marginTop: 2,
   },
   deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  generatingOverlay: {
+    position: 'absolute' as const,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  generatingPlaceholder: {
+    width: '100%' as const,
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: ScannerRadius.xxl,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    marginBottom: ScannerSpacing.lg,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  generatingPlaceholderText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#0058A3',
+  },
 });

@@ -402,20 +402,22 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       setViewingEntryId(entryId);
 
       setScanPhase('generating_image');
-      startPhaseTimer('generating_image');
+      clearAllTimers();
 
       const processedBase64 = getLastProcessedBase64();
-      const imageDesc = scanResult.image_description || scanResult.item_name || '';
-      if (imageDesc.length > 3 && scanResult.confidence >= 0.35) {
+      const imageDesc = scanResult.image_description || scanResult.short_summary || scanResult.item_name || '';
+      console.log('[ScanProcess] Reference image check — desc length:', imageDesc.length, 'confidence:', scanResult.confidence, 'hasBase64:', !!processedBase64);
+      if (imageDesc.length > 2 && scanResult.confidence >= 0.25) {
         try {
           setGeneratingImage(true);
+          console.log('[ScanProcess] Starting reference image generation for:', imageDesc.substring(0, 80));
           const refImageUrl = await generateReferenceImage(imageDesc, processedBase64 ?? undefined, scanResult.confidence);
           if (refImageUrl) {
             setReferenceImageUrl(refImageUrl);
             scanResult.reference_image_url = refImageUrl;
-            console.log('[ScanProcess] Reference image generated successfully');
+            console.log('[ScanProcess] Reference image generated successfully, URL length:', refImageUrl.length);
           } else {
-            console.log('[ScanProcess] Reference image generation returned null');
+            console.log('[ScanProcess] Reference image generation returned null — no image produced');
           }
         } catch (imgErr) {
           console.log('[ScanProcess] Reference image generation failed:', imgErr);
@@ -423,7 +425,7 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
           setGeneratingImage(false);
         }
       } else {
-        console.log('[ScanProcess] Skipping reference image — confidence too low or no description:', scanResult.confidence, imageDesc.length);
+        console.log('[ScanProcess] Skipping reference image — confidence too low or no description:', scanResult.confidence, 'descLen:', imageDesc.length);
       }
 
       setScanPhase('done');
