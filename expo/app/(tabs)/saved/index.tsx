@@ -244,13 +244,14 @@ export default function SavedScreen() {
                         )}
                       </View>
                     )}
-                    <View style={styles.cardInfo}>
-                      <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                      <View style={styles.cardMetaRow}>
-                        <Text style={styles.cardSubtitle} numberOfLines={1}>{item.source}</Text>
-                        {item.price && <Text style={styles.cardPrice}>{item.price}</Text>}
-                      </View>
+                  </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                    <View style={styles.cardMetaRow}>
+                      <Text style={styles.cardSubtitle} numberOfLines={1}>{item.source}</Text>
+                      {item.price && <Text style={styles.cardPrice}>{item.price}</Text>}
                     </View>
+                  </View>
                 </Pressable>
               ))}
             </View>

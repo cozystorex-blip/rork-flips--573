@@ -253,11 +253,15 @@ export default function HomeScreen() {
                           )}
                         </View>
                       )}
-                      <View style={styles.cardInfo}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                        <View style={styles.cardMetaRow}>
-                          <Text style={styles.cardSubtitle} numberOfLines={1}>{item.source}</Text>
-                          {item.price && <Text style={styles.cardPrice}>{item.price.startsWith('
+                    </View>
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                      <View style={styles.cardMetaRow}>
+                        <Text style={styles.cardSubtitle} numberOfLines={1}>{item.source}</Text>
+                        {item.price && <Text style={styles.cardPrice}>{item.price}</Text>}
+                      </View>
+                    </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
