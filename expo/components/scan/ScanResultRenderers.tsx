@@ -282,22 +282,11 @@ function SourceQualitySection({ sources, label }: { sources: string[]; label: st
   );
 }
 
-function EstimatedRangeRow({ itemType }: { itemType: string }) {
-  const fallbackMap: Record<string, string> = {
-    fashion: '$10 – $50',
-    electronics: '$15 – $100',
-    furniture: '$20 – $150',
-    household: '$5 – $30',
-    general: '$5 – $25',
-    food: '$2 – $10',
-    grocery: '$2 – $15',
-  };
-  const range = fallbackMap[itemType] ?? '$5 – $30';
+function EstimatedRangeRow({ itemType: _itemType }: { itemType: string }) {
   return (
     <View style={s.estimatedRangeRow}>
-      <Text style={s.estimatedRangeLabel}>Estimated Range</Text>
-      <Text style={s.estimatedRangeValue}>{range}</Text>
-      <Text style={s.estimatedRangeNote}>Based on category averages</Text>
+      <Text style={s.estimatedRangeNote}>Price data unavailable for this scan</Text>
+      <Text style={s.estimatedRangeLabel}>Scan the price tag or shelf label for accurate pricing</Text>
     </View>
   );
 }
@@ -339,20 +328,33 @@ interface ResultProps {
 
 function EmptyFallbackSection({ result }: ResultProps) {
   const typeLabel = result.item_type ? capitalize(result.item_type.replace(/_/g, ' ')) : 'Item';
+  const hasUsefulName = result.item_name && result.item_name.length > 3 && !['unknown item', 'unidentified item', 'could not identify', 'detected item', 'other'].includes(result.item_name.toLowerCase());
+  const hasUsefulSummary = result.short_summary && result.short_summary.length > 10;
+  const hasUsefulCategory = result.category && !['unknown', 'other', 'general'].includes(result.category.toLowerCase());
+
   return (
     <>
       <SectionLabel text="Scan Result" />
       <View style={s.fallbackBlock}>
-        <Text style={s.fallbackTitle}>{result.item_name || `${typeLabel} Detected`}</Text>
-        {result.category ? (
+        <Text style={s.fallbackTitle}>{hasUsefulName ? result.item_name : `${typeLabel} Detected`}</Text>
+        {hasUsefulCategory ? (
           <Text style={s.fallbackSub}>Category: {result.category}</Text>
         ) : null}
       </View>
-      <Divider />
-      <InfoBlock
-        text={result.short_summary || `${typeLabel} detected. Try a clearer photo with better lighting for more detailed results.`}
-        type="tip"
-      />
+      {hasUsefulSummary ? (
+        <>
+          <Divider />
+          <InfoBlock text={result.short_summary!} type="tip" />
+        </>
+      ) : (
+        <>
+          <Divider />
+          <InfoBlock
+            text="Try scanning the IKEA price tag, shelf label, or article number for a more detailed result."
+            type="warning"
+          />
+        </>
+      )}
     </>
   );
 }
@@ -529,6 +531,10 @@ export function FoodResultSection({ result }: ResultProps) {
           <PriceLineItem label="Est. Price" value={fd.estimated_price} large />
           {fd.price_range && <LineItem label="Range" value={fd.price_range} />}
           {fd.unit_price && <LineItem label="Unit Price" value={fd.unit_price} />}
+        </>
+      ) : fd.price_range ? (
+        <>
+          <PriceLineItem label="Price Range" value={fd.price_range} />
         </>
       ) : <EstimatedRangeRow itemType={result.item_type} />}
 
@@ -1067,6 +1073,11 @@ export function HouseholdResultSection({ result }: ResultProps) {
           {safeResale && <PriceLineItem label="Resale Value" value={safeResale} />}
           {hd.price_range && <LineItem label="Range" value={hd.price_range} />}
         </>
+      ) : hd.price_range ? (
+        <>
+          <PriceLineItem label="Price Range" value={hd.price_range} />
+          <Text style={s.resaleDisclaimer}>Estimated from similar products</Text>
+        </>
       ) : <EstimatedRangeRow itemType={result.item_type} />}
       {hd.value_rating && <LineItem label="Value Rating" value={capitalize(hd.value_rating)} />}
       {hd.value_verdict && <LineItem label="Value Verdict" value={capitalize(hd.value_verdict)} />}
@@ -1278,25 +1289,33 @@ export function UnknownResultSection({ result }: ResultProps) {
   if (result.fashion_details != null) return <FashionResultSection result={result} />;
   if (result.electronics_details != null) return <ElectronicsResultSection result={result} />;
 
-  const displayName = result.item_name && result.item_name !== 'Unknown Item' && result.item_name !== 'Unidentified Item'
+  const weakNames = ['unknown item', 'unidentified item', 'detected item', 'could not identify', 'other', 'item'];
+  const displayName = result.item_name && !weakNames.includes(result.item_name.toLowerCase())
     ? result.item_name
-    : 'Detected Item';
+    : null;
+  const hasUsefulSummary = result.short_summary && result.short_summary.length > 10;
 
   return (
     <>
-      <SectionLabel text="Scan Result" />
-      <View style={s.fallbackBlock}>
-        <Text style={s.fallbackTitle}>{displayName}</Text>
-        {result.category && result.category !== 'unknown' ? (
-          <Text style={s.fallbackSub}>Category: {result.category}</Text>
-        ) : null}
-      </View>
-      <Divider />
-      <EstimatedRangeRow itemType={result.item_type || 'general'} />
+      <SectionLabel text={displayName ? 'Partial Scan Result' : 'Unable to Identify'} />
+      {displayName ? (
+        <View style={s.fallbackBlock}>
+          <Text style={s.fallbackTitle}>{displayName}</Text>
+          {result.category && result.category.toLowerCase() !== 'unknown' && result.category.toLowerCase() !== 'other' ? (
+            <Text style={s.fallbackSub}>Likely category: {result.category}</Text>
+          ) : null}
+        </View>
+      ) : null}
+      {hasUsefulSummary ? (
+        <>
+          <Divider />
+          <InfoBlock text={result.short_summary!} type="tip" />
+        </>
+      ) : null}
       <Divider />
       <InfoBlock
-        text={result.short_summary || 'Best visual match based on available data. Try scanning with better lighting or a different angle for improved results.'}
-        type="tip"
+        text="For better results, try scanning the yellow IKEA price tag, shelf label, article number, or use a clearer well-lit photo."
+        type="warning"
       />
     </>
   );

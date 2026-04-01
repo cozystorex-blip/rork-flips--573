@@ -34,11 +34,25 @@ import {
   UtensilsCrossed,
   CookingPot,
   Cherry,
+  Search,
+  Tag,
+  ScanLine,
+  Info,
+  CheckCircle2,
+  CircleDot,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import type { SmartScanResult } from '@/services/smartScanService';
 import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
+
+type ConfidenceTier = 'high' | 'medium' | 'low';
+
+function getConfidenceTier(confidence: number): ConfidenceTier {
+  if (confidence >= 0.7) return 'high';
+  if (confidence >= 0.4) return 'medium';
+  return 'low';
+}
 
 const JUNK_VALUES = ['unknown', 'n/a', 'none', 'mixed', 'various', 'unbranded', 'generic', 'other', 'item', 'personal', 'general use', 'standard', 'typical', 'regular', 'basic', 'normal', 'not available', 'not applicable', 'unspecified', 'undetermined', 'general', 'commodity', 'average', 'fair', 'common', 'null', 'undefined', 'mixed materials', 'various materials', 'multiple', 'assorted', 'miscellaneous', 'misc', 'similar items in this category', 'similar devices in this category', 'similar household items', 'similar furniture items in this style', 'estimated based on visual category match', 'estimated from visual category', 'estimated from item category', 'estimated based on product category'];
 
@@ -89,9 +103,15 @@ function getCategoryLabel(result: SmartScanResult): string {
   if (result.grocery_details) return 'Grocery';
   if (result.general_details) {
     const sub = result.general_details.subcategory;
-    return sub ? sub.charAt(0).toUpperCase() + sub.slice(1).replace(/_/g, ' ') : 'General';
+    if (sub && sub.toLowerCase() !== 'other' && sub.toLowerCase() !== 'general') {
+      return sub.charAt(0).toUpperCase() + sub.slice(1).replace(/_/g, ' ');
+    }
+    return 'General';
   }
-  return result.category ?? 'Item';
+  if (result.category && result.category.toLowerCase() !== 'other' && result.category.toLowerCase() !== 'unknown') {
+    return result.category;
+  }
+  return 'Item';
 }
 
 function getDescription(result: SmartScanResult): string {
@@ -196,13 +216,13 @@ function getMatchingProducts(result: SmartScanResult): string[] {
     ?? result.fashion_details?.complementary_items
     ?? result.general_details?.complementary_items
     ?? [];
-  return complementary;
+  return complementary.filter(item => isRealValue(item));
 }
 
 function getRoomFitLabels(result: SmartScanResult): string[] {
-  if (result.furniture_details?.room_fit_labels?.length) return result.furniture_details.room_fit_labels;
+  if (result.furniture_details?.room_fit_labels?.length) return result.furniture_details.room_fit_labels.filter(l => isRealValue(l));
   const purpose = result.furniture_details?.purpose ?? result.household_details?.purpose ?? result.general_details?.purpose ?? null;
-  if (purpose) return [purpose];
+  if (purpose && isRealValue(purpose)) return [purpose];
   return [];
 }
 
@@ -225,20 +245,21 @@ function getValueInsight(result: SmartScanResult): { label: string; text: string
     ?? result.food_details?.budget_insight
     ?? result.grocery_details?.budget_insight;
 
-  if (vi) return { label: 'Value Insight', text: vi };
-  if (worthIt) return { label: 'Worth It?', text: worthIt };
-  if (longTerm) return { label: 'Long-Term Value', text: longTerm };
-  if (budgetInsight) return { label: 'Budget Insight', text: budgetInsight };
+  if (vi && isRealValue(vi)) return { label: 'Value Insight', text: vi };
+  if (worthIt && isRealValue(worthIt)) return { label: 'Worth It?', text: worthIt };
+  if (longTerm && isRealValue(longTerm)) return { label: 'Long-Term Value', text: longTerm };
+  if (budgetInsight && isRealValue(budgetInsight)) return { label: 'Budget Insight', text: budgetInsight };
   return null;
 }
 
 function getCareTip(result: SmartScanResult): string | null {
-  return result.furniture_details?.care_tip
+  const tip = result.furniture_details?.care_tip
     ?? result.household_details?.care_tip
     ?? result.electronics_details?.care_tip
     ?? result.fashion_details?.care_tip
     ?? result.general_details?.care_tip
     ?? null;
+  return tip && isRealValue(tip) ? tip : null;
 }
 
 function getFoodIngredients(result: SmartScanResult): string[] {
@@ -252,13 +273,30 @@ function getFoodGoWith(result: SmartScanResult): string[] {
   if (result.food_details?.complementary_items?.length) items.push(...result.food_details.complementary_items);
   else if (result.grocery_details?.complementary_items?.length) items.push(...result.grocery_details.complementary_items);
   if (result.grocery_details?.what_else_needed?.length) items.push(...result.grocery_details.what_else_needed);
-  return [...new Set(items)].slice(0, 10);
+  return [...new Set(items)].filter(i => isRealValue(i)).slice(0, 10);
 }
 
 function getFoodRecipes(result: SmartScanResult) {
   if (result.food_details?.recipe_ideas?.length) return result.food_details.recipe_ideas;
   if (result.grocery_details?.recipe_ideas?.length) return result.grocery_details.recipe_ideas;
   return [];
+}
+
+function getNextScanSuggestion(result: SmartScanResult): string | null {
+  const suggestion = result.furniture_details?.next_scan_suggestion
+    ?? result.household_details?.next_scan_suggestion
+    ?? result.fashion_details?.next_scan_suggestion
+    ?? result.electronics_details?.next_scan_suggestion
+    ?? result.general_details?.next_scan_suggestion
+    ?? result.food_details?.next_scan_suggestion
+    ?? result.grocery_details?.next_scan_suggestion
+    ?? null;
+  return suggestion && isRealValue(suggestion) ? suggestion : null;
+}
+
+function isWeakItemName(name: string): boolean {
+  const weak = ['unidentified item', 'could not identify', 'unknown item', 'detected item', 'scanned item', 'item', 'other', 'general item'];
+  return weak.includes(name.trim().toLowerCase());
 }
 
 interface ScanResultViewProps {
@@ -317,6 +355,109 @@ function getRoomIcon(label: string): React.ComponentType<{ size: number; color: 
   return Home;
 }
 
+const SCAN_TIPS = [
+  { icon: Tag, text: 'Scan the yellow IKEA price tag', color: '#D97706' },
+  { icon: ScanLine, text: 'Capture the shelf label directly', color: '#0058A3' },
+  { icon: Search, text: 'Find and scan the article number', color: '#7C3AED' },
+  { icon: Camera, text: 'Use a clearer, well-lit photo', color: '#059669' },
+];
+
+function ConfidenceBadge({ tier, confidence }: { tier: ConfidenceTier; confidence: number }) {
+  const config = {
+    high: { label: 'Identified', icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' },
+    medium: { label: 'Partial Match', icon: CircleDot, color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
+    low: { label: 'Low Confidence', icon: AlertTriangle, color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
+  } as const;
+
+  const c = config[tier];
+  const IconComp = c.icon;
+  const pct = Math.round(confidence * 100);
+
+  return (
+    <View style={[st.confidenceBadge, { backgroundColor: c.bg, borderColor: c.border }]}>
+      <IconComp size={13} color={c.color} />
+      <Text style={[st.confidenceBadgeText, { color: c.color }]}>{c.label}</Text>
+      <View style={[st.confidencePctPill, { backgroundColor: `${c.color}18` }]}>
+        <Text style={[st.confidencePctText, { color: c.color }]}>{pct}%</Text>
+      </View>
+    </View>
+  );
+}
+
+function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResult; onScanAgain: () => void }) {
+  const nextScan = getNextScanSuggestion(result);
+  const hasAnyName = !isWeakItemName(result.item_name);
+
+  return (
+    <View style={st.lowConfContainer}>
+      <View style={st.lowConfHeader}>
+        <View style={st.lowConfIconCircle}>
+          <AlertTriangle size={28} color="#D97706" />
+        </View>
+        <Text style={st.lowConfHeaderTitle}>Could Not Identify Reliably</Text>
+        <Text style={st.lowConfHeaderDesc}>
+          {hasAnyName
+            ? `We detected something that might be "${result.item_name}", but the scan wasn't clear enough for a full analysis.`
+            : 'The image wasn\'t clear enough for reliable identification. Try one of these for better results:'}
+        </Text>
+      </View>
+
+      <View style={st.scanTipsCard}>
+        <Text style={st.scanTipsTitle}>Try Scanning</Text>
+        {SCAN_TIPS.map((tip, i) => {
+          const TipIcon = tip.icon;
+          return (
+            <View key={`tip-${i}`} style={st.scanTipRow}>
+              <View style={[st.scanTipIconWrap, { backgroundColor: `${tip.color}12` }]}>
+                <TipIcon size={16} color={tip.color} />
+              </View>
+              <Text style={st.scanTipText}>{tip.text}</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {nextScan && (
+        <View style={st.nextScanCard}>
+          <Info size={14} color="#0058A3" />
+          <Text style={st.nextScanText}>{nextScan}</Text>
+        </View>
+      )}
+
+      <Pressable
+        style={({ pressed }) => [st.retryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+        onPress={onScanAgain}
+        testID="retry-scan-btn"
+      >
+        <Camera size={18} color="#FFFFFF" />
+        <Text style={st.retryBtnText}>Try Again</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function MediumConfidenceHeader({ result }: { result: SmartScanResult }) {
+  const nextScan = getNextScanSuggestion(result);
+
+  return (
+    <View style={st.mediumConfCard}>
+      <View style={st.mediumConfHeaderRow}>
+        <CircleDot size={16} color="#D97706" />
+        <Text style={st.mediumConfTitle}>Partial Identification</Text>
+      </View>
+      <Text style={st.mediumConfDesc}>
+        Some details below are estimated. For a full match, try scanning a label, price tag, or article number.
+      </Text>
+      {nextScan && (
+        <View style={st.mediumConfTip}>
+          <Lightbulb size={12} color="#0058A3" />
+          <Text style={st.mediumConfTipText}>{nextScan}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function ScanResultView({
   result,
   scannedImageUri,
@@ -327,6 +468,7 @@ export default function ScanResultView({
   viewingEntryId,
   onDelete,
 }: ScanResultViewProps) {
+  const tier = useMemo(() => getConfidenceTier(result.confidence), [result.confidence]);
   const categoryLabel = useMemo(() => getCategoryLabel(result), [result]);
   const description = useMemo(() => getDescription(result), [result]);
   const price = useMemo(() => formatPrice(getIkeaPrice(result)), [result]);
@@ -338,10 +480,7 @@ export default function ScanResultView({
   const valueInsight = useMemo(() => getValueInsight(result), [result]);
   const careTip = useMemo(() => getCareTip(result), [result]);
 
-  const isLowConf = result.confidence < 0.5;
-  const isVeryLowConf = result.confidence < 0.35;
   const isFood = result.item_type === 'food' || result.item_type === 'grocery';
-  const _isFurniture = result.item_type === 'furniture';
   const isIkea = result.furniture_details?.is_likely_ikea ?? false;
 
   const heroImageUri = referenceImageUrl ?? scannedImageUri;
@@ -363,9 +502,13 @@ export default function ScanResultView({
     setter(prev => !prev);
   }, []);
 
+  const showFullDetails = tier === 'high';
+  const showPartialDetails = tier === 'medium';
+  const showFallback = tier === 'low';
+
   return (
     <Animated.View style={[st.root, { opacity: resultFade }]}>
-      {hasBothImages ? (
+      {!showFallback && hasBothImages ? (
         <View style={st.dualImageRow}>
           <View style={st.dualImageWrap}>
             <ExpoImage
@@ -391,7 +534,7 @@ export default function ScanResultView({
             </View>
           </View>
         </View>
-      ) : heroImageUri ? (
+      ) : !showFallback && heroImageUri ? (
         <View style={st.heroImageWrap}>
           <ExpoImage
             source={{ uri: heroImageUri }}
@@ -406,350 +549,371 @@ export default function ScanResultView({
             </View>
           )}
         </View>
-      ) : isGenerating ? (
+      ) : !showFallback && isGenerating ? (
         <View style={st.generatingPlaceholder}>
           <ActivityIndicator size="small" color="#0058A3" />
           <Text style={st.generatingPlaceholderText}>Creating AI reference image...</Text>
         </View>
+      ) : showFallback && scannedImageUri ? (
+        <View style={st.fallbackImageWrap}>
+          <ExpoImage
+            source={{ uri: scannedImageUri }}
+            style={st.fallbackImage}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+          />
+          <View style={st.fallbackImageOverlay}>
+            <View style={st.fallbackImageBadge}>
+              <AlertTriangle size={12} color="#D97706" />
+              <Text style={st.fallbackImageBadgeText}>Unclear Scan</Text>
+            </View>
+          </View>
+        </View>
       ) : null}
 
       <View style={st.contentSection}>
-        {isLowConf && (
-          <View style={st.lowConfCard}>
-            <View style={st.lowConfIconRow}>
-              <AlertTriangle size={18} color="#D97706" />
-              <Text style={st.lowConfTitle}>{isVeryLowConf ? 'Could Not Identify' : 'Needs a Clearer Image'}</Text>
-            </View>
-            <Text style={st.lowConfDesc}>
-              {isVeryLowConf
-                ? 'We were unable to reliably identify this item. Try scanning the yellow price tag or article number label.'
-                : 'For better results, scan the IKEA price tag, shelf label, or article number directly.'}
-            </Text>
-          </View>
-        )}
+        {showFallback ? (
+          <LowConfidenceFallback result={result} onScanAgain={onScanAgain} />
+        ) : (
+          <>
+            <ConfidenceBadge tier={tier} confidence={result.confidence} />
 
-        {isIkea && (
-          <View style={st.ikeaBadgeRow}>
-            <View style={st.ikeaBadge}>
-              <Sofa size={12} color="#0058A3" />
-              <Text style={st.ikeaBadgeText}>IKEA Product</Text>
-            </View>
-            {result.furniture_details?.ikea_match_confidence && (
-              <View style={st.confidencePill}>
-                <Text style={st.confidencePillText}>
-                  {result.furniture_details.ikea_match_confidence === 'exact' ? 'Exact Match' :
-                   result.furniture_details.ikea_match_confidence === 'strong' ? 'Strong Match' :
-                   'Possible Match'}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+            {showPartialDetails && <MediumConfidenceHeader result={result} />}
 
-        <Text style={st.itemName}>{result.item_name}</Text>
-
-        <View style={st.metaRow}>
-          <Text style={st.categoryText}>{categoryLabel}</Text>
-          {price && (
-            <View style={st.priceBadge}>
-              <DollarSign size={12} color="#0058A3" />
-              <Text style={st.priceText}>{price}</Text>
-            </View>
-          )}
-        </View>
-
-        {description.length > 0 && !isVeryLowConf && (
-          <View style={st.descriptionCard}>
-            <Text style={st.descriptionText}>{description}</Text>
-          </View>
-        )}
-
-        {specs.length > 0 && !isVeryLowConf && (
-          <View style={st.specsGrid}>
-            {specs.map((spec, i) => (
-              <View key={`spec-${i}`} style={st.specChip}>
-                <Text style={st.specLabel}>{spec.label}</Text>
-                <Text style={st.specValue} numberOfLines={2}>{spec.value}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {tools.length > 0 && (
-          <View style={st.sectionCard}>
-            <Pressable style={st.sectionHeader} onPress={() => toggleSection(setToolsExpanded)}>
-              <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.toolsBg }]}>
-                <Wrench size={16} color="#0058A3" />
-              </View>
-              <Text style={st.sectionTitle}>Tools You'll Need</Text>
-              <ChevronDown
-                size={16}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: toolsExpanded ? '0deg' : '-90deg' }] }}
-              />
-            </Pressable>
-            {toolsExpanded && (
-              <View style={st.sectionContent}>
-                {tools.map((tool, i) => {
-                  const ToolIcon = getToolIcon(tool);
-                  return (
-                    <View key={`tool-${i}`} style={st.toolRow}>
-                      <View style={st.toolIconWrap}>
-                        <ToolIcon size={14} color="#0058A3" />
-                      </View>
-                      <Text style={st.toolText}>{tool}</Text>
-                    </View>
-                  );
-                })}
-                {assembly?.people && assembly.people !== '1' && (
-                  <View style={st.toolRow}>
-                    <View style={[st.toolIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                      <Users size={14} color="#D97706" />
-                    </View>
-                    <Text style={[st.toolText, { color: '#92400E' }]}>
-                      {assembly.people === '2+' ? '2+ people recommended' : '2 people recommended'}
+            {isIkea && (
+              <View style={st.ikeaBadgeRow}>
+                <View style={st.ikeaBadge}>
+                  <Sofa size={12} color="#0058A3" />
+                  <Text style={st.ikeaBadgeText}>IKEA Product</Text>
+                </View>
+                {result.furniture_details?.ikea_match_confidence && (
+                  <View style={st.ikeaConfPill}>
+                    <Text style={st.ikeaConfPillText}>
+                      {result.furniture_details.ikea_match_confidence === 'exact' ? 'Exact Match' :
+                       result.furniture_details.ikea_match_confidence === 'strong' ? 'Strong Match' :
+                       'Possible Match'}
                     </Text>
                   </View>
                 )}
               </View>
             )}
-          </View>
-        )}
 
-        {assembly && (
-          <View style={[st.sectionCard, { borderColor: ScannerColors.assemblyBorder }]}>
-            <Pressable style={st.sectionHeader} onPress={() => toggleSection(setAssemblyExpanded)}>
-              <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.assemblyBg }]}>
-                <Clock size={16} color="#D97706" />
-              </View>
-              <Text style={st.sectionTitle}>Assembly Info</Text>
-              <ChevronDown
-                size={16}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: assemblyExpanded ? '0deg' : '-90deg' }] }}
-              />
-            </Pressable>
-            {assemblyExpanded && (
-              <View style={st.sectionContent}>
-                <View style={st.assemblyGrid}>
-                  {assembly.difficulty && (
-                    <View style={st.assemblyItem}>
-                      <Gauge size={16} color={
-                        assembly.difficulty.toLowerCase() === 'easy' ? '#16A34A' :
-                        assembly.difficulty.toLowerCase() === 'moderate' ? '#D97706' : '#DC2626'
-                      } />
-                      <Text style={st.assemblyLabel}>Difficulty</Text>
-                      <Text style={[st.assemblyValue, {
-                        color: assembly.difficulty.toLowerCase() === 'easy' ? '#16A34A' :
-                        assembly.difficulty.toLowerCase() === 'moderate' ? '#D97706' : '#DC2626'
-                      }]}>{assembly.difficulty}</Text>
-                    </View>
-                  )}
-                  {assembly.time && (
-                    <View style={st.assemblyItem}>
-                      <Clock size={16} color="#0058A3" />
-                      <Text style={st.assemblyLabel}>Est. Time</Text>
-                      <Text style={st.assemblyValue}>{assembly.time}</Text>
-                    </View>
-                  )}
-                  {assembly.people && (
-                    <View style={st.assemblyItem}>
-                      <Users size={16} color="#7C3AED" />
-                      <Text style={st.assemblyLabel}>People</Text>
-                      <Text style={st.assemblyValue}>{assembly.people === '1' ? '1 person' : `${assembly.people} people`}</Text>
-                    </View>
-                  )}
+            <Text style={st.itemName}>{result.item_name}</Text>
+
+            <View style={st.metaRow}>
+              <Text style={st.categoryText}>
+                {showPartialDetails ? `Likely: ${categoryLabel}` : categoryLabel}
+              </Text>
+              {price && (
+                <View style={st.priceBadge}>
+                  <DollarSign size={12} color="#0058A3" />
+                  <Text style={st.priceText}>{price}</Text>
+                  {showPartialDetails && <Text style={st.priceEstLabel}>est.</Text>}
                 </View>
-                {assembly.wallAnchor && (
-                  <View style={st.wallAnchorCard}>
-                    <Shield size={14} color="#DC2626" />
-                    <Text style={st.wallAnchorText}>{assembly.wallAnchor}</Text>
-                  </View>
-                )}
-                {assembly.setupNotes && (
-                  <View style={st.noteRow}>
-                    <Lightbulb size={13} color="#D97706" />
-                    <Text style={st.noteText}>{assembly.setupNotes}</Text>
-                  </View>
-                )}
+              )}
+            </View>
+
+            {description.length > 0 && (
+              <View style={st.descriptionCard}>
+                <Text style={st.descriptionText}>{description}</Text>
               </View>
             )}
-          </View>
-        )}
 
-        {matchingProducts.length > 0 && !isVeryLowConf && (
-          <View style={[st.sectionCard, { borderColor: ScannerColors.matchesBorder }]}>
-            <Pressable style={st.sectionHeader} onPress={() => toggleSection(setMatchesExpanded)}>
-              <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.matchesBg }]}>
-                <ShoppingBag size={16} color="#059669" />
-              </View>
-              <Text style={st.sectionTitle}>What Goes With This</Text>
-              <ChevronDown
-                size={16}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: matchesExpanded ? '0deg' : '-90deg' }] }}
-              />
-            </Pressable>
-            {matchesExpanded && (
-              <View style={st.sectionContent}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchScroll}>
-                  {matchingProducts.map((product, i) => (
-                    <View key={`match-${i}`} style={st.matchCard}>
-                      <View style={st.matchIconWrap}>
-                        <Package size={16} color="#059669" />
-                      </View>
-                      <Text style={st.matchText} numberOfLines={2}>{product}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          </View>
-        )}
-
-        {roomFitLabels.length > 0 && !isVeryLowConf && (
-          <View style={[st.sectionCard, { borderColor: ScannerColors.goodForBorder }]}>
-            <View style={st.sectionHeader}>
-              <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.goodForBg }]}>
-                <Home size={16} color="#7C3AED" />
-              </View>
-              <Text style={st.sectionTitle}>Good For</Text>
-            </View>
-            <View style={st.goodForWrap}>
-              {roomFitLabels.map((label, i) => {
-                const RIcon = getRoomIcon(label);
-                return (
-                  <View key={`room-${i}`} style={st.goodForChip}>
-                    <RIcon size={13} color="#7C3AED" />
-                    <Text style={st.goodForText}>{label}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {valueInsight && !isVeryLowConf && (
-          <View style={[st.sectionCard, { borderColor: ScannerColors.valueBorder }]}>
-            <View style={st.sectionHeader}>
-              <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.valueBg }]}>
-                <Star size={16} color="#D97706" />
-              </View>
-              <Text style={st.sectionTitle}>{valueInsight.label}</Text>
-            </View>
-            <View style={st.valueContent}>
-              <Text style={st.valueText}>{valueInsight.text}</Text>
-            </View>
-          </View>
-        )}
-
-        {careTip && !isVeryLowConf && !isFood && (
-          <View style={st.tipCard}>
-            <Lightbulb size={14} color="#F59E0B" />
-            <Text style={st.tipText}>{careTip}</Text>
-          </View>
-        )}
-
-        {isFood && foodIngredients.length > 0 && (
-          <View style={st.sectionCard}>
-            <Pressable style={st.sectionHeader} onPress={() => toggleSection(setIngredientsExpanded)}>
-              <View style={[st.sectionIconWrap, { backgroundColor: '#F0FDF4' }]}>
-                <Leaf size={16} color="#16A34A" />
-              </View>
-              <Text style={st.sectionTitle}>Ingredients</Text>
-              <View style={st.countBadge}>
-                <Text style={st.countBadgeText}>{foodIngredients.length}</Text>
-              </View>
-              <ChevronDown
-                size={16}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: ingredientsExpanded ? '0deg' : '-90deg' }] }}
-              />
-            </Pressable>
-            {ingredientsExpanded && (
-              <View style={st.sectionContent}>
-                {foodIngredients.map((ing, i) => (
-                  <View key={`ing-${i}`} style={st.bulletRow}>
-                    <View style={[st.bulletDot, { backgroundColor: '#16A34A' }]} />
-                    <Text style={st.bulletText}>{ing}</Text>
+            {specs.length > 0 && (
+              <View style={st.specsGrid}>
+                {specs.map((spec, i) => (
+                  <View key={`spec-${i}`} style={st.specChip}>
+                    <Text style={st.specLabel}>
+                      {showPartialDetails && !['Color', 'Brand', 'Article #'].includes(spec.label) ? `${spec.label} (est.)` : spec.label}
+                    </Text>
+                    <Text style={st.specValue} numberOfLines={2}>{spec.value}</Text>
                   </View>
                 ))}
               </View>
             )}
-          </View>
-        )}
 
-        {isFood && foodGoWith.length > 0 && (
-          <View style={[st.sectionCard, { borderColor: '#FECDD3' }]}>
-            <View style={st.sectionHeader}>
-              <View style={[st.sectionIconWrap, { backgroundColor: '#FFF1F2' }]}>
-                <Cherry size={16} color="#E11D48" />
-              </View>
-              <Text style={st.sectionTitle}>Goes Well With</Text>
-            </View>
-            <View style={st.sectionContent}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchScroll}>
-                {foodGoWith.map((item, i) => (
-                  <View key={`pair-${i}`} style={[st.matchCard, { backgroundColor: '#FFF1F2', borderColor: '#FECDD3' }]}>
-                    <View style={[st.matchIconWrap, { backgroundColor: '#FFFFFF' }]}>
-                      <UtensilsCrossed size={14} color="#E11D48" />
-                    </View>
-                    <Text style={st.matchText} numberOfLines={2}>{item}</Text>
+            {tools.length > 0 && showFullDetails && (
+              <View style={st.sectionCard}>
+                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setToolsExpanded)}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.toolsBg }]}>
+                    <Wrench size={16} color="#0058A3" />
                   </View>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        )}
-
-        {isFood && foodRecipes.length > 0 && (
-          <View style={st.sectionCard}>
-            <Pressable style={st.sectionHeader} onPress={() => toggleSection(setRecipesExpanded)}>
-              <View style={[st.sectionIconWrap, { backgroundColor: '#FFFBEB' }]}>
-                <CookingPot size={16} color="#EA580C" />
-              </View>
-              <Text style={st.sectionTitle}>Recipes</Text>
-              <View style={[st.countBadge, { backgroundColor: '#EA580C14' }]}>
-                <Text style={[st.countBadgeText, { color: '#EA580C' }]}>{foodRecipes.length}</Text>
-              </View>
-              <ChevronDown
-                size={16}
-                color="#AEAEB2"
-                style={{ transform: [{ rotate: recipesExpanded ? '0deg' : '-90deg' }] }}
-              />
-            </Pressable>
-            {recipesExpanded && (
-              <View style={st.sectionContent}>
-                {foodRecipes.map((recipe, i) => {
-                  const diffColor = recipe.difficulty === 'easy' ? '#16A34A' : recipe.difficulty === 'medium' ? '#D97706' : '#DC2626';
-                  return (
-                    <View key={`recipe-${i}`} style={st.recipeCard}>
-                      <View style={st.recipeHeaderRow}>
-                        <Text style={st.recipeName}>{recipe.name}</Text>
-                        <View style={[st.recipeDiffBadge, { backgroundColor: `${diffColor}14` }]}>
-                          <Text style={[st.recipeDiffText, { color: diffColor }]}>
-                            {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
-                          </Text>
+                  <Text style={st.sectionTitle}>Tools You'll Need</Text>
+                  <ChevronDown
+                    size={16}
+                    color="#AEAEB2"
+                    style={{ transform: [{ rotate: toolsExpanded ? '0deg' : '-90deg' }] }}
+                  />
+                </Pressable>
+                {toolsExpanded && (
+                  <View style={st.sectionContent}>
+                    {tools.map((tool, i) => {
+                      const ToolIcon = getToolIcon(tool);
+                      return (
+                        <View key={`tool-${i}`} style={st.toolRow}>
+                          <View style={st.toolIconWrap}>
+                            <ToolIcon size={14} color="#0058A3" />
+                          </View>
+                          <Text style={st.toolText}>{tool}</Text>
                         </View>
+                      );
+                    })}
+                    {assembly?.people && assembly.people !== '1' && (
+                      <View style={st.toolRow}>
+                        <View style={[st.toolIconWrap, { backgroundColor: '#FEF3C7' }]}>
+                          <Users size={14} color="#D97706" />
+                        </View>
+                        <Text style={[st.toolText, { color: '#92400E' }]}>
+                          {assembly.people === '2+' ? '2+ people recommended' : '2 people recommended'}
+                        </Text>
                       </View>
-                      <Text style={st.recipeDesc}>{recipe.description}</Text>
-                      <Text style={st.recipeTime}>{recipe.prep_time}</Text>
-                    </View>
-                  );
-                })}
+                    )}
+                  </View>
+                )}
               </View>
             )}
-          </View>
-        )}
 
-        <Pressable
-          style={({ pressed }) => [st.scanAnotherBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-          onPress={onScanAgain}
-          testID="scan-another-btn"
-        >
-          <Camera size={18} color="#FFFFFF" />
-          <Text style={st.scanAnotherText}>Scan Another Item</Text>
-        </Pressable>
+            {assembly && showFullDetails && (
+              <View style={[st.sectionCard, { borderColor: ScannerColors.assemblyBorder }]}>
+                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setAssemblyExpanded)}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.assemblyBg }]}>
+                    <Clock size={16} color="#D97706" />
+                  </View>
+                  <Text style={st.sectionTitle}>Assembly Info</Text>
+                  <ChevronDown
+                    size={16}
+                    color="#AEAEB2"
+                    style={{ transform: [{ rotate: assemblyExpanded ? '0deg' : '-90deg' }] }}
+                  />
+                </Pressable>
+                {assemblyExpanded && (
+                  <View style={st.sectionContent}>
+                    <View style={st.assemblyGrid}>
+                      {assembly.difficulty && (
+                        <View style={st.assemblyItem}>
+                          <Gauge size={16} color={
+                            assembly.difficulty.toLowerCase() === 'easy' ? '#16A34A' :
+                            assembly.difficulty.toLowerCase() === 'moderate' ? '#D97706' : '#DC2626'
+                          } />
+                          <Text style={st.assemblyLabel}>Difficulty</Text>
+                          <Text style={[st.assemblyValue, {
+                            color: assembly.difficulty.toLowerCase() === 'easy' ? '#16A34A' :
+                            assembly.difficulty.toLowerCase() === 'moderate' ? '#D97706' : '#DC2626'
+                          }]}>{assembly.difficulty}</Text>
+                        </View>
+                      )}
+                      {assembly.time && (
+                        <View style={st.assemblyItem}>
+                          <Clock size={16} color="#0058A3" />
+                          <Text style={st.assemblyLabel}>Est. Time</Text>
+                          <Text style={st.assemblyValue}>{assembly.time}</Text>
+                        </View>
+                      )}
+                      {assembly.people && (
+                        <View style={st.assemblyItem}>
+                          <Users size={16} color="#7C3AED" />
+                          <Text style={st.assemblyLabel}>People</Text>
+                          <Text style={st.assemblyValue}>{assembly.people === '1' ? '1 person' : `${assembly.people} people`}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {assembly.wallAnchor && (
+                      <View style={st.wallAnchorCard}>
+                        <Shield size={14} color="#DC2626" />
+                        <Text style={st.wallAnchorText}>{assembly.wallAnchor}</Text>
+                      </View>
+                    )}
+                    {assembly.setupNotes && (
+                      <View style={st.noteRow}>
+                        <Lightbulb size={13} color="#D97706" />
+                        <Text style={st.noteText}>{assembly.setupNotes}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {matchingProducts.length > 0 && (showFullDetails || (showPartialDetails && matchingProducts.length >= 2)) && (
+              <View style={[st.sectionCard, { borderColor: ScannerColors.matchesBorder }]}>
+                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setMatchesExpanded)}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.matchesBg }]}>
+                    <ShoppingBag size={16} color="#059669" />
+                  </View>
+                  <Text style={st.sectionTitle}>What Goes With This</Text>
+                  {showPartialDetails && (
+                    <View style={st.estBadge}>
+                      <Text style={st.estBadgeText}>Estimated</Text>
+                    </View>
+                  )}
+                  <ChevronDown
+                    size={16}
+                    color="#AEAEB2"
+                    style={{ transform: [{ rotate: matchesExpanded ? '0deg' : '-90deg' }] }}
+                  />
+                </Pressable>
+                {matchesExpanded && (
+                  <View style={st.sectionContent}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchScroll}>
+                      {matchingProducts.map((product, i) => (
+                        <View key={`match-${i}`} style={st.matchCard}>
+                          <View style={st.matchIconWrap}>
+                            <Package size={16} color="#059669" />
+                          </View>
+                          <Text style={st.matchText} numberOfLines={2}>{product}</Text>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {roomFitLabels.length > 0 && showFullDetails && (
+              <View style={[st.sectionCard, { borderColor: ScannerColors.goodForBorder }]}>
+                <View style={st.sectionHeader}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.goodForBg }]}>
+                    <Home size={16} color="#7C3AED" />
+                  </View>
+                  <Text style={st.sectionTitle}>Good For</Text>
+                </View>
+                <View style={st.goodForWrap}>
+                  {roomFitLabels.map((label, i) => {
+                    const RIcon = getRoomIcon(label);
+                    return (
+                      <View key={`room-${i}`} style={st.goodForChip}>
+                        <RIcon size={13} color="#7C3AED" />
+                        <Text style={st.goodForText}>{label}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {valueInsight && showFullDetails && (
+              <View style={[st.sectionCard, { borderColor: ScannerColors.valueBorder }]}>
+                <View style={st.sectionHeader}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.valueBg }]}>
+                    <Star size={16} color="#D97706" />
+                  </View>
+                  <Text style={st.sectionTitle}>{valueInsight.label}</Text>
+                </View>
+                <View style={st.valueContent}>
+                  <Text style={st.valueText}>{valueInsight.text}</Text>
+                </View>
+              </View>
+            )}
+
+            {careTip && showFullDetails && !isFood && (
+              <View style={st.tipCard}>
+                <Lightbulb size={14} color="#F59E0B" />
+                <Text style={st.tipText}>{careTip}</Text>
+              </View>
+            )}
+
+            {isFood && foodIngredients.length > 0 && showFullDetails && (
+              <View style={st.sectionCard}>
+                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setIngredientsExpanded)}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: '#F0FDF4' }]}>
+                    <Leaf size={16} color="#16A34A" />
+                  </View>
+                  <Text style={st.sectionTitle}>Ingredients</Text>
+                  <View style={st.countBadge}>
+                    <Text style={st.countBadgeText}>{foodIngredients.length}</Text>
+                  </View>
+                  <ChevronDown
+                    size={16}
+                    color="#AEAEB2"
+                    style={{ transform: [{ rotate: ingredientsExpanded ? '0deg' : '-90deg' }] }}
+                  />
+                </Pressable>
+                {ingredientsExpanded && (
+                  <View style={st.sectionContent}>
+                    {foodIngredients.map((ing, i) => (
+                      <View key={`ing-${i}`} style={st.bulletRow}>
+                        <View style={[st.bulletDot, { backgroundColor: '#16A34A' }]} />
+                        <Text style={st.bulletText}>{ing}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {isFood && foodGoWith.length > 0 && (showFullDetails || showPartialDetails) && (
+              <View style={[st.sectionCard, { borderColor: '#FECDD3' }]}>
+                <View style={st.sectionHeader}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: '#FFF1F2' }]}>
+                    <Cherry size={16} color="#E11D48" />
+                  </View>
+                  <Text style={st.sectionTitle}>Goes Well With</Text>
+                </View>
+                <View style={st.sectionContent}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchScroll}>
+                    {foodGoWith.map((item, i) => (
+                      <View key={`pair-${i}`} style={[st.matchCard, { backgroundColor: '#FFF1F2', borderColor: '#FECDD3' }]}>
+                        <View style={[st.matchIconWrap, { backgroundColor: '#FFFFFF' }]}>
+                          <UtensilsCrossed size={14} color="#E11D48" />
+                        </View>
+                        <Text style={st.matchText} numberOfLines={2}>{item}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+            )}
+
+            {isFood && foodRecipes.length > 0 && showFullDetails && (
+              <View style={st.sectionCard}>
+                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setRecipesExpanded)}>
+                  <View style={[st.sectionIconWrap, { backgroundColor: '#FFFBEB' }]}>
+                    <CookingPot size={16} color="#EA580C" />
+                  </View>
+                  <Text style={st.sectionTitle}>Recipes</Text>
+                  <View style={[st.countBadge, { backgroundColor: '#EA580C14' }]}>
+                    <Text style={[st.countBadgeText, { color: '#EA580C' }]}>{foodRecipes.length}</Text>
+                  </View>
+                  <ChevronDown
+                    size={16}
+                    color="#AEAEB2"
+                    style={{ transform: [{ rotate: recipesExpanded ? '0deg' : '-90deg' }] }}
+                  />
+                </Pressable>
+                {recipesExpanded && (
+                  <View style={st.sectionContent}>
+                    {foodRecipes.map((recipe, i) => {
+                      const diffColor = recipe.difficulty === 'easy' ? '#16A34A' : recipe.difficulty === 'medium' ? '#D97706' : '#DC2626';
+                      return (
+                        <View key={`recipe-${i}`} style={st.recipeCard}>
+                          <View style={st.recipeHeaderRow}>
+                            <Text style={st.recipeName}>{recipe.name}</Text>
+                            <View style={[st.recipeDiffBadge, { backgroundColor: `${diffColor}14` }]}>
+                              <Text style={[st.recipeDiffText, { color: diffColor }]}>
+                                {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text style={st.recipeDesc}>{recipe.description}</Text>
+                          <Text style={st.recipeTime}>{recipe.prep_time}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.scanAnotherBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.scanAnotherText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
 
         {onDelete && viewingEntryId && (
           <Pressable
@@ -785,19 +949,176 @@ const st = StyleSheet.create({
   imageBadge: { position: 'absolute', bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
   imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
 
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: ScannerRadius.xxl,
+    overflow: 'hidden',
+    marginBottom: ScannerSpacing.lg,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: ScannerRadius.sm,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
   contentSection: { paddingBottom: 20 },
 
-  lowConfCard: {
+  confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: ScannerRadius.sm,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  confidenceBadgeText: { fontSize: 12, fontWeight: '700' as const },
+  confidencePctPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginLeft: 2,
+  },
+  confidencePctText: { fontSize: 10, fontWeight: '800' as const },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  lowConfHeaderDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: ScannerRadius.xxl,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#3C3C43',
+    flex: 1,
+  },
+
+  nextScanCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F0F7FF',
+    borderRadius: ScannerRadius.lg,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  nextScanText: { flex: 1, fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: ScannerRadius.xl,
+    backgroundColor: '#0058A3',
+    marginTop: 4,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  retryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  mediumConfCard: {
     backgroundColor: '#FFFBEB',
     borderRadius: ScannerRadius.lg,
-    padding: 16,
+    padding: 14,
     marginBottom: ScannerSpacing.lg,
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  lowConfIconRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  lowConfTitle: { fontSize: 15, fontWeight: '700' as const, color: '#92400E' },
-  lowConfDesc: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+  mediumConfHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  mediumConfTitle: { fontSize: 14, fontWeight: '700' as const, color: '#92400E' },
+  mediumConfDesc: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+  mediumConfTip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    backgroundColor: '#F0F7FF',
+    borderRadius: ScannerRadius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  mediumConfTipText: { fontSize: 12, fontWeight: '600' as const, color: '#0058A3', flex: 1 },
 
   ikeaBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   ikeaBadge: {
@@ -810,13 +1131,13 @@ const st = StyleSheet.create({
     borderRadius: ScannerRadius.sm,
   },
   ikeaBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#0058A3' },
-  confidencePill: {
+  ikeaConfPill: {
     backgroundColor: '#0058A312',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: ScannerRadius.sm,
   },
-  confidencePillText: { fontSize: 11, fontWeight: '600' as const, color: '#0058A3' },
+  ikeaConfPillText: { fontSize: 11, fontWeight: '600' as const, color: '#0058A3' },
 
   itemName: {
     fontSize: 26,
@@ -842,6 +1163,7 @@ const st = StyleSheet.create({
     borderRadius: ScannerRadius.sm,
   },
   priceText: { fontSize: 18, fontWeight: '800' as const, color: '#0058A3', letterSpacing: -0.3 },
+  priceEstLabel: { fontSize: 10, fontWeight: '600' as const, color: '#0058A380', marginLeft: 2 },
 
   descriptionCard: {
     backgroundColor: '#F0F7FF',
@@ -872,6 +1194,14 @@ const st = StyleSheet.create({
   },
   specLabel: { fontSize: 11, fontWeight: '500' as const, color: '#8E8E93', marginBottom: 3 },
   specValue: { fontSize: 13, fontWeight: '700' as const, color: '#1C1C1E', lineHeight: 17 },
+
+  estBadge: {
+    backgroundColor: '#D9770614',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: ScannerRadius.sm,
+  },
+  estBadgeText: { fontSize: 10, fontWeight: '700' as const, color: '#D97706' },
 
   sectionCard: {
     backgroundColor: '#FFFFFF',
