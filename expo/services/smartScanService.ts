@@ -1670,9 +1670,9 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
 }
 
 async function tryEditApi(toolkitUrl: string, description: string, base64: string): Promise<string | null> {
-  const usableBase64 = truncateBase64ForEdit(base64, 1500);
+  const usableBase64 = truncateBase64ForEdit(base64, 800);
   if (!usableBase64) {
-    console.log('[SmartScan] Skipping edit API — base64 too large');
+    console.log('[SmartScan] Skipping edit API — base64 too large for edit');
     return null;
   }
 
@@ -1692,7 +1692,7 @@ Center the item, photorealistic, no text/watermarks added. Product listing style
       images: [{ type: 'image', image: `data:image/jpeg;base64,${usableBase64}` }],
       aspectRatio: '1:1',
     }),
-  }, 60000);
+  }, 30000);
 
   console.log('[SmartScan] Edit API response status:', editResponse.status);
   if (editResponse.ok) {
@@ -1721,7 +1721,7 @@ async function tryGenerateApi(toolkitUrl: string, description: string, attempt: 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: dallePrompt, size: '1024x1024' }),
-  }, 60000);
+  }, 45000);
 
   console.log('[SmartScan] Generate API response status:', genResponse.status);
   if (genResponse.ok) {
@@ -1753,32 +1753,42 @@ export async function generateReferenceImage(description: string, scannedImageBa
       return null;
     }
 
-    console.log('[SmartScan] Generating reference image for:', description.substring(0, 80), 'confidence:', confidence, 'hasBase64:', !!scannedImageBase64);
+    const base64SizeKB = scannedImageBase64 ? Math.round((scannedImageBase64.length * 3) / 4 / 1024) : 0;
+    console.log('[SmartScan] Generating reference image for:', description.substring(0, 80), 'confidence:', confidence, 'hasBase64:', !!scannedImageBase64, 'base64SizeKB:', base64SizeKB);
 
-    if (scannedImageBase64) {
-      try {
-        const editResult = await tryEditApi(toolkitUrl, description, scannedImageBase64);
-        if (editResult) return editResult;
-        console.log('[SmartScan] Edit API did not produce image, falling back to DALL-E');
-      } catch (editErr) {
-        console.log('[SmartScan] Edit API error:', editErr);
-      }
+    const editPromise = (scannedImageBase64 && base64SizeKB <= 800)
+      ? tryEditApi(toolkitUrl, description, scannedImageBase64).catch((err) => {
+          console.log('[SmartScan] Edit API error:', err);
+          return null;
+        })
+      : Promise.resolve(null);
+
+    const generatePromise = tryGenerateApi(toolkitUrl, description, 1).catch((err) => {
+      console.log('[SmartScan] Generate API attempt #1 error:', err);
+      return null;
+    });
+
+    const [editResult, genResult] = await Promise.all([editPromise, generatePromise]);
+
+    if (editResult) {
+      console.log('[SmartScan] Using edit API result for reference image');
+      return editResult;
+    }
+    if (genResult) {
+      console.log('[SmartScan] Using generate API result for reference image');
+      return genResult;
     }
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const genResult = await tryGenerateApi(toolkitUrl, description, attempt);
-        if (genResult) return genResult;
-      } catch (genErr) {
-        console.log(`[SmartScan] DALL-E attempt #${attempt} error:`, genErr);
-      }
-      if (attempt < 2) {
-        console.log('[SmartScan] Retrying DALL-E generation after 1s delay...');
-        await new Promise(r => setTimeout(r, 1000));
-      }
+    console.log('[SmartScan] Both parallel attempts failed, trying generate API once more...');
+    try {
+      await new Promise(r => setTimeout(r, 500));
+      const retryResult = await tryGenerateApi(toolkitUrl, description, 2);
+      if (retryResult) return retryResult;
+    } catch (retryErr) {
+      console.log('[SmartScan] Generate API retry error:', retryErr);
     }
 
-    console.log('[SmartScan] All image generation methods failed after retries');
+    console.log('[SmartScan] All image generation methods failed');
     return null;
   } catch (err) {
     console.log('[SmartScan] Reference image generation error:', err);

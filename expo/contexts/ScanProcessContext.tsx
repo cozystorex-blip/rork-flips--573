@@ -4,6 +4,7 @@ import { Platform, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { runSmartScan, generateReferenceImage, getLastProcessedBase64 } from '@/services/smartScanService';
+import { getProductImageUrl } from '@/constants/productImages';
 import { validateScanResult } from '@/services/scanValidator';
 import type { ScanValidationResult } from '@/services/scanValidator';
 import type { IkeaScanMode } from '@/services/smartScanService';
@@ -397,6 +398,15 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       setLastValidation(validation);
       console.log('[ScanProcess] Validation score:', validation.score, '% |', validation.passedChecks, '/', validation.totalChecks, 'checks passed');
 
+      const itemName = scanResult.item_name || '';
+      const category = scanResult.category || scanResult.item_type || 'other';
+      const staticImageUrl = getProductImageUrl(itemName, category);
+      if (staticImageUrl) {
+        console.log('[ScanProcess] Setting immediate static reference image for:', itemName);
+        setReferenceImageUrl(staticImageUrl);
+        scanResult.reference_image_url = staticImageUrl;
+      }
+
       setResult(scanResult);
       setScannedImageUri(persistedUri);
       setViewingEntryId(entryId);
@@ -407,25 +417,26 @@ export const [ScanProcessProvider, useScanProcess] = createContextHook(() => {
       const processedBase64 = getLastProcessedBase64();
       const imageDesc = scanResult.image_description || scanResult.short_summary || scanResult.item_name || '';
       console.log('[ScanProcess] Reference image check — desc length:', imageDesc.length, 'confidence:', scanResult.confidence, 'hasBase64:', !!processedBase64);
+
       if (imageDesc.length > 2 && scanResult.confidence >= 0.25) {
         try {
           setGeneratingImage(true);
-          console.log('[ScanProcess] Starting reference image generation for:', imageDesc.substring(0, 80));
+          console.log('[ScanProcess] Starting AI reference image generation for:', imageDesc.substring(0, 80));
           const refImageUrl = await generateReferenceImage(imageDesc, processedBase64 ?? undefined, scanResult.confidence);
           if (refImageUrl) {
             setReferenceImageUrl(refImageUrl);
             scanResult.reference_image_url = refImageUrl;
-            console.log('[ScanProcess] Reference image generated successfully, URL length:', refImageUrl.length);
+            console.log('[ScanProcess] AI reference image generated successfully, URL length:', refImageUrl.length);
           } else {
-            console.log('[ScanProcess] Reference image generation returned null — no image produced');
+            console.log('[ScanProcess] AI generation returned null — keeping static reference image');
           }
         } catch (imgErr) {
-          console.log('[ScanProcess] Reference image generation failed:', imgErr);
+          console.log('[ScanProcess] AI reference image generation failed:', imgErr, '— keeping static reference image');
         } finally {
           setGeneratingImage(false);
         }
       } else {
-        console.log('[ScanProcess] Skipping reference image — confidence too low or no description:', scanResult.confidence, 'descLen:', imageDesc.length);
+        console.log('[ScanProcess] Skipping AI reference image — confidence too low or no description:', scanResult.confidence, 'descLen:', imageDesc.length);
       }
 
       setScanPhase('done');
