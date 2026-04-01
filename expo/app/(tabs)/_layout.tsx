@@ -1,8 +1,11 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { Home, ScanLine, Bookmark, User } from "lucide-react-native";
 import React from "react";
+import * as Haptics from 'expo-haptics';
 
 export default function TabLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -32,6 +35,13 @@ export default function TabLayout() {
         options={{
           title: "Scan",
           tabBarIcon: ({ color, size }) => <ScanLine size={size} color={color} />,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push('/smart-scan');
+          },
         }}
       />
       <Tabs.Screen
