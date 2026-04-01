@@ -418,6 +418,12 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
         fullName: profile?.display_name || undefined,
         avatarUrl: profile?.avatar_url || undefined,
         scanCount: 0,
+        phone: profile?.phone || undefined,
+        services: profile?.services || undefined,
+        email: profile?.email || undefined,
+        vehicleType: profile?.vehicleType || undefined,
+        serviceRadius: profile?.serviceRadius || undefined,
+        city: profile?.city || undefined,
       });
 
       if (goingOnline) {
@@ -473,6 +479,12 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
           fullName: profile.display_name || undefined,
           avatarUrl: profile.avatar_url || undefined,
           scanCount: 0,
+          phone: profile.phone || undefined,
+          services: profile.services || undefined,
+          email: profile.email || undefined,
+          vehicleType: profile.vehicleType || undefined,
+          serviceRadius: profile.serviceRadius || undefined,
+          city: profile.city || undefined,
         });
       }
 
@@ -506,6 +518,12 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
         isOnline: false,
         fullName: profile?.display_name || undefined,
         avatarUrl: profile?.avatar_url || undefined,
+        phone: profile?.phone || undefined,
+        services: profile?.services || undefined,
+        email: profile?.email || undefined,
+        vehicleType: profile?.vehicleType || undefined,
+        serviceRadius: profile?.serviceRadius || undefined,
+        city: profile?.city || undefined,
       });
       void markOffline(userId);
     }
@@ -538,6 +556,12 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
             isOnline: true,
             fullName: profile.display_name || undefined,
             avatarUrl: profile.avatar_url || undefined,
+            phone: profile.phone || undefined,
+            services: profile.services || undefined,
+            email: profile.email || undefined,
+            vehicleType: profile.vehicleType || undefined,
+            serviceRadius: profile.serviceRadius || undefined,
+            city: profile.city || undefined,
           });
         }
 
@@ -575,6 +599,12 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
               isOnline: true,
               fullName: profile.display_name || undefined,
               avatarUrl: profile.avatar_url || undefined,
+              phone: profile.phone || undefined,
+              services: profile.services || undefined,
+              email: profile.email || undefined,
+              vehicleType: profile.vehicleType || undefined,
+              serviceRadius: profile.serviceRadius || undefined,
+              city: profile.city || undefined,
             });
           }
 

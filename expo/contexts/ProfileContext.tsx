@@ -13,6 +13,12 @@ export interface MyProfile {
   style_tag: CategoryType;
   created_at: string;
   updated_at: string | null;
+  phone: string;
+  services: string[];
+  email: string;
+  vehicleType: string;
+  serviceRadius: number;
+  city: string;
 }
 
 const PROFILE_STORAGE_KEY = 'local_profile';
@@ -26,6 +32,12 @@ function makeDefaultProfile(userId: string): MyProfile {
     style_tag: 'budget',
     created_at: new Date().toISOString(),
     updated_at: null,
+    phone: '',
+    services: [],
+    email: '',
+    vehicleType: '',
+    serviceRadius: 0,
+    city: '',
   };
 }
 
@@ -109,6 +121,12 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
         style_tag: p.style_tag ?? current.style_tag,
         created_at: current.created_at,
         updated_at: now,
+        phone: p.phone !== undefined ? p.phone.trim() : current.phone,
+        services: p.services !== undefined ? p.services : current.services,
+        email: p.email !== undefined ? p.email.trim() : current.email,
+        vehicleType: p.vehicleType !== undefined ? p.vehicleType.trim() : current.vehicleType,
+        serviceRadius: p.serviceRadius !== undefined ? p.serviceRadius : current.serviceRadius,
+        city: p.city !== undefined ? p.city.trim() : current.city,
       };
 
       console.log('[ProfileContext] Saving profile locally for user:', userId);

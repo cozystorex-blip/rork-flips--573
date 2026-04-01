@@ -10,6 +10,12 @@ export interface PresenceRecord {
   profile_ready: boolean;
   scan_count: number;
   activity: string;
+  phone: string;
+  services: string[];
+  email: string;
+  vehicle_type: string;
+  service_radius: number;
+  city: string;
 }
 
 export interface ToggleOnlineInput {
@@ -18,6 +24,12 @@ export interface ToggleOnlineInput {
   fullName?: string;
   avatarUrl?: string;
   scanCount?: number;
+  phone?: string;
+  services?: string[];
+  email?: string;
+  vehicleType?: string;
+  serviceRadius?: number;
+  city?: string;
 }
 
 export async function upsertPresence(input: ToggleOnlineInput): Promise<PresenceRecord> {
@@ -32,6 +44,12 @@ export async function upsertPresence(input: ToggleOnlineInput): Promise<Presence
     profile_ready: true,
     scan_count: input.scanCount ?? 0,
     activity: 'browsing',
+    phone: input.phone || '',
+    services: input.services || [],
+    email: input.email || '',
+    vehicle_type: input.vehicleType || '',
+    service_radius: input.serviceRadius ?? 0,
+    city: input.city || '',
   };
 
   if (!isSupabaseConfigured) {
@@ -53,6 +71,12 @@ export async function upsertPresence(input: ToggleOnlineInput): Promise<Presence
           profile_ready: record.profile_ready,
           scan_count: record.scan_count,
           activity: record.activity,
+          phone: record.phone,
+          services: record.services,
+          email: record.email,
+          vehicle_type: record.vehicle_type,
+          service_radius: record.service_radius,
+          city: record.city,
         },
         { onConflict: 'user_id' }
       )
