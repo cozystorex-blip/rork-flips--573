@@ -57,6 +57,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     console.log('[AuthContext] Initializing auth, supabase configured:', isSupabaseConfigured);
 
     async function init() {
+      let resolvedUser: AuthUser | null = null;
+
       if (isSupabaseConfigured) {
         try {
           const { data: { session: existingSession }, error } = await supabase.auth.getSession();
@@ -70,30 +72,30 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log('[AuthContext] Restored Supabase session for:', existingSession.user.email);
             const authUser = supabaseUserToAuthUser(existingSession.user);
             setSession(existingSession);
-            setUser(authUser);
-            await storeUser(authUser);
+            resolvedUser = authUser;
           } else {
             console.log('[AuthContext] No Supabase session found');
-            const stored = await loadStoredUser();
-            if (stored && mounted) {
-              console.log('[AuthContext] Restored local user:', stored.email);
-              setUser(stored);
-            }
+            resolvedUser = await loadStoredUser();
           }
         } catch (e) {
           console.log('[AuthContext] Supabase init error:', e);
-          const stored = await loadStoredUser();
-          if (stored && mounted) {
-            setUser(stored);
-          }
+          resolvedUser = await loadStoredUser();
         }
       } else {
-        const stored = await loadStoredUser();
-        if (stored && mounted) {
-          console.log('[AuthContext] Restored local user (offline):', stored.email);
-          setUser(stored);
-        }
+        resolvedUser = await loadStoredUser();
       }
+
+      if (!mounted) return;
+
+      if (!resolvedUser) {
+        console.log('[AuthContext] No user found, auto-creating anonymous user');
+        resolvedUser = { id: generateLocalId(), email: '' };
+        await storeUser(resolvedUser);
+      }
+
+      setUser(resolvedUser);
+      await storeUser(resolvedUser);
+      console.log('[AuthContext] User ready:', resolvedUser.id);
 
       if (mounted) setIsLoading(false);
     }
