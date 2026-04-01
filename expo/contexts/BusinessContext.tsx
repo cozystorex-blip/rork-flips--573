@@ -2,6 +2,12 @@ import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  fetchClaimedPlaces as fetchClaimedPlacesRemote,
+  upsertClaimedPlace as upsertClaimedPlaceRemote,
+  deleteClaimedPlace as deleteClaimedPlaceRemote,
+} from '@/services/supabaseData';
 
 const STORAGE_KEY = 'claimed_places_v1';
 
@@ -13,13 +19,36 @@ export interface ClaimedPlace {
   claimedAt: string;
 }
 
+function normalizeClaim(raw: Record<string, unknown>): ClaimedPlace {
+  return {
+    placeId: ((raw.placeId ?? raw.place_id) as string) ?? '',
+    userId: ((raw.userId ?? raw.user_id) as string) ?? '',
+    businessName: ((raw.businessName ?? raw.business_name) as string) ?? '',
+    isVerified: ((raw.isVerified ?? raw.is_verified) as boolean) ?? false,
+    claimedAt: ((raw.claimedAt ?? raw.claimed_at) as string) ?? new Date().toISOString(),
+  };
+}
+
 export const [BusinessProvider, useBusiness] = createContextHook(() => {
   const queryClient = useQueryClient();
+  const { userId } = useAuth();
   const [claims, setClaims] = useState<ClaimedPlace[]>([]);
 
   const claimsQuery = useQuery({
-    queryKey: ['claimed_places'],
+    queryKey: ['claimed_places', userId],
     queryFn: async () => {
+      if (userId) {
+        try {
+          const remote = await fetchClaimedPlacesRemote(userId);
+          if (Array.isArray(remote) && remote.length > 0) {
+            console.log('[BusinessContext] Loaded', remote.length, 'claims from remote');
+            return remote.map((r) => normalizeClaim(r as Record<string, unknown>));
+          }
+        } catch (e) {
+          console.log('[BusinessContext] Remote fetch failed:', e);
+        }
+      }
+
       console.log('[BusinessContext] Loading claims from storage');
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -27,6 +56,7 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
       }
       return [];
     },
+    staleTime: 30000,
   });
 
   useEffect(() => {
@@ -42,14 +72,14 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
       return updatedClaims;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['claimed_places'] });
+      void queryClient.invalidateQueries({ queryKey: ['claimed_places', userId] });
     },
   });
 
   const { mutate } = saveMutation;
 
   const claimPlace = useCallback(
-    (placeId: string, userId: string, businessName: string) => {
+    (placeId: string, claimUserId: string, businessName: string) => {
       const existing = claims.find((c) => c.placeId === placeId);
       if (existing) {
         console.log('[BusinessContext] Place already claimed:', placeId);
@@ -57,18 +87,28 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
       }
       const newClaim: ClaimedPlace = {
         placeId,
-        userId,
+        userId: claimUserId,
         businessName,
         isVerified: false,
         claimedAt: new Date().toISOString(),
       };
-      console.log('[BusinessContext] Claiming place:', placeId, 'by', userId);
+      console.log('[BusinessContext] Claiming place:', placeId, 'by', claimUserId);
       const updated = [...claims, newClaim];
       setClaims(updated);
       mutate(updated);
+
+      if (userId) {
+        void upsertClaimedPlaceRemote(userId, {
+          place_id: newClaim.placeId,
+          business_name: newClaim.businessName,
+          is_verified: newClaim.isVerified,
+          claimed_at: newClaim.claimedAt,
+        });
+      }
+
       return newClaim;
     },
-    [claims, mutate]
+    [claims, mutate, userId]
   );
 
   const verifyPlace = useCallback(
@@ -78,8 +118,15 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
       );
       setClaims(updated);
       mutate(updated);
+
+      if (userId) {
+        void upsertClaimedPlaceRemote(userId, {
+          place_id: placeId,
+          is_verified: true,
+        });
+      }
     },
-    [claims, mutate]
+    [claims, mutate, userId]
   );
 
   const unclaimPlace = useCallback(
@@ -87,8 +134,12 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
       const updated = claims.filter((c) => c.placeId !== placeId);
       setClaims(updated);
       mutate(updated);
+
+      if (userId) {
+        void deleteClaimedPlaceRemote(userId, placeId);
+      }
     },
-    [claims, mutate]
+    [claims, mutate, userId]
   );
 
   const getClaimForPlace = useCallback(
@@ -97,7 +148,7 @@ export const [BusinessProvider, useBusiness] = createContextHook(() => {
   );
 
   const getClaimsForUser = useCallback(
-    (userId: string) => claims.filter((c) => c.userId === userId),
+    (targetUserId: string) => claims.filter((c) => c.userId === targetUserId),
     [claims]
   );
 

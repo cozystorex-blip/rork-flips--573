@@ -4,6 +4,28 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserProfileBlock, BlockTagLeft } from '@/types';
+import {
+  fetchBlocks as fetchBlocksRemote,
+  upsertBlock as upsertBlockRemote,
+  deleteBlock as deleteBlockRemote,
+} from '@/services/supabaseData';
+
+function normalizeBlock(raw: Record<string, unknown>, fallbackUserId: string): UserProfileBlock {
+  return {
+    id: (raw.id as string) ?? '',
+    userId: ((raw.userId ?? raw.user_id) as string) ?? fallbackUserId,
+    title: (raw.title as string) ?? '',
+    description: (raw.description as string) ?? '',
+    headerImageUrl: ((raw.headerImageUrl ?? raw.header_image_url) as string) ?? undefined,
+    tagLeft: ((raw.tagLeft ?? raw.tag_left) as BlockTagLeft) ?? 'TIP',
+    badgeRight: ((raw.badgeRight ?? raw.badge_right) as 'NEW' | null) ?? null,
+    actionLabel: ((raw.actionLabel ?? raw.action_label) as string) ?? 'Learn More',
+    actionType: ((raw.actionType ?? raw.action_type) as UserProfileBlock['actionType']) ?? 'none',
+    placeId: ((raw.placeId ?? raw.place_id) as string) ?? undefined,
+    url: (raw.url as string) ?? undefined,
+    createdAt: ((raw.createdAt ?? raw.created_at) as string) ?? new Date().toISOString(),
+  };
+}
 
 export const [BlocksProvider, useBlocks] = createContextHook(() => {
   const queryClient = useQueryClient();
@@ -14,7 +36,20 @@ export const [BlocksProvider, useBlocks] = createContextHook(() => {
     queryKey: ['profile_blocks', userId],
     queryFn: async (): Promise<UserProfileBlock[]> => {
       if (!userId) return [];
-      console.log('[BlocksContext] Loading local blocks for:', userId);
+      console.log('[BlocksContext] Loading blocks for:', userId);
+
+      try {
+        const remote = await fetchBlocksRemote(userId);
+        if (Array.isArray(remote) && remote.length > 0) {
+          console.log('[BlocksContext] Loaded', remote.length, 'blocks from remote');
+          return remote
+            .map((r) => normalizeBlock(r as Record<string, unknown>, userId))
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+      } catch (e) {
+        console.log('[BlocksContext] Remote fetch failed:', e);
+      }
+
       try {
         const raw = await AsyncStorage.getItem(`blocks_local_${userId}`);
         if (raw) {
@@ -92,10 +127,25 @@ export const [BlocksProvider, useBlocks] = createContextHook(() => {
         createdAt: new Date().toISOString(),
       };
 
-      console.log('[BlocksContext] Adding block locally:', localBlock.title);
+      console.log('[BlocksContext] Adding block:', localBlock.title);
       const updatedBlocks = [localBlock, ...blocks];
       setBlocks(updatedBlocks);
       await saveBlocksLocally(updatedBlocks);
+
+      void upsertBlockRemote(userId, {
+        id: localBlock.id,
+        title: localBlock.title,
+        description: localBlock.description,
+        header_image_url: localBlock.headerImageUrl,
+        tag_left: localBlock.tagLeft,
+        badge_right: localBlock.badgeRight,
+        action_label: localBlock.actionLabel,
+        action_type: localBlock.actionType,
+        place_id: localBlock.placeId,
+        url: localBlock.url,
+        created_at: localBlock.createdAt,
+      });
+
       return localBlock;
     },
     onSuccess: () => {
@@ -106,7 +156,7 @@ export const [BlocksProvider, useBlocks] = createContextHook(() => {
   const updateBlockMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Record<string, unknown> }) => {
       if (!userId) throw new Error('Not authenticated');
-      console.log('[BlocksContext] Updating block locally:', id);
+      console.log('[BlocksContext] Updating block:', id);
       const updatedBlocks = blocks.map((b) => {
         if (b.id !== id) return b;
         return {
@@ -121,6 +171,15 @@ export const [BlocksProvider, useBlocks] = createContextHook(() => {
       });
       setBlocks(updatedBlocks);
       await saveBlocksLocally(updatedBlocks);
+
+      const remoteUpdates: Record<string, unknown> = { id };
+      if (updates.title !== undefined) remoteUpdates.title = updates.title;
+      if (updates.description !== undefined) remoteUpdates.description = updates.description;
+      if (updates.headerImageUrl !== undefined) remoteUpdates.header_image_url = updates.headerImageUrl;
+      if (updates.actionLabel !== undefined) remoteUpdates.action_label = updates.actionLabel;
+      if (updates.placeId !== undefined) remoteUpdates.place_id = updates.placeId;
+      if (updates.url !== undefined) remoteUpdates.url = updates.url;
+      void upsertBlockRemote(userId, remoteUpdates);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['profile_blocks', userId] });
@@ -130,10 +189,12 @@ export const [BlocksProvider, useBlocks] = createContextHook(() => {
   const deleteBlockMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!userId) throw new Error('Not authenticated');
-      console.log('[BlocksContext] Deleting block locally:', id);
+      console.log('[BlocksContext] Deleting block:', id);
       const updatedBlocks = blocks.filter((b) => b.id !== id);
       setBlocks(updatedBlocks);
       await saveBlocksLocally(updatedBlocks);
+
+      void deleteBlockRemote(userId, id);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['profile_blocks', userId] });

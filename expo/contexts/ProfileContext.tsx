@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchProfile, upsertProfile } from '@/services/supabaseData';
 import { CategoryType } from '@/types';
 
 export interface MyProfile {
@@ -41,22 +42,22 @@ function makeDefaultProfile(userId: string): MyProfile {
   };
 }
 
-async function loadLocalProfile(): Promise<MyProfile | null> {
-  try {
-    const raw = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-async function saveLocalProfile(profile: MyProfile): Promise<void> {
-  try {
-    await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-    console.log('[ProfileContext] Profile saved to local storage');
-  } catch (e) {
-    console.log('[ProfileContext] Failed to save locally:', e);
-  }
+function normalizeProfile(raw: Record<string, unknown>, userId: string): MyProfile {
+  return {
+    id: (raw.id as string) ?? userId,
+    display_name: (raw.display_name as string) ?? '',
+    bio: (raw.bio as string) ?? '',
+    avatar_url: (raw.avatar_url as string) ?? '',
+    style_tag: (raw.style_tag as CategoryType) ?? 'budget',
+    created_at: (raw.created_at as string) ?? new Date().toISOString(),
+    updated_at: (raw.updated_at as string) ?? null,
+    phone: (raw.phone as string) ?? '',
+    services: Array.isArray(raw.services) ? raw.services as string[] : [],
+    email: (raw.email as string) ?? '',
+    vehicleType: ((raw.vehicleType ?? raw.vehicle_type) as string) ?? '',
+    serviceRadius: ((raw.serviceRadius ?? raw.service_radius) as number) ?? 0,
+    city: (raw.city as string) ?? '',
+  };
 }
 
 export const [ProfileProvider, useProfile] = createContextHook(() => {
@@ -71,10 +72,26 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
       console.log('[ProfileContext] Loading profile for:', safeUserId);
 
       try {
-        const local = await loadLocalProfile();
-        if (local && local.id === safeUserId) {
-          console.log('[ProfileContext] Loaded local profile:', local.display_name);
-          return local;
+        const remote = await fetchProfile(safeUserId);
+        if (remote && typeof remote === 'object') {
+          const normalized = normalizeProfile(remote as Record<string, unknown>, safeUserId);
+          if (normalized.display_name || normalized.bio || normalized.avatar_url) {
+            console.log('[ProfileContext] Loaded profile:', normalized.display_name);
+            return normalized;
+          }
+        }
+      } catch (e) {
+        console.log('[ProfileContext] Remote profile load failed:', e);
+      }
+
+      try {
+        const localRaw = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+        if (localRaw) {
+          const local = JSON.parse(localRaw);
+          if (local && local.id === safeUserId) {
+            console.log('[ProfileContext] Loaded local profile:', local.display_name);
+            return normalizeProfile(local, safeUserId);
+          }
         }
       } catch (e) {
         console.log('[ProfileContext] Local profile load failed:', e);
@@ -82,7 +99,7 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
 
       console.log('[ProfileContext] No profile found, returning default for:', safeUserId);
       const defaultProfile = makeDefaultProfile(safeUserId);
-      await saveLocalProfile(defaultProfile);
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(defaultProfile));
       return defaultProfile;
     },
     enabled: !!userId && isAuthenticated,
@@ -129,8 +146,15 @@ export const [ProfileProvider, useProfile] = createContextHook(() => {
         city: p.city !== undefined ? p.city.trim() : current.city,
       };
 
-      console.log('[ProfileContext] Saving profile locally for user:', userId);
-      await saveLocalProfile(savedProfile);
+      console.log('[ProfileContext] Saving profile for user:', userId);
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(savedProfile));
+
+      void upsertProfile(userId, {
+        ...savedProfile,
+        vehicle_type: savedProfile.vehicleType,
+        service_radius: savedProfile.serviceRadius,
+      });
+
       return savedProfile;
     },
     onSuccess: (data) => {

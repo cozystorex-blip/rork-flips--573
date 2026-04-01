@@ -3,6 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Expense, ExpenseCategoryType, ExpenseSummary } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  fetchExpenses as fetchExpensesRemote,
+  upsertExpense as upsertExpenseRemote,
+  deleteExpense as deleteExpenseRemote,
+} from '@/services/supabaseData';
 
 const STORAGE_KEY = 'expenses_data';
 
@@ -21,19 +27,45 @@ function getStartOfMonth(): Date {
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
+function normalizeExpense(raw: Record<string, unknown>): Expense {
+  return {
+    id: (raw.id as string) ?? '',
+    title: (raw.title as string) ?? '',
+    amount: (raw.amount as number) ?? 0,
+    category: ((raw.category) as ExpenseCategoryType) ?? 'other',
+    storeName: ((raw.storeName ?? raw.store_name) as string) ?? undefined,
+    notes: (raw.notes as string) ?? undefined,
+    createdAt: ((raw.createdAt ?? raw.created_at) as string) ?? new Date().toISOString(),
+  } as Expense;
+}
+
 export const [ExpenseProvider, useExpenses] = createContextHook(() => {
   const queryClient = useQueryClient();
+  const { userId } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const expensesQuery = useQuery({
-    queryKey: ['expenses'],
+    queryKey: ['expenses', userId],
     queryFn: async () => {
+      if (userId) {
+        try {
+          const remote = await fetchExpensesRemote(userId);
+          if (Array.isArray(remote) && remote.length > 0) {
+            console.log('[ExpenseContext] Loaded', remote.length, 'expenses from remote');
+            return remote.map((r) => normalizeExpense(r as Record<string, unknown>));
+          }
+        } catch (e) {
+          console.log('[ExpenseContext] Remote fetch failed:', e);
+        }
+      }
+
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored) as Expense[];
       }
       return [];
     },
+    staleTime: 30000,
   });
 
   useEffect(() => {
@@ -48,7 +80,7 @@ export const [ExpenseProvider, useExpenses] = createContextHook(() => {
       return updatedExpenses;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      void queryClient.invalidateQueries({ queryKey: ['expenses', userId] });
     },
   });
 
@@ -65,9 +97,22 @@ export const [ExpenseProvider, useExpenses] = createContextHook(() => {
       const updated = [newExpense, ...expenses];
       setExpenses(updated);
       mutate(updated);
+
+      if (userId) {
+        void upsertExpenseRemote(userId, {
+          id: newExpense.id,
+          title: newExpense.title,
+          amount: newExpense.amount,
+          category: newExpense.category,
+          store_name: newExpense.merchant ?? null,
+          notes: newExpense.notes ?? null,
+          created_at: newExpense.createdAt,
+        });
+      }
+
       return newExpense;
     },
-    [expenses, mutate]
+    [expenses, mutate, userId]
   );
 
   const deleteExpense = useCallback(
@@ -76,8 +121,12 @@ export const [ExpenseProvider, useExpenses] = createContextHook(() => {
       const updated = expenses.filter((e) => e.id !== id);
       setExpenses(updated);
       mutate(updated);
+
+      if (userId) {
+        void deleteExpenseRemote(userId, id);
+      }
     },
-    [expenses, mutate]
+    [expenses, mutate, userId]
   );
 
   const summary = useMemo((): ExpenseSummary => {

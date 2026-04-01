@@ -3,7 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePremium } from '@/contexts/PremiumContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { deleteScanImage } from '@/services/imagePersistence';
+import {
+  fetchScanHistory as fetchScanHistoryRemote,
+  upsertScanEntry,
+  deleteScanEntry as deleteScanEntryRemote,
+  clearScanHistory as clearScanHistoryRemote,
+} from '@/services/supabaseData';
 import type { SmartScanResult } from '@/services/smartScanService';
 
 const STORAGE_KEY = 'scan_history_data';
@@ -16,21 +23,48 @@ export interface ScanHistoryEntry {
   scannedAt: string;
 }
 
+function normalizeEntry(raw: Record<string, unknown>): ScanHistoryEntry {
+  let result = raw.result;
+  if (typeof result === 'string') {
+    try { result = JSON.parse(result); } catch { result = {}; }
+  }
+  return {
+    id: (raw.id as string) ?? '',
+    result: (result as SmartScanResult) ?? {},
+    imageUri: ((raw.imageUri ?? raw.image_uri) as string) ?? null,
+    scannedAt: ((raw.scannedAt ?? raw.scanned_at) as string) ?? new Date().toISOString(),
+  };
+}
+
 export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { isPremium } = usePremium();
+  const { userId } = useAuth();
   const [entries, setEntries] = useState<ScanHistoryEntry[]>([]);
 
   const historyQuery = useQuery({
-    queryKey: ['scan_history'],
+    queryKey: ['scan_history', userId],
     queryFn: async () => {
+      if (userId) {
+        try {
+          const remote = await fetchScanHistoryRemote(userId);
+          if (Array.isArray(remote) && remote.length > 0) {
+            console.log('[ScanHistory] Loaded', remote.length, 'entries from remote');
+            return remote.map((r) => normalizeEntry(r as Record<string, unknown>));
+          }
+        } catch (e) {
+          console.log('[ScanHistory] Remote fetch failed:', e);
+        }
+      }
+
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        console.log('[ScanHistory] Loaded entries from storage');
+        console.log('[ScanHistory] Loaded entries from local storage');
         return JSON.parse(stored) as ScanHistoryEntry[];
       }
       return [];
     },
+    staleTime: 30000,
   });
 
   useEffect(() => {
@@ -45,7 +79,7 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
       return updated;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['scan_history'] });
+      void queryClient.invalidateQueries({ queryKey: ['scan_history', userId] });
     },
   });
 
@@ -70,9 +104,19 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
         mutate(updated);
         return updated;
       });
+
+      if (userId) {
+        void upsertScanEntry(userId, {
+          id: entryId,
+          result: JSON.stringify(result),
+          image_uri: imageUri ?? null,
+          scanned_at: newEntry.scannedAt,
+        });
+      }
+
       return entryId;
     },
-    [mutate]
+    [mutate, userId]
   );
 
   const getEntryById = useCallback(
@@ -96,8 +140,15 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
         mutate(updated);
         return updated;
       });
+
+      if (userId) {
+        void upsertScanEntry(userId, {
+          id,
+          image_uri: newImageUri,
+        });
+      }
     },
-    [mutate]
+    [mutate, userId]
   );
 
   const deleteEntry = useCallback(
@@ -112,8 +163,12 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
         mutate(updated);
         return updated;
       });
+
+      if (userId) {
+        void deleteScanEntryRemote(userId, id);
+      }
     },
-    [mutate]
+    [mutate, userId]
   );
 
   const clearHistory = useCallback(() => {
@@ -127,7 +182,11 @@ export const [ScanHistoryProvider, useScanHistory] = createContextHook(() => {
       mutate([]);
       return [];
     });
-  }, [mutate]);
+
+    if (userId) {
+      void clearScanHistoryRemote(userId);
+    }
+  }, [mutate, userId]);
 
   const visibleEntries = useMemo(() => {
     if (isPremium) return entries;
