@@ -401,6 +401,17 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
 
     console.log('[OnlinePeople] handleToggleOnline:', goingOnline ? 'GOING ONLINE' : 'GOING OFFLINE', 'id:', effectiveId);
 
+    if (goingOnline) {
+      setIsUserOnline(true);
+      setConnectionState('connected');
+      setLastSyncedAt(Date.now());
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      setIsUserOnline(false);
+      setConnectionState('disconnected');
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
     try {
       toggleMutation.mutate({
         id: effectiveId,
@@ -411,17 +422,22 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
       });
 
       if (goingOnline) {
-        const channelSuccess = await connectChannel();
-        if (channelSuccess) {
-          await savePersistedState({
-            wantsOnline: true,
-            userId: effectiveId,
-            timestamp: Date.now(),
-          });
-          console.log('[OnlinePeople] Online state persisted');
-        } else {
-          scheduleReconnect();
-        }
+        connectChannel().then(async (channelSuccess) => {
+          if (channelSuccess) {
+            await savePersistedState({
+              wantsOnline: true,
+              userId: effectiveId,
+              timestamp: Date.now(),
+            });
+            console.log('[OnlinePeople] Online state persisted');
+          } else {
+            scheduleReconnect();
+          }
+          isGoingOnlineRef.current = false;
+        }).catch(() => {
+          isGoingOnlineRef.current = false;
+        });
+        return;
       } else {
         cleanup();
         if (mountedRef.current) {
