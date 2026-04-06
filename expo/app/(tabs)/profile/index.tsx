@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const { profile, saveProfile } = useProfile();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
-  const { isUserOnline, handleToggleOnline, connectionState } = useOnlinePeople();
+  const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -291,6 +291,34 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
+          {isUserOnline && onlineUsers.length > 0 ? (
+            <View style={styles.onlineSection}>
+              <Text style={styles.onlineSectionTitle}>People Online</Text>
+              <Text style={styles.onlineSectionCount}>{onlineUsers.length} online now</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineList}>
+                {onlineUsers.map((u) => (
+                  <View key={u.id} style={styles.onlineCard}>
+                    <View style={styles.onlineAvatarWrap}>
+                      {u.avatar_url ? (
+                        <Image source={{ uri: u.avatar_url }} style={styles.onlineAvatar} contentFit="cover" />
+                      ) : (
+                        <Text style={styles.onlineAvatarInitial}>{(u.name || 'U').charAt(0).toUpperCase()}</Text>
+                      )}
+                      <View style={styles.onlineIndicator} />
+                    </View>
+                    <Text style={styles.onlineName} numberOfLines={1}>{u.name || 'User'}</Text>
+                    <Text style={styles.onlineActivity}>{u.activity === 'scanning' ? 'Scanning' : u.activity === 'saving' ? 'Saving' : 'Browsing'}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          ) : isUserOnline ? (
+            <View style={styles.onlineSection}>
+              <Text style={styles.onlineSectionTitle}>People Online</Text>
+              <Text style={styles.onlineEmptyText}>No one else is online right now</Text>
+            </View>
+          ) : null}
+
           <View style={styles.adSection}>
             <AdMobBanner />
           </View>
@@ -514,5 +542,89 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FF3B30',
   },
-
+  onlineSection: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  onlineSectionTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  onlineSectionCount: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#16A34A',
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  onlineEmptyText: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 6,
+  },
+  onlineList: {
+    gap: 14,
+    paddingVertical: 4,
+  },
+  onlineCard: {
+    alignItems: 'center' as const,
+    width: 72,
+  },
+  onlineAvatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 6,
+    position: 'relative' as const,
+    overflow: 'visible' as const,
+  },
+  onlineAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  onlineAvatarInitial: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#16A34A',
+  },
+  onlineIndicator: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#34C759',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  onlineName: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    textAlign: 'center' as const,
+    maxWidth: 72,
+  },
+  onlineActivity: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+    marginTop: 1,
+  },
 });
