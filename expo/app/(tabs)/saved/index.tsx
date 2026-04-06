@@ -176,7 +176,7 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
   },
 
   scrollContent: {
@@ -199,34 +199,37 @@ const styles = StyleSheet.create({
     gap: GRID_GAP,
   },
   gridCard: {
-    backgroundColor: 'transparent',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   gridImageWrap: {
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderRadius: 18,
   },
   gridImage: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
   },
   gridImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F7',
   },
   cardInfo: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
     gap: 3,
   },
   cardTitle: {
     fontSize: 13,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#0A0A0A',
     letterSpacing: -0.2,
   },
   cardMetaRow: {
@@ -237,14 +240,14 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 11,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#6D6D72',
     flex: 1,
     marginRight: 4,
   },
   cardPrice: {
     fontSize: 12,
     fontWeight: '800' as const,
-    color: '#16A34A',
+    color: '#12903F',
   },
   cardBadge: {
     alignSelf: 'flex-start' as const,
