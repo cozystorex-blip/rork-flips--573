@@ -336,13 +336,6 @@ export default function ProfileScreen() {
                 ))}
               </View>
             </View>
-          ) : isUserOnline ? (
-            <View style={styles.onlineSection}>
-              <View style={styles.onlineSectionHeader}>
-                <Text style={styles.onlineSectionTitle}>People Online</Text>
-              </View>
-              <Text style={styles.onlineEmptyText}>No one else is online right now</Text>
-            </View>
           ) : null}
 
           <View style={styles.adSection}>
