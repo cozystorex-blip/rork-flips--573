@@ -19,6 +19,8 @@ import {
   Camera,
   Wifi,
   WifiOff,
+  Users,
+  ChevronRight,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,8 +28,10 @@ import { useProfile } from '@/contexts/ProfileContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import { useOnlinePeople } from '@/contexts/OnlinePeopleContext';
+import { useConnections } from '@/contexts/ConnectionsContext';
 import { pickAndCropAvatar, uploadAvatarToSupabase } from '@/services/uploadService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
+import { router } from 'expo-router';
 
 
 export default function ProfileScreen() {
@@ -37,10 +41,12 @@ export default function ProfileScreen() {
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
   const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
+  const { connectedUserIds, friends, requestCount } = useConnections();
 
-  const dedupedOnlineUsers = useMemo(() => {
+  const connectedOnlineUsers = useMemo(() => {
     const seen = new Map<string, typeof onlineUsers[number]>();
     for (const u of onlineUsers) {
+      if (!connectedUserIds.has(u.id)) continue;
       if (seen.has(u.id)) {
         const existing = seen.get(u.id)!;
         if (u.lastActive > existing.lastActive) {
@@ -51,7 +57,7 @@ export default function ProfileScreen() {
       }
     }
     return Array.from(seen.values());
-  }, [onlineUsers]);
+  }, [onlineUsers, connectedUserIds]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -306,12 +312,42 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {isUserOnline && dedupedOnlineUsers.length > 0 ? (
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/connections');
+            }}
+            style={({ pressed }) => [styles.connectionsBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+            testID="connections-btn"
+          >
+            <View style={styles.connectionsBtnLeft}>
+              <View style={styles.connectionsBtnIcon}>
+                <Users size={18} color="#16A34A" strokeWidth={2.2} />
+              </View>
+              <View>
+                <Text style={styles.connectionsBtnTitle}>My Connections</Text>
+                <Text style={styles.connectionsBtnSub}>
+                  {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+                  {requestCount > 0 ? ` · ${requestCount} pending` : ''}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.connectionsBtnRight}>
+              {requestCount > 0 ? (
+                <View style={styles.requestBadge}>
+                  <Text style={styles.requestBadgeText}>{requestCount}</Text>
+                </View>
+              ) : null}
+              <ChevronRight size={18} color="#C7C7CC" strokeWidth={2} />
+            </View>
+          </Pressable>
+
+          {isUserOnline && connectedOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
-              <Text style={styles.onlineSectionTitle}>People Online</Text>
-              <Text style={styles.onlineSectionCount}>{dedupedOnlineUsers.length} online now</Text>
+              <Text style={styles.onlineSectionTitle}>Connections Online</Text>
+              <Text style={styles.onlineSectionCount}>{connectedOnlineUsers.length} online now</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineList}>
-                {dedupedOnlineUsers.map((u) => (
+                {connectedOnlineUsers.map((u) => (
                   <View key={u.id} style={styles.onlineCard}>
                     <View style={styles.onlineAvatarWrap}>
                       {u.avatar_url ? (
@@ -329,8 +365,8 @@ export default function ProfileScreen() {
             </View>
           ) : isUserOnline ? (
             <View style={styles.onlineSection}>
-              <Text style={styles.onlineSectionTitle}>People Online</Text>
-              <Text style={styles.onlineEmptyText}>No one else is online right now</Text>
+              <Text style={styles.onlineSectionTitle}>Connections Online</Text>
+              <Text style={styles.onlineEmptyText}>None of your connections are online right now</Text>
             </View>
           ) : null}
 
@@ -556,6 +592,66 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600' as const,
     color: '#FF3B30',
+  },
+  connectionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  connectionsBtnLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  connectionsBtnIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  connectionsBtnTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
+  },
+  connectionsBtnSub: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  connectionsBtnRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  requestBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  requestBadgeText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
   },
   onlineSection: {
     marginHorizontal: 16,

@@ -13,6 +13,7 @@ import { ExpenseProvider } from "@/contexts/ExpenseContext";
 import { BlocksProvider } from "@/contexts/BlocksContext";
 import { BusinessProvider } from "@/contexts/BusinessContext";
 import { OnlinePeopleProvider } from "@/contexts/OnlinePeopleContext";
+import { ConnectionsProvider } from "@/contexts/ConnectionsContext";
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -33,6 +34,7 @@ function RootLayoutNav() {
       <Stack.Screen name="map-full" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="post-deal" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="create-block" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="connections" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
@@ -55,9 +57,11 @@ export default function RootLayout() {
                     <BlocksProvider>
                       <BusinessProvider>
                         <OnlinePeopleProvider>
-                          <ScanProcessProvider>
-                            <RootLayoutNav />
-                          </ScanProcessProvider>
+                          <ConnectionsProvider>
+                            <ScanProcessProvider>
+                              <RootLayoutNav />
+                            </ScanProcessProvider>
+                          </ConnectionsProvider>
                         </OnlinePeopleProvider>
                       </BusinessProvider>
                     </BlocksProvider>
