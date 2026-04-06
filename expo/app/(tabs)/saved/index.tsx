@@ -8,14 +8,8 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import {
-  Tag,
-  Camera,
-  ScanLine,
-  RefreshCw,
-} from 'lucide-react-native';
+import { Tag } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -41,7 +35,6 @@ interface SavedItem {
 
 export default function SavedScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const screenWidth = useScreenWidth();
   const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
   const { savedDeals, unsaveDeal, isLoading: dealsLoading } = useSavedItems();
@@ -112,17 +105,7 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.headerRow}>
-          <View style={styles.savedLogoBadge}>
-            <RefreshCw size={16} color="#FFFFFF" strokeWidth={2.5} />
-          </View>
-          <View>
-            <Text style={styles.screenTitle}>Saved Items</Text>
-            <Text style={styles.screenSubtitle}>Your Flips collection</Text>
-          </View>
-        </View>
-      </View>
+
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -134,26 +117,6 @@ export default function SavedScreen() {
         {isLoading ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.loadingText}>Loading...</Text>
-          </View>
-        ) : savedItems.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIconWrap}>
-              <ScanLine size={32} color="#16A34A" strokeWidth={1.5} />
-            </View>
-            <Text style={styles.emptyTitle}>No saved items</Text>
-            <Text style={styles.emptySubtitle}>Long press items on the home screen to save them here</Text>
-            <View style={styles.emptyActions}>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/smart-scan');
-                }}
-                style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
-              >
-                <Camera size={15} color="#FFFFFF" strokeWidth={2} />
-                <Text style={styles.emptyBtnText}>Scan an Item</Text>
-              </Pressable>
-            </View>
           </View>
         ) : (
           <View>
@@ -215,35 +178,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
-  screenHeader: {
-    paddingHorizontal: H_PAD,
-    paddingBottom: 14,
-    backgroundColor: '#F2F2F7',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  savedLogoBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#16A34A',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.4,
-  },
-  screenSubtitle: {
-    fontSize: 13,
-    color: '#8E8E93',
-    marginTop: 1,
-  },
+
   scrollContent: {
     paddingHorizontal: H_PAD,
     paddingTop: 8,
@@ -253,59 +188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 60,
   },
-  emptyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 32,
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    marginTop: 4,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#8E8E93',
-    textAlign: 'center' as const,
-    lineHeight: 20,
-    maxWidth: 260,
-  },
-  emptyActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: '#16A34A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  emptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  emptyBtnText: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
+
   loadingText: {
     fontSize: 14,
     color: '#8E8E93',
