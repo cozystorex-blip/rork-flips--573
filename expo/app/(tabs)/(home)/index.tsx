@@ -317,9 +317,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   flipsLogoImage: {
-    width: 54,
-    height: 54,
-    borderRadius: 15,
+    width: 80,
+    height: 80,
+    borderRadius: 0,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
