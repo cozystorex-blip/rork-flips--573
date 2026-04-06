@@ -308,18 +308,16 @@ const styles = StyleSheet.create({
   },
   screenHeader: {
     paddingHorizontal: H_PAD,
-    paddingBottom: 14,
+    paddingBottom: 8,
     backgroundColor: '#FFFFFF',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
   flipsLogoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 0,
+    width: 90,
+    height: 90,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
