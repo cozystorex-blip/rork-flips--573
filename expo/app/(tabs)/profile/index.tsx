@@ -377,7 +377,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#000000',
   },
   scrollView: {
     flex: 1,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   greenHeader: {
-    backgroundColor: '#16A34A',
+    backgroundColor: '#000000',
     paddingBottom: 28,
   },
   profileSection: {
@@ -401,11 +401,11 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3.5,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(255,255,255,0.3)',
     overflow: 'hidden',
   },
   avatarImage: {
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#1C1C1E',
     borderWidth: 2.5,
     borderColor: '#FFFFFF',
     justifyContent: 'center',
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 36,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     marginHorizontal: 4,
   },
   onlineBtn: {
@@ -514,14 +514,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   onlineBtnActive: {
-    backgroundColor: 'rgba(52,199,89,0.35)',
+    backgroundColor: 'rgba(52,199,89,0.25)',
     borderWidth: 1.5,
-    borderColor: 'rgba(52,199,89,0.6)',
+    borderColor: 'rgba(52,199,89,0.5)',
   },
   onlineBtnInactive: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   onlineBtnText: {
     fontSize: 15,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
 
   whiteContent: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#111111',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -14,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     marginHorizontal: 16,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: 'rgba(255,59,48,0.12)',
     borderRadius: 14,
   },
   signOutText: {
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1C1C1E',
     borderRadius: 14,
     padding: 16,
     shadowColor: '#000',
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   onlineSectionTitle: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   onlineEmptyText: {
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#2C2C2E',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: 6,
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
   onlineAvatarInitial: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#16A34A',
+    color: '#34C759',
   },
   onlineIndicator: {
     position: 'absolute' as const,
@@ -655,19 +655,19 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#34C759',
     borderWidth: 2.5,
-    borderColor: '#FFFFFF',
+    borderColor: '#1C1C1E',
   },
   onlineName: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#1C1C1E',
+    color: '#FFFFFF',
     textAlign: 'center' as const,
     maxWidth: 72,
   },
   onlineActivity: {
     fontSize: 10,
     fontWeight: '500' as const,
-    color: '#8E8E93',
+    color: '#636366',
     marginTop: 1,
   },
 });
