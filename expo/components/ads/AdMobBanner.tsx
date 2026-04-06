@@ -150,18 +150,18 @@ export default function AdMobBanner() {
       <View style={styles.container}>
         {Platform.OS === 'web' ? (
           <View style={styles.iframeWrap}>
-            <iframe
-              src={`https://pagead2.googlesyndication.com/pagead/ads?client=${AD_CLIENT}&slotname=${getAdSlot()}&output=html&w=320&h=50`}
-              width="320"
-              height="50"
-              style={{
+            {React.createElement('iframe', {
+              src: `https://pagead2.googlesyndication.com/pagead/ads?client=${AD_CLIENT}&slotname=${getAdSlot()}&output=html&w=320&h=50`,
+              width: '320',
+              height: '50',
+              style: {
                 border: 'none',
                 overflow: 'hidden',
                 borderRadius: 8,
-              } as any}
-              scrolling="no"
-              allowFullScreen
-            />
+              },
+              scrolling: 'no',
+              allowFullScreen: true,
+            } as any)}
             <View style={styles.adLabel} pointerEvents="none">
               <Text style={styles.adLabelText}>Ad</Text>
             </View>

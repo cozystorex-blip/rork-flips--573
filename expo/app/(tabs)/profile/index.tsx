@@ -239,9 +239,9 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Text style={styles.memberText}>Member since {memberSince}</Text>
-            {user?.email && (
+            {user?.email ? (
               <Text style={styles.emailText}>{user.email}</Text>
-            )}
+            ) : null}
 
             <View style={styles.statsRow}>
               <View style={styles.statItem}>

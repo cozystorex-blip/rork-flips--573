@@ -604,13 +604,13 @@ export default function ScanResultView({
               <Text style={st.categoryText}>
                 {showPartialDetails ? `Likely: ${categoryLabel}` : categoryLabel}
               </Text>
-              {price && (
+              {price ? (
                 <View style={st.priceBadge}>
                   <DollarSign size={12} color="#0058A3" />
                   <Text style={st.priceText}>{price}</Text>
-                  {showPartialDetails && <Text style={st.priceEstLabel}>est.</Text>}
+                  {showPartialDetails ? <Text style={st.priceEstLabel}>est.</Text> : null}
                 </View>
-              )}
+              ) : null}
             </View>
 
             {description.length > 0 && (

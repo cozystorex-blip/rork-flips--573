@@ -258,13 +258,13 @@ export default function HomeScreen() {
                       <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
                       <View style={styles.cardMetaRow}>
                         <Text style={styles.cardSubtitle} numberOfLines={1}>{item.source}</Text>
-                        {item.price && <Text style={styles.cardPrice}>{item.price}</Text>}
+                        {item.price ? <Text style={styles.cardPrice}>{item.price}</Text> : null}
                       </View>
-                      {item.badge && (
+                      {item.badge ? (
                         <View style={[styles.cardBadge, { backgroundColor: `${item.badgeColor}14` }]}>
                           <Text style={[styles.cardBadgeText, { color: item.badgeColor }]}>{item.badge}</Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
                   </Pressable>
                 ))}
