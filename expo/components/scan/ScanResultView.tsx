@@ -7,6 +7,8 @@ import {
   Pressable,
   Animated,
   ActivityIndicator,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import {
@@ -30,8 +32,11 @@ import {
   Sparkles,
   Eye,
   Store,
+  Download,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import * as MediaLibrary from 'expo-media-library';
+import { File, Paths, Directory } from 'expo-file-system';
 
 import type { SmartScanResult } from '@/services/smartScanService';
 import {
@@ -374,6 +379,90 @@ function PriceRow({ label, value, large }: { label: string; value: string; large
   );
 }
 
+function SavePhotoButton({ imageUri, label }: { imageUri: string; label?: string }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = useCallback(async () => {
+    if (saving || saved) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSaving(true);
+
+    try {
+      if (Platform.OS === 'web') {
+        const link = document.createElement('a');
+        link.href = imageUri;
+        link.download = `flips-scan-${Date.now()}.jpg`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSaved(true);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setTimeout(() => setSaved(false), 2500);
+        return;
+      }
+
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow photo library access to save images.');
+        setSaving(false);
+        return;
+      }
+
+      let localUri = imageUri;
+
+      if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
+        console.log('[SavePhoto] Downloading remote image:', imageUri);
+        const downloadDir = new Directory(Paths.cache, 'scan-downloads');
+        try { downloadDir.create(); } catch { /* already exists */ }
+        const downloadedFile = await File.downloadFileAsync(imageUri, downloadDir);
+        localUri = downloadedFile.uri;
+        console.log('[SavePhoto] Downloaded to:', localUri);
+      }
+
+      const asset = await MediaLibrary.createAssetAsync(localUri);
+      console.log('[SavePhoto] Saved to library:', asset.uri);
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error('[SavePhoto] Error saving photo:', err);
+      Alert.alert('Save Failed', 'Could not save the photo. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }, [imageUri, saving, saved]);
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        st.savePhotoBtn,
+        saved && st.savePhotoBtnSaved,
+        pressed && { opacity: 0.8 },
+      ]}
+      onPress={handleSave}
+      disabled={saving}
+      testID="save-photo-btn"
+    >
+      {saving ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : saved ? (
+        <>
+          <CheckCircle2 size={13} color="#FFFFFF" />
+          <Text style={st.savePhotoBtnText}>Saved</Text>
+        </>
+      ) : (
+        <>
+          <Download size={13} color="#FFFFFF" />
+          <Text style={st.savePhotoBtnText}>{label ?? 'Save'}</Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
 function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResult; onScanAgain: () => void }) {
   const hasAnyName = !isWeakItemName(result.item_name);
 
@@ -486,6 +575,11 @@ export default function ScanResultView({
               <Sparkles size={9} color="#FFFFFF" />
               <Text style={st.imageBadgeText}>AI Enhanced</Text>
             </View>
+            {referenceImageUrl && (
+              <View style={st.savePhotoBtnWrap}>
+                <SavePhotoButton imageUri={referenceImageUrl} />
+              </View>
+            )}
           </View>
           <View style={st.dualImageWrap}>
             <ExpoImage
@@ -498,6 +592,11 @@ export default function ScanResultView({
               <Camera size={9} color="#FFFFFF" />
               <Text style={st.imageBadgeText}>Your Photo</Text>
             </View>
+            {scannedImageUri && (
+              <View style={st.savePhotoBtnWrap}>
+                <SavePhotoButton imageUri={scannedImageUri} />
+              </View>
+            )}
           </View>
         </View>
       ) : !showFallback && heroImageUri ? (
@@ -512,6 +611,11 @@ export default function ScanResultView({
             <View style={st.generatingOverlay}>
               <ActivityIndicator size="small" color="#FFFFFF" />
               <Text style={st.generatingText}>Creating reference...</Text>
+            </View>
+          )}
+          {!isGenerating && (
+            <View style={st.savePhotoBtnWrapHero}>
+              <SavePhotoButton imageUri={heroImageUri} label="Save Photo" />
             </View>
           )}
         </View>
@@ -1124,6 +1228,34 @@ const st = StyleSheet.create({
     marginTop: 2,
   },
   deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
 
   lowConfContainer: { paddingTop: 4 },
   lowConfHeader: { alignItems: 'center', marginBottom: 20 },
