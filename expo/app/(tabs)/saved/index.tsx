@@ -176,7 +176,7 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
 
   scrollContent: {
@@ -200,20 +200,18 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#F0F0F2',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   gridImageWrap: {
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    borderRadius: 20,
+    borderRadius: 18,
   },
   gridImage: {
     backgroundColor: '#F5F5F5',
@@ -249,7 +247,7 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 12,
     fontWeight: '800' as const,
-    color: '#16A34A',
+    color: '#12903F',
   },
   cardBadge: {
     alignSelf: 'flex-start' as const,
