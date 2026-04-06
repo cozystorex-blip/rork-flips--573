@@ -311,14 +311,7 @@ export default function ProfileScreen() {
           {isUserOnline && dedupedOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
               <View style={styles.onlineSectionHeader}>
-                <View style={styles.onlineSectionHeaderLeft}>
-                  <Image
-                    source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/oy0bdlmcx7kprxgc9gyo5.jpeg' }}
-                    style={styles.onlineHeaderLogo}
-                    contentFit="contain"
-                  />
-                  <Text style={styles.onlineSectionTitle}>{dedupedOnlineUsers.length} Online Now</Text>
-                </View>
+                <Text style={styles.onlineSectionTitle}>{dedupedOnlineUsers.length} People Online</Text>
               </View>
               <View style={styles.onlineGrid}>
                 {dedupedOnlineUsers.map((u) => (
@@ -346,14 +339,7 @@ export default function ProfileScreen() {
           ) : isUserOnline ? (
             <View style={styles.onlineSection}>
               <View style={styles.onlineSectionHeader}>
-                <View style={styles.onlineSectionHeaderLeft}>
-                  <Image
-                    source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/oy0bdlmcx7kprxgc9gyo5.jpeg' }}
-                    style={styles.onlineHeaderLogo}
-                    contentFit="contain"
-                  />
-                  <Text style={styles.onlineSectionTitle}>People Online</Text>
-                </View>
+                <Text style={styles.onlineSectionTitle}>People Online</Text>
               </View>
               <Text style={styles.onlineEmptyText}>No one else is online right now</Text>
             </View>
