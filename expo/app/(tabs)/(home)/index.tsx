@@ -6,7 +6,7 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
-  Animated,
+  Animated as RNAnimated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -22,6 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
+import { Alert } from 'react-native';
 import { useScanProcess } from '@/contexts/ScanProcessContext';
 import type { SmartScanResult } from '@/services/smartScanService';
 import { useScreenWidth } from '@/hooks/useScreenWidth';
@@ -84,18 +85,18 @@ export default function HomeScreen() {
   const screenWidth = useScreenWidth();
   const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
   const { entries: scanEntries, isLoading: scanLoading } = useScanHistory();
-  const { savedDeals, isLoading: dealsLoading } = useSavedItems();
+  const { saveDeal, isDealSaved, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const { loadHistoryEntry } = useScanProcess();
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(18)).current;
+  const fadeAnim = useRef(new RNAnimated.Value(0)).current;
+  const slideAnim = useRef(new RNAnimated.Value(18)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
+    RNAnimated.parallel([
+      RNAnimated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
+      RNAnimated.timing(slideAnim, { toValue: 0, duration: 450, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, slideAnim]);
 
@@ -117,24 +118,10 @@ export default function HomeScreen() {
       };
     });
 
-    const dealItems: UnifiedItem[] = savedDeals.map((d) => ({
-      id: `deal-${d.id}`,
-      type: 'deal' as const,
-      title: d.title,
-      subtitle: d.category || 'Deal',
-      price: d.price != null ? `$${d.price.toFixed(2)}` : null,
-      imageUri: d.photoUrl,
-      source: d.storeName,
-      savedAt: d.savedAt,
-      badge: d.savingsAmount ? `${Math.round((d.savingsAmount / (d.price ?? 1)) * 100)}% Off` : null,
-      badgeColor: '#16A34A',
-      raw: d,
-    }));
-
-    return [...scanItems, ...dealItems].sort(
+    return scanItems.sort(
       (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
     );
-  }, [scanEntries, savedDeals]);
+  }, [scanEntries]);
 
   const handleCardPress = useCallback((item: UnifiedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -166,6 +153,42 @@ export default function HomeScreen() {
     }
   }, [router, loadHistoryEntry]);
 
+  const handleLongPress = useCallback((item: UnifiedItem) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const scanEntry = item.raw as ScanHistoryEntry;
+    const dealId = `scan-${scanEntry.id}`;
+
+    if (isDealSaved(dealId)) {
+      Alert.alert('Already Saved', 'This item is already in your saved collection.');
+      return;
+    }
+
+    let price: number | null = null;
+    const priceStr = getScanPrice(scanEntry);
+    if (priceStr) {
+      const num = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+      if (!isNaN(num)) price = num;
+    }
+
+    const result = saveDeal({
+      dealId,
+      title: scanEntry.result.item_name || 'Scanned Item',
+      storeName: scanEntry.result.category || 'Scanned Item',
+      price,
+      originalPrice: null,
+      savingsAmount: null,
+      photoUrl: scanEntry.imageUri,
+      category: scanEntry.result.category || null,
+      sourceType: 'scan',
+    });
+
+    if (result === 'saved') {
+      Alert.alert('Saved!', `"${scanEntry.result.item_name || 'Item'}" added to your saved collection.`);
+    } else if (result === 'limit_reached') {
+      Alert.alert('Limit Reached', 'Upgrade to Premium to save more items.');
+    }
+  }, [saveDeal, isDealSaved]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     void queryClient.invalidateQueries({ queryKey: ['scan_history'] });
@@ -196,7 +219,7 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#16A34A" />
         }
       >
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <RNAnimated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
           {isLoading ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.loadingText}>Loading...</Text>
@@ -228,6 +251,8 @@ export default function HomeScreen() {
                   <Pressable
                     key={item.id}
                     onPress={() => handleCardPress(item)}
+                    onLongPress={() => handleLongPress(item)}
+                    delayLongPress={400}
                     style={({ pressed }) => [
                       styles.gridCard,
                       { width: cardWidth },
@@ -273,7 +298,7 @@ export default function HomeScreen() {
           )}
 
           <View style={{ height: 32 }} />
-        </Animated.View>
+        </RNAnimated.View>
       </ScrollView>
     </View>
   );

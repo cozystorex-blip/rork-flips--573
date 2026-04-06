@@ -6,12 +6,12 @@ import {
   ScrollView,
   Pressable,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   Tag,
-  Package,
   Camera,
   ScanLine,
   RefreshCw,
@@ -19,19 +19,15 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { useScanHistory, ScanHistoryEntry } from '@/contexts/ScanHistoryContext';
 import { useSavedItems, SavedDeal } from '@/contexts/SavedItemsContext';
-import { useScanProcess } from '@/contexts/ScanProcessContext';
-import type { SmartScanResult } from '@/services/smartScanService';
 import { useScreenWidth } from '@/hooks/useScreenWidth';
 
 
 const GRID_GAP = 12;
 const H_PAD = 16;
 
-interface UnifiedItem {
+interface SavedItem {
   id: string;
-  type: 'deal' | 'scan';
   title: string;
   subtitle: string;
   price: string | null;
@@ -40,41 +36,7 @@ interface UnifiedItem {
   savedAt: string;
   badge: string | null;
   badgeColor: string;
-  raw: ScanHistoryEntry | SavedDeal;
-}
-
-function getDetailsRecord(r: SmartScanResult): Record<string, unknown> | null {
-  if (r.fashion_details) return r.fashion_details as unknown as Record<string, unknown>;
-  if (r.electronics_details) return r.electronics_details as unknown as Record<string, unknown>;
-  if (r.food_details) return r.food_details as unknown as Record<string, unknown>;
-  if (r.grocery_details) return r.grocery_details as unknown as Record<string, unknown>;
-  if (r.household_details) return r.household_details as unknown as Record<string, unknown>;
-  if (r.furniture_details) return r.furniture_details as unknown as Record<string, unknown>;
-  return null;
-}
-
-function getScanPrice(entry: ScanHistoryEntry): string | null {
-  const details = getDetailsRecord(entry.result);
-  if (!details) return null;
-  if (details.estimated_resale_value && typeof details.estimated_resale_value === 'string') return details.estimated_resale_value;
-  if (details.estimated_retail_price && typeof details.estimated_retail_price === 'string') return details.estimated_retail_price;
-  if (details.estimated_price && typeof details.estimated_price === 'string') return details.estimated_price;
-  if (details.price_range && typeof details.price_range === 'string') return details.price_range;
-  return null;
-}
-
-function getScanBadge(entry: ScanHistoryEntry): { label: string; color: string } | null {
-  const details = getDetailsRecord(entry.result);
-  if (!details) return null;
-  const vv = details.value_verdict;
-  if (vv && typeof vv === 'string') {
-    const v = vv.toLowerCase();
-    if (v.includes('good') || v.includes('great')) return { label: 'Good Deal', color: '#16A34A' };
-    if (v.includes('low')) return { label: 'Low Price', color: '#16A34A' };
-  }
-  const rd = details.resale_demand;
-  if (rd && typeof rd === 'string' && rd.toLowerCase().includes('high')) return { label: 'High Demand', color: '#EA580C' };
-  return null;
+  raw: SavedDeal;
 }
 
 export default function SavedScreen() {
@@ -82,90 +44,71 @@ export default function SavedScreen() {
   const insets = useSafeAreaInsets();
   const screenWidth = useScreenWidth();
   const cardWidth = (screenWidth - H_PAD * 2 - GRID_GAP) / 2;
-  const { entries: scanEntries, isLoading: scanLoading } = useScanHistory();
-  const { savedDeals, isLoading: dealsLoading } = useSavedItems();
+  const { savedDeals, unsaveDeal, isLoading: dealsLoading } = useSavedItems();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  const unifiedItems = useMemo<UnifiedItem[]>(() => {
-    const scanItems: UnifiedItem[] = scanEntries.map((e) => {
-      const badge = getScanBadge(e);
-      return {
-        id: `scan-${e.id}`,
-        type: 'scan' as const,
-        title: e.result.item_name || 'Scanned Item',
-        subtitle: e.result.item_type || 'Item',
-        price: getScanPrice(e),
-        imageUri: e.imageUri,
-        source: e.result.category || 'Scanned Item',
-        savedAt: e.scannedAt,
-        badge: badge?.label ?? null,
-        badgeColor: badge?.color ?? '#8E8E93',
-        raw: e,
-      };
-    });
-
-    const dealItems: UnifiedItem[] = savedDeals.map((d) => ({
-      id: `deal-${d.id}`,
-      type: 'deal' as const,
+  const savedItems = useMemo<SavedItem[]>(() => {
+    return savedDeals.map((d) => ({
+      id: d.id,
       title: d.title,
       subtitle: d.category || 'Deal',
-      price: d.price != null ? `$${d.price.toFixed(2)}` : null,
+      price: d.price != null ? `${d.price.toFixed(2)}` : null,
       imageUri: d.photoUrl,
       source: d.storeName,
       savedAt: d.savedAt,
       badge: d.savingsAmount ? `${Math.round((d.savingsAmount / (d.price ?? 1)) * 100)}% Off` : null,
       badgeColor: '#16A34A',
       raw: d,
-    }));
-
-    return [...scanItems, ...dealItems].sort(
+    })).sort(
       (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
     );
-  }, [scanEntries, savedDeals]);
+  }, [savedDeals]);
 
-  const filteredItems = unifiedItems;
-
-  const { loadHistoryEntry } = useScanProcess();
-
-  const handleCardPress = useCallback((item: UnifiedItem) => {
+  const handleCardPress = useCallback((item: SavedItem) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (item.type === 'scan') {
-      const scanEntry = item.raw as ScanHistoryEntry;
-      console.log('[Saved] Opening scan entry:', scanEntry.id, scanEntry.result.item_name);
-      loadHistoryEntry({
-        result: scanEntry.result,
-        imageUri: scanEntry.imageUri,
-        id: scanEntry.id,
-      });
-      router.push({ pathname: '/smart-scan', params: { historyEntryId: scanEntry.id } });
-    } else if (item.type === 'deal') {
-      const deal = item.raw as SavedDeal;
-      router.push({
-        pathname: '/post-detail',
-        params: {
-          dealId: deal.dealId,
-          title: deal.title,
-          storeName: deal.storeName,
-          imageUrl: deal.photoUrl ?? '',
-          category: deal.category ?? '',
-          sourceType: deal.sourceType ?? '',
-          price: deal.price != null ? String(deal.price) : '',
-          originalPrice: deal.originalPrice != null ? String(deal.originalPrice) : '',
-          savingsAmount: deal.savingsAmount != null ? String(deal.savingsAmount) : '',
+    const deal = item.raw;
+    router.push({
+      pathname: '/post-detail',
+      params: {
+        dealId: deal.dealId,
+        title: deal.title,
+        storeName: deal.storeName,
+        imageUrl: deal.photoUrl ?? '',
+        category: deal.category ?? '',
+        sourceType: deal.sourceType ?? '',
+        price: deal.price != null ? String(deal.price) : '',
+        originalPrice: deal.originalPrice != null ? String(deal.originalPrice) : '',
+        savingsAmount: deal.savingsAmount != null ? String(deal.savingsAmount) : '',
+      },
+    });
+  }, [router]);
+
+  const handleLongPress = useCallback((item: SavedItem) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Remove Saved Item',
+      `Remove "${item.title}" from your saved collection?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            unsaveDeal(item.raw.dealId);
+          },
         },
-      });
-    }
-  }, [router, loadHistoryEntry]);
+      ]
+    );
+  }, [unsaveDeal]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    void queryClient.invalidateQueries({ queryKey: ['scan_history'] });
     void queryClient.invalidateQueries({ queryKey: ['saved_deals'] });
     setTimeout(() => setRefreshing(false), 800);
   }, [queryClient]);
 
-  const isLoading = scanLoading || dealsLoading;
+  const isLoading = dealsLoading;
 
   return (
     <View style={styles.root}>
@@ -192,13 +135,13 @@ export default function SavedScreen() {
           <View style={styles.emptyContainer}>
             <Text style={styles.loadingText}>Loading...</Text>
           </View>
-        ) : filteredItems.length === 0 ? (
+        ) : savedItems.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconWrap}>
               <ScanLine size={32} color="#16A34A" strokeWidth={1.5} />
             </View>
             <Text style={styles.emptyTitle}>No saved items</Text>
-            <Text style={styles.emptySubtitle}>Scan items to automatically save them here</Text>
+            <Text style={styles.emptySubtitle}>Long press items on the home screen to save them here</Text>
             <View style={styles.emptyActions}>
               <Pressable
                 onPress={() => {
@@ -215,10 +158,12 @@ export default function SavedScreen() {
         ) : (
           <View>
             <View style={styles.grid}>
-              {filteredItems.map((item) => (
+              {savedItems.map((item) => (
                 <Pressable
                   key={item.id}
                   onPress={() => handleCardPress(item)}
+                  onLongPress={() => handleLongPress(item)}
+                  delayLongPress={400}
                   style={({ pressed }) => [
                     styles.gridCard,
                     { width: cardWidth },
@@ -237,11 +182,7 @@ export default function SavedScreen() {
                       />
                     ) : (
                       <View style={[styles.gridImagePlaceholder, { width: cardWidth, height: cardWidth * 0.75 }]}>
-                        {item.type === 'deal' ? (
-                          <Tag size={28} color="#C7C7CC" strokeWidth={1.5} />
-                        ) : (
-                          <Package size={28} color="#C7C7CC" strokeWidth={1.5} />
-                        )}
+                        <Tag size={28} color="#C7C7CC" strokeWidth={1.5} />
                       </View>
                     )}
                   </View>

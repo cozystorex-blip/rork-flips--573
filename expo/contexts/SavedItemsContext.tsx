@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { usePremium } from '@/contexts/PremiumContext';
-import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   fetchSavedDeals as fetchSavedDealsRemote,
@@ -48,7 +47,6 @@ function normalizeDeal(raw: Record<string, unknown>): SavedDeal {
 export const [SavedItemsProvider, useSavedItems] = createContextHook(() => {
   const queryClient = useQueryClient();
   const { isPremium } = usePremium();
-  const { entries: visibleScanEntries } = useScanHistory();
   const { userId } = useAuth();
   const [savedDeals, setSavedDeals] = useState<SavedDeal[]>([]);
   const initialSyncDone = useRef(false);
@@ -98,7 +96,7 @@ export const [SavedItemsProvider, useSavedItems] = createContextHook(() => {
     },
   });
 
-  const totalSavedCount = savedDeals.length + visibleScanEntries.length;
+  const totalSavedCount = savedDeals.length;
   const isAtFreeLimit = !isPremium && totalSavedCount >= FREE_SAVED_LIMIT;
   const canSave = isPremium || totalSavedCount < FREE_SAVED_LIMIT;
   const remainingFreeSlots = isPremium ? Infinity : Math.max(0, FREE_SAVED_LIMIT - totalSavedCount);
@@ -110,7 +108,7 @@ export const [SavedItemsProvider, useSavedItems] = createContextHook(() => {
         console.log('[SavedItems] Deal already saved:', deal.dealId);
         return 'duplicate';
       }
-      if (!isPremium && (savedDeals.length + visibleScanEntries.length) >= FREE_SAVED_LIMIT) {
+      if (!isPremium && savedDeals.length >= FREE_SAVED_LIMIT) {
         console.log('[SavedItems] Free limit reached, cannot save');
         return 'limit_reached';
       }
@@ -142,7 +140,7 @@ export const [SavedItemsProvider, useSavedItems] = createContextHook(() => {
 
       return 'saved';
     },
-    [savedDeals, saveMutation, isPremium, visibleScanEntries.length, userId]
+    [savedDeals, saveMutation, isPremium, userId]
   );
 
   const unsaveDeal = useCallback(
