@@ -377,7 +377,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#F2F2F7',
   },
   scrollView: {
     flex: 1,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
 
   whiteContent: {
     flex: 1,
-    backgroundColor: '#111111',
+    backgroundColor: '#F2F2F7',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -14,
@@ -566,8 +566,13 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     marginHorizontal: 16,
-    backgroundColor: 'rgba(255,59,48,0.12)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   signOutText: {
     fontSize: 15,
@@ -578,12 +583,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 12,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
@@ -607,7 +612,7 @@ const styles = StyleSheet.create({
   onlineSectionTitle: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     letterSpacing: -0.3,
   },
   onlineEmptyText: {
@@ -629,7 +634,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: '#F2F2F7',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
     marginBottom: 6,
@@ -655,12 +660,12 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#34C759',
     borderWidth: 2.5,
-    borderColor: '#1C1C1E',
+    borderColor: '#FFFFFF',
   },
   onlineName: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
     textAlign: 'center' as const,
     maxWidth: 72,
   },
