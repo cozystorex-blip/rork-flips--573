@@ -38,6 +38,21 @@ export default function ProfileScreen() {
   const { savedDeals } = useSavedItems();
   const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
 
+  const dedupedOnlineUsers = useMemo(() => {
+    const seen = new Map<string, typeof onlineUsers[number]>();
+    for (const u of onlineUsers) {
+      if (seen.has(u.id)) {
+        const existing = seen.get(u.id)!;
+        if (u.lastActive > existing.lastActive) {
+          seen.set(u.id, u);
+        }
+      } else {
+        seen.set(u.id, u);
+      }
+    }
+    return Array.from(seen.values());
+  }, [onlineUsers]);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [savingName, setSavingName] = useState(false);
@@ -291,12 +306,12 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {isUserOnline && onlineUsers.length > 0 ? (
+          {isUserOnline && dedupedOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
               <Text style={styles.onlineSectionTitle}>People Online</Text>
-              <Text style={styles.onlineSectionCount}>{onlineUsers.length} online now</Text>
+              <Text style={styles.onlineSectionCount}>{dedupedOnlineUsers.length} online now</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineList}>
-                {onlineUsers.map((u) => (
+                {dedupedOnlineUsers.map((u) => (
                   <View key={u.id} style={styles.onlineCard}>
                     <View style={styles.onlineAvatarWrap}>
                       {u.avatar_url ? (

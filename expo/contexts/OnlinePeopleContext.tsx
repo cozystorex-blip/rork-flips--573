@@ -169,8 +169,7 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
     try {
       const state = channel.presenceState();
       const now = Date.now();
-      const users: OnlineUser[] = [];
-      const seenIds = new Set<string>();
+      const deduped = new Map<string, OnlineUser>();
 
       for (const key of Object.keys(state)) {
         const presences = state[key] as Array<Record<string, unknown>>;
@@ -178,14 +177,27 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
           const pUserId = (p.user_id as string) ?? key;
           if (pUserId === userId) continue;
 
-          let uniqueId = pUserId || `presence_${key}`;
-          if (seenIds.has(uniqueId)) {
-            uniqueId = `${uniqueId}_${now}_${Math.random().toString(36).slice(2, 8)}`;
+          const stableId = pUserId || `presence_${key}`;
+          if (deduped.has(stableId)) {
+            const existing = deduped.get(stableId)!;
+            const pJoined = (p.joined_at as number) ?? 0;
+            if (pJoined > existing.joinedAt) {
+              deduped.set(stableId, {
+                id: stableId,
+                name: (p.name as string) ?? 'User',
+                avatar_url: (p.avatar_url as string) ?? '',
+                joinedAt: pJoined,
+                status: 'active',
+                activity: (p.activity as UserActivity) ?? 'browsing',
+                scanCount: (p.scan_count as number) ?? 0,
+                lastActive: now,
+              });
+            }
+            continue;
           }
-          seenIds.add(uniqueId);
 
-          users.push({
-            id: uniqueId,
+          deduped.set(stableId, {
+            id: stableId,
             name: (p.name as string) ?? 'User',
             avatar_url: (p.avatar_url as string) ?? '',
             joinedAt: (p.joined_at as number) ?? now,
@@ -197,9 +209,10 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
         }
       }
 
+      const users = Array.from(deduped.values());
       setOnlineUsers(users);
       setLastSyncedAt(now);
-      console.log('[OnlinePeople] Realtime synced users (excluding self):', users.length);
+      console.log('[OnlinePeople] Realtime synced users (excluding self, deduped):', users.length);
     } catch (e) {
       console.log('[OnlinePeople] Sync error:', e);
     }
@@ -244,17 +257,22 @@ export const [OnlinePeopleProvider, useOnlinePeople] = createContextHook(() => {
         const dbUsers = onlineUsersQuery.data;
         const merged = new Map<string, OnlineUser>();
 
-        for (const u of prev) {
+        for (const u of dbUsers) {
           merged.set(u.id, u);
         }
-        for (const u of dbUsers) {
+        for (const u of prev) {
           if (!merged.has(u.id)) {
             merged.set(u.id, u);
+          } else {
+            const existing = merged.get(u.id)!;
+            if (u.lastActive > existing.lastActive) {
+              merged.set(u.id, u);
+            }
           }
         }
 
         const mergedArray = Array.from(merged.values());
-        console.log('[OnlinePeople] Merged users (realtime+db):', mergedArray.length);
+        console.log('[OnlinePeople] Merged users (realtime+db, deduped):', mergedArray.length);
         return mergedArray;
       });
       setLastSyncedAt(Date.now());
