@@ -312,7 +312,11 @@ export default function ProfileScreen() {
             <View style={styles.onlineSection}>
               <View style={styles.onlineSectionHeader}>
                 <View style={styles.onlineSectionHeaderLeft}>
-                  <View style={styles.onlineDotSmall} />
+                  <Image
+                    source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/oy0bdlmcx7kprxgc9gyo5.jpeg' }}
+                    style={styles.onlineHeaderLogo}
+                    contentFit="contain"
+                  />
                   <Text style={styles.onlineSectionTitle}>{dedupedOnlineUsers.length} Online Now</Text>
                 </View>
               </View>
@@ -343,7 +347,11 @@ export default function ProfileScreen() {
             <View style={styles.onlineSection}>
               <View style={styles.onlineSectionHeader}>
                 <View style={styles.onlineSectionHeaderLeft}>
-                  <View style={[styles.onlineDotSmall, { backgroundColor: '#C7C7CC' }]} />
+                  <Image
+                    source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/oy0bdlmcx7kprxgc9gyo5.jpeg' }}
+                    style={styles.onlineHeaderLogo}
+                    contentFit="contain"
+                  />
                   <Text style={styles.onlineSectionTitle}>People Online</Text>
                 </View>
               </View>
@@ -627,6 +635,11 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#34C759',
+  },
+  onlineHeaderLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   onlineSectionTitle: {
     fontSize: 16,
