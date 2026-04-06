@@ -13,7 +13,7 @@ import {
   Package,
   Camera,
   Tag,
-  Sofa,
+  RefreshCw,
   ScanLine,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -179,11 +179,11 @@ export default function HomeScreen() {
     <View style={styles.root}>
       <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
-          <View style={styles.ikeaLogoBadge}>
-            <Sofa size={16} color="#0058A3" strokeWidth={2.2} />
+          <View style={styles.flipsLogoBadge}>
+            <RefreshCw size={18} color="#FFFFFF" strokeWidth={2.5} />
           </View>
           <View>
-            <Text style={styles.screenTitle}>IKEA Companion</Text>
+            <Text style={styles.screenTitle}>Flips</Text>
             <Text style={styles.screenSubtitle}>Your scanned items</Text>
           </View>
         </View>
@@ -204,10 +204,10 @@ export default function HomeScreen() {
           ) : unifiedItems.length === 0 ? (
             <View style={styles.emptyCard}>
               <View style={styles.emptyIconWrap}>
-                <ScanLine size={32} color="#0058A3" strokeWidth={1.5} />
+                <ScanLine size={32} color="#16A34A" strokeWidth={1.5} />
               </View>
               <Text style={styles.emptyTitle}>No items scanned yet</Text>
-              <Text style={styles.emptySubtitle}>Scan IKEA items to see price, tools needed, assembly info, and matching products</Text>
+              <Text style={styles.emptySubtitle}>Scan items to see price, details, resale value, and matching products</Text>
               <View style={styles.emptyActions}>
                 <Pressable
                   onPress={() => {
@@ -217,7 +217,7 @@ export default function HomeScreen() {
                   style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
                 >
                   <Camera size={15} color="#FFFFFF" strokeWidth={2} />
-                  <Text style={styles.emptyBtnText}>Scan an IKEA Item</Text>
+                  <Text style={styles.emptyBtnText}>Scan an Item</Text>
                 </Pressable>
               </View>
             </View>
@@ -294,11 +294,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  ikeaLogoBadge: {
+  flipsLogoBadge: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#FFDA1A',
+    backgroundColor: '#16A34A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: '#FFDA1A',
+    backgroundColor: '#16A34A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0058A3',
+    backgroundColor: '#16A34A',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 12,
     fontWeight: '800' as const,
-    color: '#0058A3',
+    color: '#16A34A',
   },
   cardBadge: {
     alignSelf: 'flex-start' as const,

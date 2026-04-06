@@ -14,7 +14,7 @@ import {
   Package,
   Camera,
   ScanLine,
-  Bookmark,
+  RefreshCw,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -172,11 +172,11 @@ export default function SavedScreen() {
       <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View style={styles.savedLogoBadge}>
-            <Bookmark size={16} color="#0058A3" strokeWidth={2.2} />
+            <RefreshCw size={16} color="#FFFFFF" strokeWidth={2.5} />
           </View>
           <View>
             <Text style={styles.screenTitle}>Saved Items</Text>
-            <Text style={styles.screenSubtitle}>Your IKEA collection</Text>
+            <Text style={styles.screenSubtitle}>Your Flips collection</Text>
           </View>
         </View>
       </View>
@@ -195,10 +195,10 @@ export default function SavedScreen() {
         ) : filteredItems.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIconWrap}>
-              <ScanLine size={32} color="#0058A3" strokeWidth={1.5} />
+              <ScanLine size={32} color="#16A34A" strokeWidth={1.5} />
             </View>
             <Text style={styles.emptyTitle}>No saved items</Text>
-            <Text style={styles.emptySubtitle}>Scan IKEA items to automatically save them here</Text>
+            <Text style={styles.emptySubtitle}>Scan items to automatically save them here</Text>
             <View style={styles.emptyActions}>
               <Pressable
                 onPress={() => {
@@ -208,7 +208,7 @@ export default function SavedScreen() {
                 style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
               >
                 <Camera size={15} color="#FFFFFF" strokeWidth={2} />
-                <Text style={styles.emptyBtnText}>Scan an IKEA Item</Text>
+                <Text style={styles.emptyBtnText}>Scan an Item</Text>
               </Pressable>
             </View>
           </View>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#0058A312',
+    backgroundColor: '#16A34A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: '#FFDA1A',
+    backgroundColor: '#16A34A',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0058A3',
+    backgroundColor: '#16A34A',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 10,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 12,
     fontWeight: '800' as const,
-    color: '#0058A3',
+    color: '#16A34A',
   },
   cardBadge: {
     alignSelf: 'flex-start' as const,
