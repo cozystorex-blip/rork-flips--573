@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle, ShieldCheck } from 'lucide-react-native';
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -208,6 +209,13 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View style={styles.authLogoWrap}>
+              <Image
+                source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/oy0bdlmcx7kprxgc9gyo5.jpeg' }}
+                style={styles.authLogoImage}
+                contentFit="cover"
+              />
+            </View>
             <Text style={styles.brandName}>Flips</Text>
             <Text style={styles.title}>
               {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
@@ -335,6 +343,23 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#2A2A2A',
+  },
+  authLogoWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 22,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  authLogoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 22,
   },
   brandName: {
     fontSize: 38,

@@ -13,7 +13,6 @@ import {
   Package,
   Camera,
   Tag,
-  RefreshCw,
   ScanLine,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -203,7 +202,11 @@ export default function HomeScreen() {
       <View style={[styles.screenHeader, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View style={styles.flipsLogoBadge}>
-            <RefreshCw size={18} color="#FFFFFF" strokeWidth={2.5} />
+            <Image
+              source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/oy0bdlmcx7kprxgc9gyo5.jpeg' }}
+              style={styles.flipsLogoImage}
+              contentFit="cover"
+            />
           </View>
           <View>
             <Text style={styles.screenTitle}>Flips</Text>
@@ -326,11 +329,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
+  },
+  flipsLogoImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
   },
   screenTitle: {
     fontSize: 26,
