@@ -15,36 +15,39 @@ import {
   ChevronDown,
   Package,
   Trash2,
-  Wrench,
-  Clock,
-  Users,
-  Ruler,
-  Shield,
-  Home,
   Sofa,
-  Heart,
-  Star,
   AlertTriangle,
-  Hammer,
-  Drill,
-  Gauge,
   DollarSign,
-  ShoppingBag,
-  Leaf,
-  UtensilsCrossed,
-  CookingPot,
-  Cherry,
   Search,
   Tag,
   ScanLine,
   Info,
   CheckCircle2,
   CircleDot,
+  TrendingUp,
+  Zap,
+  Award,
+  Sparkles,
+  Eye,
+  Store,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import type { SmartScanResult } from '@/services/smartScanService';
-import { ScannerColors, ScannerRadius, ScannerSpacing } from '@/constants/scannerTheme';
+import {
+  FoodResultSection,
+  GroceryResultSection,
+  FurnitureResultSection,
+  FashionResultSection,
+  ElectronicsResultSection,
+  HouseholdResultSection,
+  GeneralResultSection,
+  DocumentResultSection,
+  UnknownResultSection,
+} from '@/components/scan/ScanResultRenderers';
+import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
+import ReferenceSection from '@/components/scan/ReferenceSection';
+
 
 type ConfidenceTier = 'high' | 'medium' | 'low';
 
@@ -54,34 +57,41 @@ function getConfidenceTier(confidence: number): ConfidenceTier {
   return 'low';
 }
 
-const JUNK_VALUES = ['unknown', 'n/a', 'none', 'mixed', 'various', 'unbranded', 'generic', 'other', 'item', 'personal', 'general use', 'standard', 'typical', 'regular', 'basic', 'normal', 'not available', 'not applicable', 'unspecified', 'undetermined', 'general', 'commodity', 'average', 'fair', 'common', 'null', 'undefined', 'mixed materials', 'various materials', 'multiple', 'assorted', 'miscellaneous', 'misc', 'similar items in this category', 'similar devices in this category', 'similar household items', 'similar furniture items in this style', 'estimated based on visual category match', 'estimated from visual category', 'estimated from item category', 'estimated based on product category'];
+function getConfidenceLabel(tier: ConfidenceTier): string {
+  switch (tier) {
+    case 'high': return 'High Confidence';
+    case 'medium': return 'Partial Match';
+    case 'low': return 'Low Confidence';
+  }
+}
+
+function getConfidenceConfig(tier: ConfidenceTier) {
+  switch (tier) {
+    case 'high': return { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', icon: CheckCircle2 };
+    case 'medium': return { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: CircleDot };
+    case 'low': return { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', icon: AlertTriangle };
+  }
+}
+
+const JUNK_VALUES = ['unknown', 'n/a', 'none', 'mixed', 'various', 'unbranded', 'generic', 'other', 'item', 'personal', 'general use', 'standard', 'typical', 'regular', 'basic', 'normal', 'not available', 'not applicable', 'unspecified', 'undetermined', 'general', 'commodity', 'average', 'fair', 'common', 'null', 'undefined', 'mixed materials', 'various materials', 'multiple', 'assorted', 'miscellaneous', 'misc'];
 
 function isRealValue(val: string | null | undefined): val is string {
   if (!val || val.trim().length === 0) return false;
   return !JUNK_VALUES.includes(val.trim().toLowerCase());
 }
 
-function getIkeaPrice(result: SmartScanResult): string | null {
-  if (result.furniture_details) {
-    return result.furniture_details.estimated_retail_price
-      ?? result.furniture_details.estimated_price_range
-      ?? null;
-  }
-  if (result.household_details) return result.household_details.estimated_price ?? result.household_details.price_range ?? null;
-  if (result.fashion_details) return result.fashion_details.estimated_retail_price ?? result.fashion_details.price_range ?? null;
-  if (result.electronics_details) return result.electronics_details.estimated_retail_price ?? result.electronics_details.price_range ?? null;
-  if (result.general_details) return result.general_details.estimated_retail_price ?? result.general_details.price_range ?? null;
-  if (result.food_details) return result.food_details.estimated_price ?? result.food_details.price_range ?? null;
-  if (result.grocery_details) return result.grocery_details.estimated_price ?? result.grocery_details.price_range ?? null;
-  return null;
-}
-
-function formatPrice(val: string | null): string | null {
-  if (!val) return null;
-  const trimmed = val.trim();
-  if (trimmed.length === 0) return null;
-  return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
-}
+const TYPE_COLORS: Record<string, { color: string; bg: string; label: string }> = {
+  food: { color: '#059669', bg: '#ECFDF5', label: 'Food' },
+  grocery: { color: '#2563EB', bg: '#EFF6FF', label: 'Grocery' },
+  household: { color: '#7C3AED', bg: '#F5F3FF', label: 'Home' },
+  furniture: { color: '#0058A3', bg: '#EFF6FF', label: 'Furniture' },
+  fashion: { color: '#E11D48', bg: '#FFF1F2', label: 'Fashion' },
+  electronics: { color: '#0284C7', bg: '#F0F9FF', label: 'Electronics' },
+  general: { color: '#0D9488', bg: '#F0FDFA', label: 'Item' },
+  receipt: { color: '#DC2626', bg: '#FEF2F2', label: 'Receipt' },
+  document: { color: '#8B5CF6', bg: '#F5F3FF', label: 'Document' },
+  unknown: { color: '#6B7280', bg: '#F9FAFB', label: 'Unknown' },
+};
 
 function getCategoryLabel(result: SmartScanResult): string {
   if (result.furniture_details) {
@@ -123,133 +133,72 @@ function getDescription(result: SmartScanResult): string {
   return '';
 }
 
-interface SpecItem { label: string; value: string }
-
-function getSpecs(result: SmartScanResult): SpecItem[] {
-  const specs: SpecItem[] = [];
-  const push = (label: string, value: string | null | undefined) => {
-    if (isRealValue(value)) specs.push({ label, value: value! });
-  };
-
-  if (result.furniture_details) {
-    const fd = result.furniture_details;
-    push('Color', fd.finish_color);
-    push('Material', fd.material);
-    push('Dimensions', fd.estimated_dimensions);
-    push('Style', fd.style);
-    if (fd.is_likely_ikea) {
-      push('IKEA Name', fd.ikea_product_name);
-      push('Article #', fd.ikea_article_number);
-      push('Family', fd.ikea_product_family);
-    }
-  } else if (result.household_details) {
-    const hd = result.household_details;
-    push('Material', hd.material);
-    push('Brand', hd.brand);
-    push('Model', hd.model);
-    if (hd.condition) push('Condition', hd.condition.charAt(0).toUpperCase() + hd.condition.slice(1));
-  } else if (result.fashion_details) {
-    const fd = result.fashion_details;
-    push('Color', fd.color);
-    push('Material', fd.material);
-    push('Brand', fd.brand);
-    push('Model', fd.model);
-    if (fd.condition) push('Condition', fd.condition.charAt(0).toUpperCase() + fd.condition.slice(1));
-  } else if (result.electronics_details) {
-    const ed = result.electronics_details;
-    push('Brand', ed.brand);
-    push('Model', ed.model);
-    push('Spec', ed.storage_or_spec);
-    if (ed.condition) push('Condition', ed.condition.charAt(0).toUpperCase() + ed.condition.slice(1));
-  } else if (result.general_details) {
-    const gd = result.general_details;
-    push('Color', gd.color);
-    push('Material', gd.material);
-    push('Brand', gd.brand);
-  } else if (result.food_details) {
-    if (result.food_details.calories > 0) specs.push({ label: 'Calories', value: `${result.food_details.calories}` });
-    if (result.food_details.protein_g > 0) specs.push({ label: 'Protein', value: `${result.food_details.protein_g}g` });
-    push('Serving', result.food_details.serving_size);
-  } else if (result.grocery_details) {
-    push('Brand', result.grocery_details.brand);
-    push('Size', result.grocery_details.package_size);
-  }
-
-  return specs.slice(0, 6);
+function getRetailPrice(result: SmartScanResult): string | null {
+  const raw = result.furniture_details?.estimated_retail_price
+    ?? result.furniture_details?.estimated_price_range
+    ?? result.household_details?.estimated_price
+    ?? result.household_details?.price_range
+    ?? result.fashion_details?.estimated_retail_price
+    ?? result.fashion_details?.price_range
+    ?? result.electronics_details?.estimated_retail_price
+    ?? result.electronics_details?.price_range
+    ?? result.general_details?.estimated_retail_price
+    ?? result.general_details?.price_range
+    ?? result.food_details?.estimated_price
+    ?? result.food_details?.price_range
+    ?? result.grocery_details?.estimated_price
+    ?? result.grocery_details?.price_range
+    ?? null;
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
 }
 
-function getToolsNeeded(result: SmartScanResult): string[] {
-  if (result.furniture_details?.likely_tools_needed?.length) {
-    return result.furniture_details.likely_tools_needed;
-  }
-  return [];
+function getResaleValue(result: SmartScanResult): string | null {
+  const raw = result.furniture_details?.estimated_resale_value
+    ?? result.household_details?.estimated_resale_value
+    ?? result.fashion_details?.estimated_resale_value
+    ?? result.electronics_details?.estimated_resale_value
+    ?? result.general_details?.estimated_resale_value
+    ?? null;
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
 }
 
-interface AssemblyInfo {
-  difficulty: string | null;
-  time: string | null;
-  people: string | null;
-  wallAnchor: string | null;
-  setupNotes: string | null;
-  summary: string | null;
+function getDemandLevel(result: SmartScanResult): string | null {
+  const raw = result.furniture_details?.resale_demand
+    ?? result.household_details?.resale_potential
+    ?? result.fashion_details?.resale_demand
+    ?? result.electronics_details?.resale_demand
+    ?? result.general_details?.resale_demand
+    ?? null;
+  if (!raw || !isRealValue(raw)) return null;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
-function getAssemblyInfo(result: SmartScanResult): AssemblyInfo | null {
-  if (!result.furniture_details) return null;
-  const fd = result.furniture_details;
-  if (!fd.assembly_required && !fd.assembly_difficulty && !fd.estimated_build_time) return null;
-  return {
-    difficulty: fd.assembly_difficulty ? fd.assembly_difficulty.charAt(0).toUpperCase() + fd.assembly_difficulty.slice(1) : null,
-    time: fd.estimated_build_time ?? null,
-    people: fd.people_needed ?? null,
-    wallAnchor: fd.wall_anchor_note ?? null,
-    setupNotes: fd.setup_notes ?? null,
-    summary: fd.assembly_summary ?? null,
-  };
+function getBestPlatform(result: SmartScanResult): string | null {
+  return result.furniture_details?.best_selling_platform
+    ?? result.household_details?.best_selling_platform
+    ?? result.fashion_details?.best_selling_platform
+    ?? result.electronics_details?.best_selling_platform
+    ?? result.general_details?.best_selling_platform
+    ?? null;
 }
 
-function getMatchingProducts(result: SmartScanResult): string[] {
-  if (result.furniture_details?.matching_products?.length) return result.furniture_details.matching_products;
-  const complementary = result.furniture_details?.complementary_items
-    ?? result.household_details?.complementary_items
-    ?? result.electronics_details?.complementary_items
-    ?? result.fashion_details?.complementary_items
-    ?? result.general_details?.complementary_items
-    ?? [];
-  return complementary.filter(item => isRealValue(item));
-}
-
-function getRoomFitLabels(result: SmartScanResult): string[] {
-  if (result.furniture_details?.room_fit_labels?.length) return result.furniture_details.room_fit_labels.filter(l => isRealValue(l));
-  const purpose = result.furniture_details?.purpose ?? result.household_details?.purpose ?? result.general_details?.purpose ?? null;
-  if (purpose && isRealValue(purpose)) return [purpose];
-  return [];
-}
-
-function getValueInsight(result: SmartScanResult): { label: string; text: string } | null {
-  const vi = result.furniture_details?.value_insight
-    ?? result.household_details?.value_insight
-    ?? result.electronics_details?.value_insight
-    ?? result.fashion_details?.value_insight
-    ?? result.general_details?.value_insight
-    ?? result.food_details?.value_insight
-    ?? result.grocery_details?.value_insight;
-
-  const longTerm = result.furniture_details?.long_term_value;
-  const worthIt = result.furniture_details?.worth_it_verdict;
-  const budgetInsight = result.furniture_details?.budget_insight
-    ?? result.household_details?.budget_insight
-    ?? result.electronics_details?.budget_insight
-    ?? result.fashion_details?.budget_insight
-    ?? result.general_details?.budget_insight
-    ?? result.food_details?.budget_insight
-    ?? result.grocery_details?.budget_insight;
-
-  if (vi && isRealValue(vi)) return { label: 'Value Insight', text: vi };
-  if (worthIt && isRealValue(worthIt)) return { label: 'Worth It?', text: worthIt };
-  if (longTerm && isRealValue(longTerm)) return { label: 'Long-Term Value', text: longTerm };
-  if (budgetInsight && isRealValue(budgetInsight)) return { label: 'Budget Insight', text: budgetInsight };
-  return null;
+function getValueRating(result: SmartScanResult): string | null {
+  const raw = result.furniture_details?.value_rating
+    ?? result.household_details?.value_rating
+    ?? result.fashion_details?.value_rating
+    ?? result.electronics_details?.value_rating
+    ?? result.general_details?.value_rating
+    ?? result.food_details?.value_rating
+    ?? result.grocery_details?.value_rating
+    ?? null;
+  if (!raw || !isRealValue(raw)) return null;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
 function getCareTip(result: SmartScanResult): string | null {
@@ -262,36 +211,52 @@ function getCareTip(result: SmartScanResult): string | null {
   return tip && isRealValue(tip) ? tip : null;
 }
 
-function getFoodIngredients(result: SmartScanResult): string[] {
-  if (result.food_details?.ingredients?.length) return result.food_details.ingredients;
-  if (result.grocery_details?.ingredients_list?.length) return result.grocery_details.ingredients_list;
-  return [];
-}
-
-function getFoodGoWith(result: SmartScanResult): string[] {
-  const items: string[] = [];
-  if (result.food_details?.complementary_items?.length) items.push(...result.food_details.complementary_items);
-  else if (result.grocery_details?.complementary_items?.length) items.push(...result.grocery_details.complementary_items);
-  if (result.grocery_details?.what_else_needed?.length) items.push(...result.grocery_details.what_else_needed);
-  return [...new Set(items)].filter(i => isRealValue(i)).slice(0, 10);
-}
-
-function getFoodRecipes(result: SmartScanResult) {
-  if (result.food_details?.recipe_ideas?.length) return result.food_details.recipe_ideas;
-  if (result.grocery_details?.recipe_ideas?.length) return result.grocery_details.recipe_ideas;
-  return [];
-}
-
-function getNextScanSuggestion(result: SmartScanResult): string | null {
-  const suggestion = result.furniture_details?.next_scan_suggestion
-    ?? result.household_details?.next_scan_suggestion
-    ?? result.fashion_details?.next_scan_suggestion
-    ?? result.electronics_details?.next_scan_suggestion
-    ?? result.general_details?.next_scan_suggestion
-    ?? result.food_details?.next_scan_suggestion
-    ?? result.grocery_details?.next_scan_suggestion
+function getResaleTip(result: SmartScanResult): string | null {
+  const tip = result.furniture_details?.resale_suggestion
+    ?? result.household_details?.resale_suggestion
+    ?? result.fashion_details?.resale_suggestion
+    ?? result.electronics_details?.resale_suggestion
+    ?? result.general_details?.resale_suggestion
     ?? null;
-  return suggestion && isRealValue(suggestion) ? suggestion : null;
+  return tip && isRealValue(tip) ? tip : null;
+}
+
+function getValueInsightText(result: SmartScanResult): string | null {
+  const vi = result.furniture_details?.value_insight
+    ?? result.household_details?.value_insight
+    ?? result.electronics_details?.value_insight
+    ?? result.fashion_details?.value_insight
+    ?? result.general_details?.value_insight
+    ?? result.food_details?.value_insight
+    ?? result.grocery_details?.value_insight
+    ?? null;
+  return vi && isRealValue(vi) ? vi : null;
+}
+
+function getTags(result: SmartScanResult): string[] {
+  const tags = result.furniture_details?.tags
+    ?? result.household_details?.tags
+    ?? result.fashion_details?.tags
+    ?? result.electronics_details?.tags
+    ?? result.general_details?.tags
+    ?? result.food_details?.tags
+    ?? result.grocery_details?.tags
+    ?? result.document_details?.tags
+    ?? [];
+  return tags.filter(t => t && t.trim().length > 0).slice(0, 12);
+}
+
+function getRelatedItems(result: SmartScanResult): string[] {
+  const items = result.furniture_details?.complementary_items
+    ?? result.furniture_details?.matching_products
+    ?? result.household_details?.complementary_items
+    ?? result.fashion_details?.complementary_items
+    ?? result.electronics_details?.complementary_items
+    ?? result.general_details?.complementary_items
+    ?? result.food_details?.complementary_items
+    ?? result.grocery_details?.complementary_items
+    ?? [];
+  return items.filter(i => isRealValue(i)).slice(0, 6);
 }
 
 function isWeakItemName(name: string): boolean {
@@ -312,80 +277,104 @@ interface ScanResultViewProps {
   onDelete?: () => void;
 }
 
-const TOOL_ICONS: Record<string, React.ComponentType<{ size: number; color: string }>> = {
-  'allen key': Wrench,
-  'hex key': Wrench,
-  'screwdriver': Wrench,
-  'phillips screwdriver': Wrench,
-  'flathead screwdriver': Wrench,
-  'hammer': Hammer,
-  'drill': Drill,
-  'measuring tape': Ruler,
-  'level': Gauge,
-  'tape measure': Ruler,
-};
-
-function getToolIcon(tool: string): React.ComponentType<{ size: number; color: string }> {
-  const lower = tool.toLowerCase();
-  for (const [key, Icon] of Object.entries(TOOL_ICONS)) {
-    if (lower.includes(key)) return Icon;
-  }
-  return Wrench;
-}
-
-const ROOM_ICONS: Record<string, React.ComponentType<{ size: number; color: string }>> = {
-  'apartment': Home,
-  'dorm': Home,
-  'office': Sofa,
-  'kids': Heart,
-  'studio': Home,
-  'family': Users,
-  'bedroom': Home,
-  'living': Sofa,
-  'kitchen': UtensilsCrossed,
-  'bathroom': Home,
-  'small': Home,
-};
-
-function getRoomIcon(label: string): React.ComponentType<{ size: number; color: string }> {
-  const lower = label.toLowerCase();
-  for (const [key, Icon] of Object.entries(ROOM_ICONS)) {
-    if (lower.includes(key)) return Icon;
-  }
-  return Home;
-}
-
-const SCAN_TIPS = [
-  { icon: Tag, text: 'Scan the yellow IKEA price tag', color: '#D97706' },
-  { icon: ScanLine, text: 'Capture the shelf label directly', color: '#0058A3' },
-  { icon: Search, text: 'Find and scan the article number', color: '#7C3AED' },
-  { icon: Camera, text: 'Use a clearer, well-lit photo', color: '#059669' },
-];
-
-function ConfidenceBadge({ tier, confidence }: { tier: ConfidenceTier; confidence: number }) {
-  const config = {
-    high: { label: 'Identified', icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4', border: '#BBF7D0' },
-    medium: { label: 'Partial Match', icon: CircleDot, color: '#D97706', bg: '#FFFBEB', border: '#FDE68A' },
-    low: { label: 'Low Confidence', icon: AlertTriangle, color: '#DC2626', bg: '#FEF2F2', border: '#FECACA' },
-  } as const;
-
-  const c = config[tier];
-  const IconComp = c.icon;
+function ConfidencePill({ tier, confidence }: { tier: ConfidenceTier; confidence: number }) {
+  const config = getConfidenceConfig(tier);
+  const IconComp = config.icon;
   const pct = Math.round(confidence * 100);
 
   return (
-    <View style={[st.confidenceBadge, { backgroundColor: c.bg, borderColor: c.border }]}>
-      <IconComp size={13} color={c.color} />
-      <Text style={[st.confidenceBadgeText, { color: c.color }]}>{c.label}</Text>
-      <View style={[st.confidencePctPill, { backgroundColor: `${c.color}18` }]}>
-        <Text style={[st.confidencePctText, { color: c.color }]}>{pct}%</Text>
+    <View style={[st.confPill, { backgroundColor: config.bg, borderColor: config.border }]}>
+      <IconComp size={12} color={config.color} />
+      <Text style={[st.confPillText, { color: config.color }]}>{getConfidenceLabel(tier)}</Text>
+      <View style={[st.confPctChip, { backgroundColor: `${config.color}15` }]}>
+        <Text style={[st.confPctText, { color: config.color }]}>{pct}%</Text>
       </View>
     </View>
   );
 }
 
+function CategoryPill({ itemType, label }: { itemType: string; label: string }) {
+  const tc = TYPE_COLORS[itemType] ?? TYPE_COLORS.general;
+  return (
+    <View style={[st.catPill, { backgroundColor: tc.bg }]}>
+      <View style={[st.catDot, { backgroundColor: tc.color }]} />
+      <Text style={[st.catPillText, { color: tc.color }]}>{label}</Text>
+    </View>
+  );
+}
+
+function DemandBadge({ level }: { level: string }) {
+  const lower = level.toLowerCase();
+  const color = lower === 'high' ? '#059669' : lower === 'moderate' ? '#D97706' : lower === 'low' ? '#DC2626' : '#6B7280';
+  const bg = lower === 'high' ? '#ECFDF5' : lower === 'moderate' ? '#FFFBEB' : lower === 'low' ? '#FEF2F2' : '#F9FAFB';
+  return (
+    <View style={[st.demandBadge, { backgroundColor: bg }]}>
+      <Zap size={10} color={color} />
+      <Text style={[st.demandText, { color }]}>{level} Demand</Text>
+    </View>
+  );
+}
+
+function SectionCard({ children, title, icon: Icon, iconColor, iconBg, collapsed, onToggle, testID }: {
+  children: React.ReactNode;
+  title: string;
+  icon: React.ComponentType<{ size: number; color: string }>;
+  iconColor: string;
+  iconBg: string;
+  collapsed?: boolean;
+  onToggle?: () => void;
+  testID?: string;
+}) {
+  const isCollapsible = onToggle !== undefined;
+  const isOpen = collapsed !== true;
+
+  const header = (
+    <View style={st.sectionCardHeader}>
+      <View style={[st.sectionCardIconWrap, { backgroundColor: iconBg }]}>
+        <Icon size={15} color={iconColor} />
+      </View>
+      <Text style={st.sectionCardTitle}>{title}</Text>
+      {isCollapsible && (
+        <ChevronDown
+          size={16}
+          color="#AEAEB2"
+          style={{ transform: [{ rotate: isOpen ? '0deg' : '-90deg' }] }}
+        />
+      )}
+    </View>
+  );
+
+  return (
+    <View style={st.sectionCard} testID={testID}>
+      {isCollapsible ? (
+        <Pressable onPress={onToggle}>{header}</Pressable>
+      ) : header}
+      {isOpen && (
+        <View style={st.sectionCardBody}>{children}</View>
+      )}
+    </View>
+  );
+}
+
+function DetailRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <View style={st.detailRow}>
+      <Text style={st.detailLabel}>{label}</Text>
+      <Text style={[st.detailValue, bold && st.detailValueBold]} numberOfLines={2}>{value}</Text>
+    </View>
+  );
+}
+
+function PriceRow({ label, value, large }: { label: string; value: string; large?: boolean }) {
+  return (
+    <View style={st.priceRow}>
+      <Text style={[st.priceLabel, large && st.priceLabelLg]}>{label}</Text>
+      <Text style={[st.priceValue, large && st.priceValueLg]}>{value}</Text>
+    </View>
+  );
+}
+
 function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResult; onScanAgain: () => void }) {
-  const nextScan = getNextScanSuggestion(result);
   const hasAnyName = !isWeakItemName(result.item_name);
 
   return (
@@ -394,8 +383,8 @@ function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResul
         <View style={st.lowConfIconCircle}>
           <AlertTriangle size={28} color="#D97706" />
         </View>
-        <Text style={st.lowConfHeaderTitle}>Could Not Identify Reliably</Text>
-        <Text style={st.lowConfHeaderDesc}>
+        <Text style={st.lowConfTitle}>Limited Identification</Text>
+        <Text style={st.lowConfDesc}>
           {hasAnyName
             ? `We detected something that might be "${result.item_name}", but the scan wasn't clear enough for a full analysis.`
             : 'The image wasn\'t clear enough for reliable identification. Try one of these for better results:'}
@@ -403,13 +392,18 @@ function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResul
       </View>
 
       <View style={st.scanTipsCard}>
-        <Text style={st.scanTipsTitle}>Try Scanning</Text>
-        {SCAN_TIPS.map((tip, i) => {
+        <Text style={st.scanTipsTitle}>Tips for Better Results</Text>
+        {[
+          { icon: Eye, text: 'Use good lighting and a clear angle', color: '#059669' },
+          { icon: Tag, text: 'Scan visible labels or price tags', color: '#D97706' },
+          { icon: ScanLine, text: 'Capture the shelf label directly', color: '#0058A3' },
+          { icon: Search, text: 'Find and scan any article numbers', color: '#7C3AED' },
+        ].map((tip, i) => {
           const TipIcon = tip.icon;
           return (
             <View key={`tip-${i}`} style={st.scanTipRow}>
               <View style={[st.scanTipIconWrap, { backgroundColor: `${tip.color}12` }]}>
-                <TipIcon size={16} color={tip.color} />
+                <TipIcon size={15} color={tip.color} />
               </View>
               <Text style={st.scanTipText}>{tip.text}</Text>
             </View>
@@ -417,43 +411,14 @@ function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResul
         })}
       </View>
 
-      {nextScan && (
-        <View style={st.nextScanCard}>
-          <Info size={14} color="#0058A3" />
-          <Text style={st.nextScanText}>{nextScan}</Text>
-        </View>
-      )}
-
       <Pressable
-        style={({ pressed }) => [st.retryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+        style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
         onPress={onScanAgain}
         testID="retry-scan-btn"
       >
         <Camera size={18} color="#FFFFFF" />
-        <Text style={st.retryBtnText}>Try Again</Text>
+        <Text style={st.primaryBtnText}>Rescan for Better Detail</Text>
       </Pressable>
-    </View>
-  );
-}
-
-function MediumConfidenceHeader({ result }: { result: SmartScanResult }) {
-  const nextScan = getNextScanSuggestion(result);
-
-  return (
-    <View style={st.mediumConfCard}>
-      <View style={st.mediumConfHeaderRow}>
-        <CircleDot size={16} color="#D97706" />
-        <Text style={st.mediumConfTitle}>Partial Identification</Text>
-      </View>
-      <Text style={st.mediumConfDesc}>
-        Some details below are estimated. For a full match, try scanning a label, price tag, or article number.
-      </Text>
-      {nextScan && (
-        <View style={st.mediumConfTip}>
-          <Lightbulb size={12} color="#0058A3" />
-          <Text style={st.mediumConfTipText}>{nextScan}</Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -471,40 +436,40 @@ export default function ScanResultView({
   const tier = useMemo(() => getConfidenceTier(result.confidence), [result.confidence]);
   const categoryLabel = useMemo(() => getCategoryLabel(result), [result]);
   const description = useMemo(() => getDescription(result), [result]);
-  const price = useMemo(() => formatPrice(getIkeaPrice(result)), [result]);
-  const specs = useMemo(() => getSpecs(result), [result]);
-  const tools = useMemo(() => getToolsNeeded(result), [result]);
-  const assembly = useMemo(() => getAssemblyInfo(result), [result]);
-  const matchingProducts = useMemo(() => getMatchingProducts(result), [result]);
-  const roomFitLabels = useMemo(() => getRoomFitLabels(result), [result]);
-  const valueInsight = useMemo(() => getValueInsight(result), [result]);
+  const retailPrice = useMemo(() => getRetailPrice(result), [result]);
+  const resaleValue = useMemo(() => getResaleValue(result), [result]);
+  const demandLevel = useMemo(() => getDemandLevel(result), [result]);
+  const bestPlatform = useMemo(() => getBestPlatform(result), [result]);
+  const valueRating = useMemo(() => getValueRating(result), [result]);
   const careTip = useMemo(() => getCareTip(result), [result]);
+  const resaleTip = useMemo(() => getResaleTip(result), [result]);
+  const valueInsight = useMemo(() => getValueInsightText(result), [result]);
+  const tags = useMemo(() => getTags(result), [result]);
+  const relatedItems = useMemo(() => getRelatedItems(result), [result]);
 
   const isFood = result.item_type === 'food' || result.item_type === 'grocery';
+  const isDocument = result.item_type === 'document';
+  const isReceipt = result.item_type === 'receipt';
   const isIkea = result.furniture_details?.is_likely_ikea ?? false;
+  const showFallback = tier === 'low';
+  const isResaleEligible = !isFood && !isDocument && !isReceipt && result.item_type !== 'unknown';
 
   const heroImageUri = referenceImageUrl ?? scannedImageUri;
   const hasBothImages = !!scannedImageUri && !!referenceImageUrl;
   const isGenerating = generatingImage === true && !referenceImageUrl;
 
-  const foodIngredients = useMemo(() => getFoodIngredients(result), [result]);
-  const foodGoWith = useMemo(() => getFoodGoWith(result), [result]);
-  const foodRecipes = useMemo(() => getFoodRecipes(result), [result]);
+  const typeConfig = TYPE_COLORS[result.item_type] ?? TYPE_COLORS.general;
 
-  const [toolsExpanded, setToolsExpanded] = useState(true);
-  const [assemblyExpanded, setAssemblyExpanded] = useState(true);
-  const [matchesExpanded, setMatchesExpanded] = useState(true);
-  const [ingredientsExpanded, setIngredientsExpanded] = useState(isFood);
-  const [recipesExpanded, setRecipesExpanded] = useState(isFood);
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [referenceOpen] = useState(true);
 
   const toggleSection = useCallback((setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     void Haptics.selectionAsync();
     setter(prev => !prev);
   }, []);
 
-  const showFullDetails = tier === 'high';
-  const showPartialDetails = tier === 'medium';
-  const showFallback = tier === 'low';
+  const hasPriceSection = !!retailPrice || !!resaleValue || !!valueRating || !!demandLevel;
+  const hasResaleSection = isResaleEligible && (!!resaleValue || !!bestPlatform || !!resaleTip || !!demandLevel);
 
   return (
     <Animated.View style={[st.root, { opacity: resultFade }]}>
@@ -518,6 +483,7 @@ export default function ScanResultView({
               cachePolicy="memory-disk"
             />
             <View style={st.imageBadge}>
+              <Sparkles size={9} color="#FFFFFF" />
               <Text style={st.imageBadgeText}>AI Enhanced</Text>
             </View>
           </View>
@@ -545,14 +511,14 @@ export default function ScanResultView({
           {isGenerating && (
             <View style={st.generatingOverlay}>
               <ActivityIndicator size="small" color="#FFFFFF" />
-              <Text style={st.generatingText}>Generating reference...</Text>
+              <Text style={st.generatingText}>Creating reference...</Text>
             </View>
           )}
         </View>
       ) : !showFallback && isGenerating ? (
-        <View style={st.generatingPlaceholder}>
+        <View style={st.genPlaceholder}>
           <ActivityIndicator size="small" color="#0058A3" />
-          <Text style={st.generatingPlaceholderText}>Creating AI reference image...</Text>
+          <Text style={st.genPlaceholderText}>Creating AI reference image...</Text>
         </View>
       ) : showFallback && scannedImageUri ? (
         <View style={st.fallbackImageWrap}>
@@ -564,34 +530,35 @@ export default function ScanResultView({
           />
           <View style={st.fallbackImageOverlay}>
             <View style={st.fallbackImageBadge}>
-              <AlertTriangle size={12} color="#D97706" />
+              <AlertTriangle size={11} color="#D97706" />
               <Text style={st.fallbackImageBadgeText}>Unclear Scan</Text>
             </View>
           </View>
         </View>
       ) : null}
 
-      <View style={st.contentSection}>
+      <View style={st.content}>
         {showFallback ? (
           <LowConfidenceFallback result={result} onScanAgain={onScanAgain} />
         ) : (
           <>
-            <ConfidenceBadge tier={tier} confidence={result.confidence} />
-
-            {showPartialDetails && <MediumConfidenceHeader result={result} />}
+            <View style={st.badgeRow}>
+              <ConfidencePill tier={tier} confidence={result.confidence} />
+              <CategoryPill itemType={result.item_type} label={typeConfig.label} />
+            </View>
 
             {isIkea && (
-              <View style={st.ikeaBadgeRow}>
+              <View style={st.ikeaRow}>
                 <View style={st.ikeaBadge}>
-                  <Sofa size={12} color="#0058A3" />
-                  <Text style={st.ikeaBadgeText}>IKEA Product</Text>
+                  <Sofa size={11} color="#0058A3" />
+                  <Text style={st.ikeaBadgeText}>IKEA</Text>
                 </View>
                 {result.furniture_details?.ikea_match_confidence && (
-                  <View style={st.ikeaConfPill}>
-                    <Text style={st.ikeaConfPillText}>
+                  <View style={st.ikeaConfChip}>
+                    <Text style={st.ikeaConfChipText}>
                       {result.furniture_details.ikea_match_confidence === 'exact' ? 'Exact Match' :
                        result.furniture_details.ikea_match_confidence === 'strong' ? 'Strong Match' :
-                       'Possible Match'}
+                       result.furniture_details.ikea_match_confidence === 'possible' ? 'Possible Match' : 'Possible'}
                     </Text>
                   </View>
                 )}
@@ -600,317 +567,165 @@ export default function ScanResultView({
 
             <Text style={st.itemName}>{result.item_name}</Text>
 
-            <View style={st.metaRow}>
-              <Text style={st.categoryText}>
-                {showPartialDetails ? `Likely: ${categoryLabel}` : categoryLabel}
-              </Text>
-              {price ? (
-                <View style={st.priceBadge}>
-                  <DollarSign size={12} color="#0058A3" />
-                  <Text style={st.priceText}>{price}</Text>
-                  {showPartialDetails ? <Text style={st.priceEstLabel}>est.</Text> : null}
+            <View style={st.subHeaderRow}>
+              <Text style={st.categoryLabel}>{categoryLabel}</Text>
+              {retailPrice && (
+                <View style={st.inlinePriceBadge}>
+                  <DollarSign size={12} color={typeConfig.color} />
+                  <Text style={[st.inlinePriceText, { color: typeConfig.color }]}>{retailPrice}</Text>
                 </View>
-              ) : null}
+              )}
             </View>
 
             {description.length > 0 && (
-              <View style={st.descriptionCard}>
-                <Text style={st.descriptionText}>{description}</Text>
+              <View style={st.summaryCard}>
+                <Text style={st.summaryText}>{description}</Text>
               </View>
             )}
 
-            {specs.length > 0 && (
-              <View style={st.specsGrid}>
-                {specs.map((spec, i) => (
-                  <View key={`spec-${i}`} style={st.specChip}>
-                    <Text style={st.specLabel}>
-                      {showPartialDetails && !['Color', 'Brand', 'Article #'].includes(spec.label) ? `${spec.label} (est.)` : spec.label}
-                    </Text>
-                    <Text style={st.specValue} numberOfLines={2}>{spec.value}</Text>
-                  </View>
-                ))}
+            {tier === 'medium' && (
+              <View style={st.partialNotice}>
+                <CircleDot size={14} color="#D97706" />
+                <View style={st.partialNoticeContent}>
+                  <Text style={st.partialNoticeTitle}>Partial Identification</Text>
+                  <Text style={st.partialNoticeDesc}>Some details are estimated. Scan a label or tag for a full match.</Text>
+                </View>
               </View>
             )}
 
-            {tools.length > 0 && showFullDetails && (
-              <View style={st.sectionCard}>
-                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setToolsExpanded)}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.toolsBg }]}>
-                    <Wrench size={16} color="#0058A3" />
-                  </View>
-                  <Text style={st.sectionTitle}>Tools You'll Need</Text>
-                  <ChevronDown
-                    size={16}
-                    color="#AEAEB2"
-                    style={{ transform: [{ rotate: toolsExpanded ? '0deg' : '-90deg' }] }}
-                  />
-                </Pressable>
-                {toolsExpanded && (
-                  <View style={st.sectionContent}>
-                    {tools.map((tool, i) => {
-                      const ToolIcon = getToolIcon(tool);
-                      return (
-                        <View key={`tool-${i}`} style={st.toolRow}>
-                          <View style={st.toolIconWrap}>
-                            <ToolIcon size={14} color="#0058A3" />
-                          </View>
-                          <Text style={st.toolText}>{tool}</Text>
-                        </View>
-                      );
-                    })}
-                    {assembly?.people && assembly.people !== '1' && (
-                      <View style={st.toolRow}>
-                        <View style={[st.toolIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                          <Users size={14} color="#D97706" />
-                        </View>
-                        <Text style={[st.toolText, { color: '#92400E' }]}>
-                          {assembly.people === '2+' ? '2+ people recommended' : '2 people recommended'}
-                        </Text>
-                      </View>
-                    )}
+            <SectionCard
+              title="Product Details"
+              icon={Info}
+              iconColor={typeConfig.color}
+              iconBg={typeConfig.bg}
+              collapsed={!detailsOpen}
+              onToggle={() => toggleSection(setDetailsOpen)}
+              testID="product-details-section"
+            >
+              <View style={st.rendererWrap}>
+                {result.item_type === 'food' && <FoodResultSection result={result} />}
+                {result.item_type === 'grocery' && <GroceryResultSection result={result} />}
+                {result.item_type === 'furniture' && <FurnitureResultSection result={result} />}
+                {result.item_type === 'fashion' && <FashionResultSection result={result} />}
+                {result.item_type === 'electronics' && <ElectronicsResultSection result={result} />}
+                {result.item_type === 'household' && <HouseholdResultSection result={result} />}
+                {result.item_type === 'general' && <GeneralResultSection result={result} />}
+                {result.item_type === 'document' && <DocumentResultSection result={result} />}
+                {result.item_type === 'unknown' && <UnknownResultSection result={result} />}
+                {result.item_type === 'receipt' && <DocumentResultSection result={result} />}
+              </View>
+            </SectionCard>
+
+            {hasPriceSection && !isDocument && !isReceipt && (
+              <SectionCard
+                title="Price & Value"
+                icon={DollarSign}
+                iconColor="#059669"
+                iconBg="#ECFDF5"
+                testID="price-value-section"
+              >
+                {retailPrice && <PriceRow label="Retail Price" value={retailPrice} large />}
+                {resaleValue && <PriceRow label="Resale Value" value={resaleValue} />}
+                {valueRating && <DetailRow label="Value Rating" value={valueRating} />}
+                {demandLevel && (
+                  <View style={st.demandRow}>
+                    <Text style={st.detailLabel}>Demand</Text>
+                    <DemandBadge level={demandLevel} />
                   </View>
                 )}
-              </View>
+                {valueInsight && (
+                  <View style={st.insightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.insightText}>{valueInsight}</Text>
+                  </View>
+                )}
+              </SectionCard>
             )}
 
-            {assembly && showFullDetails && (
-              <View style={[st.sectionCard, { borderColor: ScannerColors.assemblyBorder }]}>
-                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setAssemblyExpanded)}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.assemblyBg }]}>
-                    <Clock size={16} color="#D97706" />
-                  </View>
-                  <Text style={st.sectionTitle}>Assembly Info</Text>
-                  <ChevronDown
-                    size={16}
-                    color="#AEAEB2"
-                    style={{ transform: [{ rotate: assemblyExpanded ? '0deg' : '-90deg' }] }}
-                  />
-                </Pressable>
-                {assemblyExpanded && (
-                  <View style={st.sectionContent}>
-                    <View style={st.assemblyGrid}>
-                      {assembly.difficulty && (
-                        <View style={st.assemblyItem}>
-                          <Gauge size={16} color={
-                            assembly.difficulty.toLowerCase() === 'easy' ? '#16A34A' :
-                            assembly.difficulty.toLowerCase() === 'moderate' ? '#D97706' : '#DC2626'
-                          } />
-                          <Text style={st.assemblyLabel}>Difficulty</Text>
-                          <Text style={[st.assemblyValue, {
-                            color: assembly.difficulty.toLowerCase() === 'easy' ? '#16A34A' :
-                            assembly.difficulty.toLowerCase() === 'moderate' ? '#D97706' : '#DC2626'
-                          }]}>{assembly.difficulty}</Text>
-                        </View>
-                      )}
-                      {assembly.time && (
-                        <View style={st.assemblyItem}>
-                          <Clock size={16} color="#0058A3" />
-                          <Text style={st.assemblyLabel}>Est. Time</Text>
-                          <Text style={st.assemblyValue}>{assembly.time}</Text>
-                        </View>
-                      )}
-                      {assembly.people && (
-                        <View style={st.assemblyItem}>
-                          <Users size={16} color="#7C3AED" />
-                          <Text style={st.assemblyLabel}>People</Text>
-                          <Text style={st.assemblyValue}>{assembly.people === '1' ? '1 person' : `${assembly.people} people`}</Text>
-                        </View>
-                      )}
+            {hasResaleSection && (
+              <SectionCard
+                title="Resale Intel"
+                icon={TrendingUp}
+                iconColor="#10B981"
+                iconBg="#ECFDF5"
+                testID="resale-intel-section"
+              >
+                {bestPlatform && (
+                  <View style={st.platformRow}>
+                    <Store size={14} color="#0058A3" />
+                    <View style={st.platformInfo}>
+                      <Text style={st.platformLabel}>Best Platform</Text>
+                      <Text style={st.platformValue}>{bestPlatform}</Text>
                     </View>
-                    {assembly.wallAnchor && (
-                      <View style={st.wallAnchorCard}>
-                        <Shield size={14} color="#DC2626" />
-                        <Text style={st.wallAnchorText}>{assembly.wallAnchor}</Text>
-                      </View>
-                    )}
-                    {assembly.setupNotes && (
-                      <View style={st.noteRow}>
-                        <Lightbulb size={13} color="#D97706" />
-                        <Text style={st.noteText}>{assembly.setupNotes}</Text>
-                      </View>
-                    )}
                   </View>
                 )}
-              </View>
+                {resaleTip && (
+                  <View style={st.insightCard}>
+                    <Award size={13} color="#059669" />
+                    <Text style={st.insightText}>{resaleTip}</Text>
+                  </View>
+                )}
+              </SectionCard>
             )}
 
-            {matchingProducts.length > 0 && (showFullDetails || (showPartialDetails && matchingProducts.length >= 2)) && (
-              <View style={[st.sectionCard, { borderColor: ScannerColors.matchesBorder }]}>
-                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setMatchesExpanded)}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.matchesBg }]}>
-                    <ShoppingBag size={16} color="#059669" />
-                  </View>
-                  <Text style={st.sectionTitle}>What Goes With This</Text>
-                  {showPartialDetails && (
-                    <View style={st.estBadge}>
-                      <Text style={st.estBadgeText}>Estimated</Text>
+            {relatedItems.length > 0 && (
+              <SectionCard
+                title="Items That Go With This"
+                icon={Package}
+                iconColor="#6366F1"
+                iconBg="#EEF2FF"
+                testID="related-items-section"
+              >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.relatedScroll}>
+                  {relatedItems.map((item, i) => (
+                    <View key={`related-${i}`} style={st.relatedChip}>
+                      <Package size={14} color="#6366F1" />
+                      <Text style={st.relatedChipText} numberOfLines={2}>{item}</Text>
                     </View>
-                  )}
-                  <ChevronDown
-                    size={16}
-                    color="#AEAEB2"
-                    style={{ transform: [{ rotate: matchesExpanded ? '0deg' : '-90deg' }] }}
-                  />
-                </Pressable>
-                {matchesExpanded && (
-                  <View style={st.sectionContent}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchScroll}>
-                      {matchingProducts.map((product, i) => (
-                        <View key={`match-${i}`} style={st.matchCard}>
-                          <View style={st.matchIconWrap}>
-                            <Package size={16} color="#059669" />
-                          </View>
-                          <Text style={st.matchText} numberOfLines={2}>{product}</Text>
-                        </View>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
+                  ))}
+                </ScrollView>
+              </SectionCard>
             )}
 
-            {roomFitLabels.length > 0 && showFullDetails && (
-              <View style={[st.sectionCard, { borderColor: ScannerColors.goodForBorder }]}>
-                <View style={st.sectionHeader}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.goodForBg }]}>
-                    <Home size={16} color="#7C3AED" />
-                  </View>
-                  <Text style={st.sectionTitle}>Good For</Text>
-                </View>
-                <View style={st.goodForWrap}>
-                  {roomFitLabels.map((label, i) => {
-                    const RIcon = getRoomIcon(label);
-                    return (
-                      <View key={`room-${i}`} style={st.goodForChip}>
-                        <RIcon size={13} color="#7C3AED" />
-                        <Text style={st.goodForText}>{label}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-
-            {valueInsight && showFullDetails && (
-              <View style={[st.sectionCard, { borderColor: ScannerColors.valueBorder }]}>
-                <View style={st.sectionHeader}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: ScannerColors.valueBg }]}>
-                    <Star size={16} color="#D97706" />
-                  </View>
-                  <Text style={st.sectionTitle}>{valueInsight.label}</Text>
-                </View>
-                <View style={st.valueContent}>
-                  <Text style={st.valueText}>{valueInsight.text}</Text>
-                </View>
-              </View>
-            )}
-
-            {careTip && showFullDetails && !isFood && (
+            {careTip && !isFood && !isDocument && !isReceipt && (
               <View style={st.tipCard}>
-                <Lightbulb size={14} color="#F59E0B" />
-                <Text style={st.tipText}>{careTip}</Text>
-              </View>
-            )}
-
-            {isFood && foodIngredients.length > 0 && showFullDetails && (
-              <View style={st.sectionCard}>
-                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setIngredientsExpanded)}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: '#F0FDF4' }]}>
-                    <Leaf size={16} color="#16A34A" />
-                  </View>
-                  <Text style={st.sectionTitle}>Ingredients</Text>
-                  <View style={st.countBadge}>
-                    <Text style={st.countBadgeText}>{foodIngredients.length}</Text>
-                  </View>
-                  <ChevronDown
-                    size={16}
-                    color="#AEAEB2"
-                    style={{ transform: [{ rotate: ingredientsExpanded ? '0deg' : '-90deg' }] }}
-                  />
-                </Pressable>
-                {ingredientsExpanded && (
-                  <View style={st.sectionContent}>
-                    {foodIngredients.map((ing, i) => (
-                      <View key={`ing-${i}`} style={st.bulletRow}>
-                        <View style={[st.bulletDot, { backgroundColor: '#16A34A' }]} />
-                        <Text style={st.bulletText}>{ing}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            {isFood && foodGoWith.length > 0 && (showFullDetails || showPartialDetails) && (
-              <View style={[st.sectionCard, { borderColor: '#FECDD3' }]}>
-                <View style={st.sectionHeader}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: '#FFF1F2' }]}>
-                    <Cherry size={16} color="#E11D48" />
-                  </View>
-                  <Text style={st.sectionTitle}>Goes Well With</Text>
+                <View style={st.tipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
                 </View>
-                <View style={st.sectionContent}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchScroll}>
-                    {foodGoWith.map((item, i) => (
-                      <View key={`pair-${i}`} style={[st.matchCard, { backgroundColor: '#FFF1F2', borderColor: '#FECDD3' }]}>
-                        <View style={[st.matchIconWrap, { backgroundColor: '#FFFFFF' }]}>
-                          <UtensilsCrossed size={14} color="#E11D48" />
-                        </View>
-                        <Text style={st.matchText} numberOfLines={2}>{item}</Text>
-                      </View>
-                    ))}
-                  </ScrollView>
+                <View style={st.tipContent}>
+                  <Text style={st.tipTitle}>Care Tip</Text>
+                  <Text style={st.tipText}>{careTip}</Text>
                 </View>
               </View>
             )}
 
-            {isFood && foodRecipes.length > 0 && showFullDetails && (
-              <View style={st.sectionCard}>
-                <Pressable style={st.sectionHeader} onPress={() => toggleSection(setRecipesExpanded)}>
-                  <View style={[st.sectionIconWrap, { backgroundColor: '#FFFBEB' }]}>
-                    <CookingPot size={16} color="#EA580C" />
-                  </View>
-                  <Text style={st.sectionTitle}>Recipes</Text>
-                  <View style={[st.countBadge, { backgroundColor: '#EA580C14' }]}>
-                    <Text style={[st.countBadgeText, { color: '#EA580C' }]}>{foodRecipes.length}</Text>
-                  </View>
-                  <ChevronDown
-                    size={16}
-                    color="#AEAEB2"
-                    style={{ transform: [{ rotate: recipesExpanded ? '0deg' : '-90deg' }] }}
-                  />
-                </Pressable>
-                {recipesExpanded && (
-                  <View style={st.sectionContent}>
-                    {foodRecipes.map((recipe, i) => {
-                      const diffColor = recipe.difficulty === 'easy' ? '#16A34A' : recipe.difficulty === 'medium' ? '#D97706' : '#DC2626';
-                      return (
-                        <View key={`recipe-${i}`} style={st.recipeCard}>
-                          <View style={st.recipeHeaderRow}>
-                            <Text style={st.recipeName}>{recipe.name}</Text>
-                            <View style={[st.recipeDiffBadge, { backgroundColor: `${diffColor}14` }]}>
-                              <Text style={[st.recipeDiffText, { color: diffColor }]}>
-                                {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text style={st.recipeDesc}>{recipe.description}</Text>
-                          <Text style={st.recipeTime}>{recipe.prep_time}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
+            <ReferenceSection
+              result={result}
+              referenceImageUrl={referenceImageUrl}
+              visible={referenceOpen}
+            />
+
+            <ResaleInsightsSection result={result} />
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
 
             <Pressable
-              style={({ pressed }) => [st.scanAnotherBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
               onPress={onScanAgain}
               testID="scan-another-btn"
             >
               <Camera size={18} color="#FFFFFF" />
-              <Text style={st.scanAnotherText}>Scan Another Item</Text>
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
             </Pressable>
           </>
         )}
@@ -937,24 +752,42 @@ const st = StyleSheet.create({
     width: '100%',
     height: 280,
     backgroundColor: '#F0F0F0',
-    borderRadius: ScannerRadius.xxl,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: ScannerSpacing.lg,
+    marginBottom: 16,
   },
   heroImage: { width: '100%', height: '100%' },
 
-  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: ScannerSpacing.lg },
-  dualImageWrap: { flex: 1, height: 200, borderRadius: ScannerRadius.xxl, overflow: 'hidden', backgroundColor: '#F0F0F0', position: 'relative' },
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
   dualImage: { width: '100%', height: '100%' },
-  imageBadge: { position: 'absolute', bottom: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: ScannerRadius.sm },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
   imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
 
   fallbackImageWrap: {
     width: '100%',
     height: 180,
-    borderRadius: ScannerRadius.xxl,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: ScannerSpacing.lg,
+    marginBottom: 16,
     position: 'relative',
   },
   fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
@@ -973,34 +806,324 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(217,119,6,0.2)',
+    backgroundColor: 'rgba(217,119,6,0.25)',
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: ScannerRadius.sm,
+    borderRadius: 6,
   },
   fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
 
-  contentSection: { paddingBottom: 20 },
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
 
-  confidenceBadge: {
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: ScannerRadius.sm,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 12,
   },
-  confidenceBadgeText: { fontSize: 12, fontWeight: '700' as const },
-  confidencePctPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    marginLeft: 2,
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  confidencePctText: { fontSize: 10, fontWeight: '800' as const },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  catPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  catDot: { width: 6, height: 6, borderRadius: 3 },
+  catPillText: { fontSize: 11, fontWeight: '700' as const },
+
+  ikeaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  inlinePriceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: '#F0F7FF',
+  },
+  inlinePriceText: { fontSize: 16, fontWeight: '800' as const, letterSpacing: -0.3 },
+
+  summaryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  rendererWrap: {},
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  priceLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  priceLabelLg: { fontSize: 14, fontWeight: '700' as const, color: '#111111' },
+  priceValue: { fontSize: 16, fontWeight: '700' as const, color: '#111111' },
+  priceValueLg: { fontSize: 24, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.5 },
+
+  demandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  insightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  insightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  platformRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 6,
+  },
+  platformInfo: { flex: 1 },
+  platformLabel: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+  platformValue: { fontSize: 15, fontWeight: '800' as const, color: '#111111' },
+
+  relatedScroll: { gap: 8, paddingRight: 4 },
+  relatedChip: {
+    width: 110,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  relatedChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center', lineHeight: 16 },
+
+  tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  tipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tipContent: { flex: 1 },
+  tipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  tipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
 
   lowConfContainer: { paddingTop: 4 },
   lowConfHeader: { alignItems: 'center', marginBottom: 20 },
@@ -1015,15 +1138,15 @@ const st = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FDE68A',
   },
-  lowConfHeaderTitle: {
+  lowConfTitle: {
     fontSize: 20,
     fontWeight: '800' as const,
-    color: '#1C1C1E',
+    color: '#111111',
     letterSpacing: -0.3,
     marginBottom: 8,
     textAlign: 'center',
   },
-  lowConfHeaderDesc: {
+  lowConfDesc: {
     fontSize: 14,
     fontWeight: '500' as const,
     color: '#6B7280',
@@ -1031,19 +1154,18 @@ const st = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 8,
   },
-
   scanTipsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: ScannerRadius.xxl,
+    borderRadius: 16,
     padding: 18,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    borderColor: '#E5E7EB',
   },
   scanTipsTitle: {
     fontSize: 14,
     fontWeight: '700' as const,
-    color: '#1C1C1E',
+    color: '#111111',
     letterSpacing: -0.2,
     marginBottom: 14,
   },
@@ -1063,387 +1185,7 @@ const st = StyleSheet.create({
   scanTipText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: '#3C3C43',
+    color: '#374151',
     flex: 1,
-  },
-
-  nextScanCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: '#F0F7FF',
-    borderRadius: ScannerRadius.lg,
-    padding: 14,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#B8D4F0',
-  },
-  nextScanText: { flex: 1, fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
-
-  retryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: ScannerRadius.xl,
-    backgroundColor: '#0058A3',
-    marginTop: 4,
-    shadowColor: '#003E75',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  retryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
-
-  mediumConfCard: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: ScannerRadius.lg,
-    padding: 14,
-    marginBottom: ScannerSpacing.lg,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  mediumConfHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  mediumConfTitle: { fontSize: 14, fontWeight: '700' as const, color: '#92400E' },
-  mediumConfDesc: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
-  mediumConfTip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    backgroundColor: '#F0F7FF',
-    borderRadius: ScannerRadius.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  mediumConfTipText: { fontSize: 12, fontWeight: '600' as const, color: '#0058A3', flex: 1 },
-
-  ikeaBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  ikeaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#FFDA1A',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: ScannerRadius.sm,
-  },
-  ikeaBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#0058A3' },
-  ikeaConfPill: {
-    backgroundColor: '#0058A312',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: ScannerRadius.sm,
-  },
-  ikeaConfPillText: { fontSize: 11, fontWeight: '600' as const, color: '#0058A3' },
-
-  itemName: {
-    fontSize: 26,
-    fontWeight: '800' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.5,
-    marginBottom: 6,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: ScannerSpacing.lg,
-  },
-  categoryText: { fontSize: 15, fontWeight: '500' as const, color: '#8E8E93' },
-  priceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#0058A310',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: ScannerRadius.sm,
-  },
-  priceText: { fontSize: 18, fontWeight: '800' as const, color: '#0058A3', letterSpacing: -0.3 },
-  priceEstLabel: { fontSize: 10, fontWeight: '600' as const, color: '#0058A380', marginLeft: 2 },
-
-  descriptionCard: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: ScannerRadius.lg,
-    padding: 14,
-    marginBottom: ScannerSpacing.lg,
-    borderWidth: 1,
-    borderColor: '#B8D4F0',
-  },
-  descriptionText: { fontSize: 14, color: '#1E3A5F', lineHeight: 20 },
-
-  specsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: ScannerSpacing.lg,
-  },
-  specChip: {
-    width: '31%' as unknown as number,
-    flexGrow: 1,
-    flexBasis: '30%' as unknown as number,
-    backgroundColor: '#FFFFFF',
-    borderRadius: ScannerRadius.lg,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  specLabel: { fontSize: 11, fontWeight: '500' as const, color: '#8E8E93', marginBottom: 3 },
-  specValue: { fontSize: 13, fontWeight: '700' as const, color: '#1C1C1E', lineHeight: 17 },
-
-  estBadge: {
-    backgroundColor: '#D9770614',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: ScannerRadius.sm,
-  },
-  estBadgeText: { fontSize: 10, fontWeight: '700' as const, color: '#D97706' },
-
-  sectionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: ScannerRadius.xxl,
-    overflow: 'hidden',
-    marginBottom: ScannerSpacing.md,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  sectionIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.2,
-  },
-  sectionContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5EA',
-    paddingTop: 12,
-  },
-
-  toolRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 6,
-  },
-  toolIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: '#F0F7FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toolText: { fontSize: 14, fontWeight: '600' as const, color: '#1C1C1E' },
-
-  assemblyGrid: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  assemblyItem: {
-    flex: 1,
-    backgroundColor: '#FAFAFA',
-    borderRadius: ScannerRadius.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    gap: 6,
-  },
-  assemblyLabel: { fontSize: 11, fontWeight: '500' as const, color: '#8E8E93' },
-  assemblyValue: { fontSize: 13, fontWeight: '800' as const, color: '#1C1C1E', textAlign: 'center' },
-
-  wallAnchorCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: ScannerRadius.md,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  wallAnchorText: { flex: 1, fontSize: 12, fontWeight: '600' as const, color: '#991B1B', lineHeight: 17 },
-
-  noteRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  noteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
-
-  matchScroll: { gap: 10, paddingRight: 4 },
-  matchCard: {
-    width: 110,
-    backgroundColor: '#F0FDF4',
-    borderRadius: ScannerRadius.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-  matchIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#ECFDF5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  matchText: { fontSize: 12, fontWeight: '600' as const, color: '#1C1C1E', textAlign: 'center', lineHeight: 16 },
-
-  goodForWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-  },
-  goodForChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F5F3FF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: ScannerRadius.pill,
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-  },
-  goodForText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
-
-  valueContent: { paddingHorizontal: 16, paddingBottom: 14 },
-  valueText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
-
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: '#FFFBEB',
-    borderRadius: ScannerRadius.lg,
-    padding: 14,
-    marginBottom: ScannerSpacing.md,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  tipText: { flex: 1, fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
-
-  countBadge: {
-    backgroundColor: '#16A34A14',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: ScannerRadius.sm,
-  },
-  countBadgeText: { fontSize: 11, fontWeight: '700' as const, color: '#16A34A' },
-
-  bulletRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  bulletDot: { width: 6, height: 6, borderRadius: 3 },
-  bulletText: { fontSize: 13, fontWeight: '500' as const, color: '#3C3C43', flex: 1, lineHeight: 19 },
-
-  recipeCard: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: ScannerRadius.lg,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  recipeHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  recipeName: { fontSize: 14, fontWeight: '700' as const, color: '#1C1C1E', flex: 1, marginRight: 8 },
-  recipeDiffBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  recipeDiffText: { fontSize: 10, fontWeight: '700' as const, textTransform: 'uppercase' as const, letterSpacing: 0.3 },
-  recipeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#6B7280', lineHeight: 17, marginBottom: 4 },
-  recipeTime: { fontSize: 11, fontWeight: '600' as const, color: '#8E8E93' },
-
-  scanAnotherBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: ScannerRadius.xl,
-    backgroundColor: '#0058A3',
-    marginTop: ScannerSpacing.lg,
-    marginBottom: ScannerSpacing.md,
-    shadowColor: '#003E75',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  scanAnotherText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
-
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    marginTop: 2,
-  },
-  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
-
-  generatingOverlay: {
-    position: 'absolute' as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingVertical: 10,
-  },
-  generatingText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#FFFFFF',
-  },
-  generatingPlaceholder: {
-    width: '100%' as const,
-    height: 180,
-    backgroundColor: '#F0F7FF',
-    borderRadius: ScannerRadius.xxl,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    gap: 10,
-    marginBottom: ScannerSpacing.lg,
-    borderWidth: 1,
-    borderColor: '#B8D4F0',
-  },
-  generatingPlaceholderText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#0058A3',
   },
 });
