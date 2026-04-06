@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  Animated,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,8 +28,6 @@ import * as Haptics from 'expo-haptics';
 import { useConnections, ConnectionWithProfile } from '@/contexts/ConnectionsContext';
 import { SearchedUser } from '@/services/connectionsService';
 
-type TabKey = 'friends' | 'requests' | 'search';
-
 export default function ConnectionsScreen() {
   const insets = useSafeAreaInsets();
   const {
@@ -46,21 +43,11 @@ export default function ConnectionsScreen() {
     searchResults,
     isSearching,
     getConnectionStatus,
-    requestCount,
   } = useConnections();
 
-  const [activeTab, setActiveTab] = useState<TabKey>(requestCount > 0 ? 'requests' : 'friends');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [slideAnim]);
 
   const handleSearch = useCallback((text: string) => {
     setSearchQuery(text);
@@ -121,11 +108,6 @@ export default function ConnectionsScreen() {
     );
   }, [removeConnection]);
 
-  const handleTabSwitch = useCallback((tab: TabKey) => {
-    void Haptics.selectionAsync();
-    setActiveTab(tab);
-  }, []);
-
   const renderSearchResult = useCallback(({ item }: { item: SearchedUser }) => {
     const status = getConnectionStatus(item.id);
     return (
@@ -174,7 +156,7 @@ export default function ConnectionsScreen() {
     );
   }, [getConnectionStatus, handleSendRequest, isSendingRequest]);
 
-  const renderRequest = useCallback(({ item }: { item: ConnectionWithProfile }) => {
+  const renderRequest = useCallback((item: ConnectionWithProfile) => {
     return (
       <View style={styles.requestCard}>
         <View style={styles.userCardLeft}>
@@ -210,7 +192,7 @@ export default function ConnectionsScreen() {
     );
   }, [handleRespond, isResponding]);
 
-  const renderFriend = useCallback(({ item }: { item: ConnectionWithProfile }) => {
+  const renderFriend = useCallback((item: ConnectionWithProfile) => {
     return (
       <View style={styles.userCard}>
         <View style={styles.userCardLeft}>
@@ -237,6 +219,77 @@ export default function ConnectionsScreen() {
     );
   }, [handleRemove, isRemoving]);
 
+  if (isSearchMode) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => {
+              setIsSearchMode(false);
+              setSearchQuery('');
+            }}
+            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+            hitSlop={12}
+          >
+            <ArrowLeft size={22} color="#1C1C1E" strokeWidth={2} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Find People</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={18} color="#8E8E93" strokeWidth={2} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name..."
+            placeholderTextColor="#8E8E93"
+            value={searchQuery}
+            onChangeText={handleSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+            returnKeyType="search"
+            testID="search-users-input"
+          />
+          {searchQuery.length > 0 ? (
+            <Pressable onPress={() => { setSearchQuery(''); }} hitSlop={8}>
+              <X size={16} color="#8E8E93" strokeWidth={2} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {isSearching ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color="#16A34A" />
+            <Text style={styles.stateText}>Searching...</Text>
+          </View>
+        ) : searchQuery.trim().length < 2 ? (
+          <View style={styles.centerState}>
+            <Search size={48} color="#D1D1D6" strokeWidth={1.5} />
+            <Text style={styles.stateTitle}>Find People</Text>
+            <Text style={styles.stateText}>Search by name to find and connect</Text>
+          </View>
+        ) : searchResults.length === 0 ? (
+          <View style={styles.centerState}>
+            <Users size={48} color="#D1D1D6" strokeWidth={1.5} />
+            <Text style={styles.stateTitle}>No Results</Text>
+            <Text style={styles.stateText}>No users found for "{searchQuery}"</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={searchResults}
+            keyExtractor={(item) => item.id}
+            renderItem={renderSearchResult}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+
+        <View style={{ height: insets.bottom + 16 }} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -247,130 +300,69 @@ export default function ConnectionsScreen() {
         >
           <ArrowLeft size={22} color="#1C1C1E" strokeWidth={2} />
         </Pressable>
-        <Text style={styles.headerTitle}>Connections</Text>
-        <View style={{ width: 36 }} />
+        <Text style={styles.headerTitle}>My Connections</Text>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIsSearchMode(true);
+          }}
+          style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.6 }]}
+          hitSlop={8}
+        >
+          <UserPlus size={20} color="#16A34A" strokeWidth={2.2} />
+        </Pressable>
       </View>
 
-      <View style={styles.tabBar}>
-        {([
-          { key: 'friends' as TabKey, label: 'Friends', count: friends.length },
-          { key: 'requests' as TabKey, label: 'Requests', count: requestCount },
-          { key: 'search' as TabKey, label: 'Find People', count: 0 },
-        ]).map((tab) => (
-          <Pressable
-            key={tab.key}
-            onPress={() => handleTabSwitch(tab.key)}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-            {tab.count > 0 ? (
-              <View style={[styles.tabBadge, activeTab === tab.key && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, activeTab === tab.key && styles.tabBadgeTextActive]}>
-                  {tab.count}
-                </Text>
-              </View>
-            ) : null}
-          </Pressable>
-        ))}
-      </View>
-
-      {activeTab === 'search' ? (
-        <View style={styles.searchSection}>
-          <View style={styles.searchBar}>
-            <Search size={18} color="#8E8E93" strokeWidth={2} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search by name..."
-              placeholderTextColor="#8E8E93"
-              value={searchQuery}
-              onChangeText={handleSearch}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              testID="search-users-input"
-            />
-            {searchQuery.length > 0 ? (
-              <Pressable onPress={() => { setSearchQuery(''); }} hitSlop={8}>
-                <X size={16} color="#8E8E93" strokeWidth={2} />
-              </Pressable>
-            ) : null}
+      <FlatList
+        data={[...incomingRequests, ...friends]}
+        keyExtractor={(item) => item.connection.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          (incomingRequests.length === 0 && friends.length === 0) && styles.emptyListContent,
+        ]}
+        ListEmptyComponent={
+          <View style={styles.centerState}>
+            <Users size={48} color="#D1D1D6" strokeWidth={1.5} />
+            <Text style={styles.stateTitle}>No Connections Yet</Text>
+            <Text style={styles.stateText}>Tap the + button to search and connect with people</Text>
+            <Pressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setIsSearchMode(true);
+              }}
+              style={({ pressed }) => [styles.findPeopleBtn, pressed && { opacity: 0.8 }]}
+            >
+              <Search size={16} color="#FFFFFF" strokeWidth={2.5} />
+              <Text style={styles.findPeopleBtnText}>Find People</Text>
+            </Pressable>
           </View>
-
-          {isSearching ? (
-            <View style={styles.centerState}>
-              <ActivityIndicator size="large" color="#16A34A" />
-              <Text style={styles.stateText}>Searching...</Text>
+        }
+        renderItem={({ item, index }) => {
+          const isRequest = index < incomingRequests.length;
+          if (isRequest) {
+            return (
+              <View>
+                {index === 0 ? (
+                  <Text style={styles.sectionLabel}>Pending Requests</Text>
+                ) : null}
+                {renderRequest(item)}
+              </View>
+            );
+          }
+          return (
+            <View>
+              {index === incomingRequests.length ? (
+                <Text style={[styles.sectionLabel, incomingRequests.length > 0 && { marginTop: 16 }]}>
+                  Friends · {friends.length}
+                </Text>
+              ) : null}
+              {renderFriend(item)}
             </View>
-          ) : searchQuery.trim().length < 2 ? (
-            <View style={styles.centerState}>
-              <Search size={48} color="#D1D1D6" strokeWidth={1.5} />
-              <Text style={styles.stateTitle}>Find People</Text>
-              <Text style={styles.stateText}>Search by name to find and connect with other users</Text>
-            </View>
-          ) : searchResults.length === 0 ? (
-            <View style={styles.centerState}>
-              <Users size={48} color="#D1D1D6" strokeWidth={1.5} />
-              <Text style={styles.stateTitle}>No Results</Text>
-              <Text style={styles.stateText}>No users found for "{searchQuery}"</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={searchResults}
-              keyExtractor={(item) => item.id}
-              renderItem={renderSearchResult}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      ) : activeTab === 'requests' ? (
-        <View style={styles.listSection}>
-          {incomingRequests.length === 0 ? (
-            <View style={styles.centerState}>
-              <UserPlus size={48} color="#D1D1D6" strokeWidth={1.5} />
-              <Text style={styles.stateTitle}>No Requests</Text>
-              <Text style={styles.stateText}>When someone sends you a connection request, it will appear here</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={incomingRequests}
-              keyExtractor={(item) => item.connection.id}
-              renderItem={renderRequest}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      ) : (
-        <View style={styles.listSection}>
-          {friends.length === 0 ? (
-            <View style={styles.centerState}>
-              <Users size={48} color="#D1D1D6" strokeWidth={1.5} />
-              <Text style={styles.stateTitle}>No Connections Yet</Text>
-              <Text style={styles.stateText}>Use "Find People" to search and connect with other users</Text>
-              <Pressable
-                onPress={() => handleTabSwitch('search')}
-                style={({ pressed }) => [styles.findPeopleBtn, pressed && { opacity: 0.8 }]}
-              >
-                <Search size={16} color="#FFFFFF" strokeWidth={2.5} />
-                <Text style={styles.findPeopleBtnText}>Find People</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <FlatList
-              data={friends}
-              keyExtractor={(item) => item.connection.id}
-              renderItem={renderFriend}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      )}
-
-      <View style={{ height: insets.bottom + 16 }} />
+          );
+        }}
+        ListFooterComponent={<View style={{ height: insets.bottom + 16 }} />}
+      />
     </View>
   );
 }
@@ -398,62 +390,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  searchBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
     color: '#1C1C1E',
     letterSpacing: -0.3,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 6,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#F2F2F7',
-    gap: 5,
-  },
-  tabActive: {
-    backgroundColor: '#16A34A',
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-  },
-  tabBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#E5E5EA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 5,
-  },
-  tabBadgeActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  tabBadgeText: {
-    fontSize: 11,
-    fontWeight: '700' as const,
-    color: '#8E8E93',
-  },
-  tabBadgeTextActive: {
-    color: '#FFFFFF',
-  },
-  searchSection: {
-    flex: 1,
   },
   searchBar: {
     flexDirection: 'row',
@@ -479,14 +428,23 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     padding: 0,
   },
-  listSection: {
-    flex: 1,
-  },
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 20,
     gap: 8,
+  },
+  emptyListContent: {
+    flex: 1,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#8E8E93',
+    letterSpacing: -0.1,
+    marginBottom: 8,
+    marginTop: 4,
+    textTransform: 'uppercase' as const,
   },
   centerState: {
     flex: 1,

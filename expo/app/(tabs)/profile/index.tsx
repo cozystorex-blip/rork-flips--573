@@ -41,12 +41,11 @@ export default function ProfileScreen() {
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
   const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
-  const { connectedUserIds, friends, requestCount } = useConnections();
+  const { friends, requestCount } = useConnections();
 
-  const connectedOnlineUsers = useMemo(() => {
+  const dedupedOnlineUsers = useMemo(() => {
     const seen = new Map<string, typeof onlineUsers[number]>();
     for (const u of onlineUsers) {
-      if (!connectedUserIds.has(u.id)) continue;
       if (seen.has(u.id)) {
         const existing = seen.get(u.id)!;
         if (u.lastActive > existing.lastActive) {
@@ -57,7 +56,7 @@ export default function ProfileScreen() {
       }
     }
     return Array.from(seen.values());
-  }, [onlineUsers, connectedUserIds]);
+  }, [onlineUsers]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -342,13 +341,20 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
-          {isUserOnline && connectedOnlineUsers.length > 0 ? (
+          {isUserOnline && dedupedOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
-              <Text style={styles.onlineSectionTitle}>Connections Online</Text>
-              <Text style={styles.onlineSectionCount}>{connectedOnlineUsers.length} online now</Text>
+              <Text style={styles.onlineSectionTitle}>People Online</Text>
+              <Text style={styles.onlineSectionCount}>{dedupedOnlineUsers.length} online now</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineList}>
-                {connectedOnlineUsers.map((u) => (
-                  <View key={u.id} style={styles.onlineCard}>
+                {dedupedOnlineUsers.map((u) => (
+                  <Pressable
+                    key={u.id}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push({ pathname: '/connections', params: { viewUser: u.id } });
+                    }}
+                    style={({ pressed }) => [styles.onlineCard, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
+                  >
                     <View style={styles.onlineAvatarWrap}>
                       {u.avatar_url ? (
                         <Image source={{ uri: u.avatar_url }} style={styles.onlineAvatar} contentFit="cover" />
@@ -359,14 +365,14 @@ export default function ProfileScreen() {
                     </View>
                     <Text style={styles.onlineName} numberOfLines={1}>{u.name || 'User'}</Text>
                     <Text style={styles.onlineActivity}>{u.activity === 'scanning' ? 'Scanning' : u.activity === 'saving' ? 'Saving' : 'Browsing'}</Text>
-                  </View>
+                  </Pressable>
                 ))}
               </ScrollView>
             </View>
           ) : isUserOnline ? (
             <View style={styles.onlineSection}>
-              <Text style={styles.onlineSectionTitle}>Connections Online</Text>
-              <Text style={styles.onlineEmptyText}>None of your connections are online right now</Text>
+              <Text style={styles.onlineSectionTitle}>People Online</Text>
+              <Text style={styles.onlineEmptyText}>No one else is online right now</Text>
             </View>
           ) : null}
 
