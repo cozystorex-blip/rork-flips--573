@@ -11,7 +11,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
-import { Search } from 'lucide-react-native';
+import { Search, UserPlus, UserCheck, Clock, MapPin } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
@@ -28,6 +28,8 @@ import { useProfile } from '@/contexts/ProfileContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import { useOnlinePeople } from '@/contexts/OnlinePeopleContext';
+import { useConnections } from '@/contexts/ConnectionsContext';
+import type { SearchedUser } from '@/services/connectionsService';
 
 import { pickAndCropAvatar, uploadAvatarToSupabase } from '@/services/uploadService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
@@ -43,6 +45,39 @@ export default function ProfileScreen() {
 
 
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    searchUsers,
+    searchResults,
+    isSearching,
+    getConnectionStatus,
+    sendRequest,
+    isSendingRequest,
+  } = useConnections();
+
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (text.trim().length < 2) return;
+    searchTimeoutRef.current = setTimeout(() => {
+      console.log('[Profile] Searching users for:', text);
+      void searchUsers(text);
+    }, 400);
+  }, [searchUsers]);
+
+  const handleSendRequest = useCallback(async (receiverId: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await sendRequest(receiverId);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Request Sent', 'Connection request sent successfully.');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to send request';
+      Alert.alert('Error', msg);
+    }
+  }, [sendRequest]);
+
+  const showSearchResults = searchQuery.trim().length >= 2;
 
   const dedupedOnlineUsers = useMemo(() => {
     const seen = new Map<string, typeof onlineUsers[number]>();
@@ -324,11 +359,13 @@ export default function ProfileScreen() {
                 <Search size={16} color={searchQuery.length > 0 ? '#0058A3' : '#AEAEB2'} strokeWidth={2.2} />
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Find people nearby..."
+                  placeholder="Search people..."
                   placeholderTextColor="#C7C7CC"
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={handleSearchChange}
                   returnKeyType="search"
+                  autoCapitalize="none"
+                  autoCorrect={false}
                   testID="profile-search-input"
                 />
                 {searchQuery.length > 0 && (
@@ -350,14 +387,98 @@ export default function ProfileScreen() {
                 {isUserOnline && <Animated.View style={[styles.statusDotPulse, { opacity: pulseAnim }]} />}
               </Pressable>
             </View>
-            {isUserOnline && filteredOnlineUsers.length > 0 && (
+            {!showSearchResults && isUserOnline && filteredOnlineUsers.length > 0 && (
               <Text style={styles.searchResultCount}>
                 {searchQuery.trim() ? `${filteredOnlineUsers.length} found` : `${filteredOnlineUsers.length} online now`}
               </Text>
             )}
+            {showSearchResults && (
+              <Text style={styles.searchResultCount}>
+                {isSearching ? 'Searching...' : `${searchResults.length} profile${searchResults.length !== 1 ? 's' : ''} found`}
+              </Text>
+            )}
           </View>
 
-          {isUserOnline && filteredOnlineUsers.length > 0 ? (
+          {showSearchResults ? (
+            <View style={styles.profileResultsSection}>
+              {isSearching ? (
+                <View style={styles.searchLoadingWrap}>
+                  <ActivityIndicator size="small" color="#0058A3" />
+                  <Text style={styles.searchLoadingText}>Finding people...</Text>
+                </View>
+              ) : searchResults.length === 0 ? (
+                <View style={styles.searchEmptyWrap}>
+                  <Search size={32} color="#C7C7CC" strokeWidth={1.5} />
+                  <Text style={styles.searchEmptyTitle}>No profiles found</Text>
+                  <Text style={styles.searchEmptyText}>Try a different name</Text>
+                </View>
+              ) : (
+                searchResults.map((user: SearchedUser) => {
+                  const status = getConnectionStatus(user.id);
+                  return (
+                    <Pressable
+                      key={user.id}
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+                      testID={`profile-result-${user.id}`}
+                    >
+                      <View style={styles.profileCardLeft}>
+                        <View style={styles.profileCardAvatar}>
+                          {user.avatar_url ? (
+                            <Image source={{ uri: user.avatar_url }} style={styles.profileCardAvatarImg} contentFit="cover" />
+                          ) : (
+                            <Text style={styles.profileCardAvatarInitial}>
+                              {(user.display_name || 'U').charAt(0).toUpperCase()}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={styles.profileCardInfo}>
+                          <Text style={styles.profileCardName} numberOfLines={1}>
+                            {user.display_name || 'User'}
+                          </Text>
+                          {user.city ? (
+                            <View style={styles.profileCardCityRow}>
+                              <MapPin size={11} color="#8E8E93" strokeWidth={2} />
+                              <Text style={styles.profileCardCity} numberOfLines={1}>{user.city}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+                      {status === 'accepted' ? (
+                        <View style={styles.connectedBadge}>
+                          <UserCheck size={13} color="#16A34A" strokeWidth={2.5} />
+                          <Text style={styles.connectedBadgeText}>Connected</Text>
+                        </View>
+                      ) : status === 'pending_sent' ? (
+                        <View style={styles.pendingBadge}>
+                          <Clock size={13} color="#F59E0B" strokeWidth={2} />
+                          <Text style={styles.pendingBadgeText}>Pending</Text>
+                        </View>
+                      ) : (
+                        <Pressable
+                          onPress={() => handleSendRequest(user.id)}
+                          disabled={isSendingRequest}
+                          style={({ pressed }) => [styles.addUserBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
+                          testID={`add-user-${user.id}`}
+                        >
+                          {isSendingRequest ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <>
+                              <UserPlus size={13} color="#FFFFFF" strokeWidth={2.5} />
+                              <Text style={styles.addUserBtnText}>Connect</Text>
+                            </>
+                          )}
+                        </Pressable>
+                      )}
+                    </Pressable>
+                  );
+                })
+              )}
+            </View>
+          ) : isUserOnline && filteredOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
               <View style={styles.onlineGrid}>
                 {filteredOnlineUsers.map((u) => (
@@ -844,5 +965,140 @@ const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: '#3A3A3C',
     marginTop: 1,
+  },
+  profileResultsSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  profileCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  profileCardLeft: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flex: 1,
+    gap: 12,
+  },
+  profileCardAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E8EDF2',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    overflow: 'hidden' as const,
+  },
+  profileCardAvatarImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  profileCardAvatarInitial: {
+    fontSize: 19,
+    fontWeight: '700' as const,
+    color: '#0058A3',
+  },
+  profileCardInfo: {
+    flex: 1,
+  },
+  profileCardName: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.2,
+  },
+  profileCardCityRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 3,
+    marginTop: 3,
+  },
+  profileCardCity: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+  },
+  connectedBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+  },
+  connectedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#16A34A',
+  },
+  pendingBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+  },
+  pendingBadgeText: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: '#F59E0B',
+  },
+  addUserBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    backgroundColor: '#0058A3',
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: 18,
+  },
+  addUserBtnText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+  },
+  searchLoadingWrap: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 10,
+    paddingVertical: 32,
+  },
+  searchLoadingText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+  },
+  searchEmptyWrap: {
+    alignItems: 'center' as const,
+    paddingVertical: 32,
+  },
+  searchEmptyTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    marginTop: 10,
+  },
+  searchEmptyText: {
+    fontSize: 13,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 4,
   },
 });
