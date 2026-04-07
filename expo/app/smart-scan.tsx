@@ -187,8 +187,8 @@ export default function SmartScanScreen() {
     if (scanning) return;
 
     hasAutoLaunched.current = true;
-    console.log('[SmartScan] Auto-launching camera immediately on open');
-    void handleCapture('camera');
+    console.log('[SmartScan] Auto-launching gallery immediately on open');
+    void handleCapture('gallery');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.historyEntryId, viewingEntryId, result, scanning]);
 
