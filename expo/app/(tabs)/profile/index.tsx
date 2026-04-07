@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
   onlineAvatarInitial: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: '#34C759',
+    color: '#0A0A0A',
   },
   onlineIndicator: {
     position: 'absolute' as const,
@@ -674,21 +674,21 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#34C759',
+    backgroundColor: '#0A0A0A',
     borderWidth: 2.5,
     borderColor: '#FFFFFF',
   },
   onlineName: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: '#0A0A0A',
+    color: '#1C1C1E',
     textAlign: 'center' as const,
     maxWidth: 72,
   },
   onlineActivity: {
     fontSize: 10,
     fontWeight: '500' as const,
-    color: '#636366',
+    color: '#3A3A3C',
     marginTop: 1,
   },
 });

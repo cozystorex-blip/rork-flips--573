@@ -316,8 +316,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   flipsLogoImage: {
-    width: 90,
-    height: 90,
+    width: 130,
+    height: 130,
   },
   scrollContent: {
     paddingHorizontal: H_PAD,
