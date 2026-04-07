@@ -320,26 +320,43 @@ export default function ProfileScreen() {
         <View style={styles.whiteContent}>
           <View style={styles.searchSection}>
             <View style={styles.searchRow}>
-              <View style={styles.searchBar}>
-                <Search size={16} color="#8E8E93" strokeWidth={2} />
+              <View style={[styles.searchBar, searchQuery.length > 0 && styles.searchBarActive]}>
+                <View style={styles.searchIconWrap}>
+                  <Search size={15} color={searchQuery.length > 0 ? '#0058A3' : '#AEAEB2'} strokeWidth={2.2} />
+                </View>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search people..."
-                  placeholderTextColor="#8E8E93"
+                  placeholder="Find people nearby..."
+                  placeholderTextColor="#C7C7CC"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   returnKeyType="search"
                   testID="profile-search-input"
                 />
+                {searchQuery.length > 0 && (
+                  <Pressable
+                    onPress={() => setSearchQuery('')}
+                    style={({ pressed }) => [styles.searchClearBtn, pressed && { opacity: 0.6 }]}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.searchClearText}>×</Text>
+                  </Pressable>
+                )}
               </View>
               <Pressable
                 onPress={handleToggleOnline}
-                style={({ pressed }) => [styles.statusDot, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [styles.statusDot, isUserOnline && styles.statusDotActiveWrap, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
                 testID="profile-status-dot"
               >
                 <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+                {isUserOnline && <Animated.View style={[styles.statusDotPulse, { opacity: pulseAnim }]} />}
               </Pressable>
             </View>
+            {isUserOnline && filteredOnlineUsers.length > 0 && (
+              <Text style={styles.searchResultCount}>
+                {searchQuery.trim() ? `${filteredOnlineUsers.length} found` : `${filteredOnlineUsers.length} online now`}
+              </Text>
+            )}
           </View>
 
           {isUserOnline && filteredOnlineUsers.length > 0 ? (
@@ -616,8 +633,8 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: 10,
+    marginBottom: 14,
   },
   onlineSection: {
     marginHorizontal: 16,
@@ -646,27 +663,83 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EDEDEF',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 14,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    gap: 0,
+    borderWidth: 1.5,
+    borderColor: '#E8E8ED',
+  },
+  searchBarActive: {
+    borderColor: '#0058A3',
+    backgroundColor: '#F0F7FF',
+  },
+  searchIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '400' as const,
+    fontWeight: '500' as const,
     color: '#1C1C1E',
     padding: 0,
     margin: 0,
+    marginLeft: 8,
+    letterSpacing: -0.2,
+  },
+  searchClearBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#DCDCE0',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 4,
+  },
+  searchClearText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#636366',
+    lineHeight: 20,
+    marginTop: -1,
+  },
+  searchResultCount: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#0058A3',
+    marginTop: 8,
+    marginLeft: 4,
+    letterSpacing: -0.1,
   },
   statusDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EDEDEF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F7',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    borderWidth: 1.5,
+    borderColor: '#E8E8ED',
+    position: 'relative' as const,
+    overflow: 'visible' as const,
+  },
+  statusDotActiveWrap: {
+    backgroundColor: '#F0FFF4',
+    borderColor: '#86EFAC',
+  },
+  statusDotPulse: {
+    position: 'absolute' as const,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#34C759',
   },
   statusDotInner: {
     width: 14,
@@ -675,9 +748,14 @@ const styles = StyleSheet.create({
   },
   statusDotOnline: {
     backgroundColor: '#34C759',
+    shadowColor: '#34C759',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
   },
   statusDotOffline: {
-    backgroundColor: '#8E8E93',
+    backgroundColor: '#C7C7CC',
   },
   onlineSectionHeaderLeft: {
     flexDirection: 'row',
