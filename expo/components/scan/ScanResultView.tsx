@@ -26,33 +26,29 @@ import {
   Info,
   CheckCircle2,
   CircleDot,
-  TrendingUp,
   Zap,
-  Award,
   Sparkles,
   Eye,
-  Store,
   Download,
+  Wrench,
+  Clock,
+  Users,
+  Ruler,
+  ShieldCheck,
+  Heart,
+  Home,
+  Star,
+  TrendingUp,
+  Hammer,
+  Drill,
+  Gauge,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library';
 import { File, Paths, Directory } from 'expo-file-system';
 
 import type { SmartScanResult } from '@/services/smartScanService';
-import {
-  FoodResultSection,
-  GroceryResultSection,
-  FurnitureResultSection,
-  FashionResultSection,
-  ElectronicsResultSection,
-  HouseholdResultSection,
-  GeneralResultSection,
-  DocumentResultSection,
-  UnknownResultSection,
-} from '@/components/scan/ScanResultRenderers';
-import { ResaleInsightsSection } from '@/components/scan/ResaleInsightsSection';
-import ReferenceSection from '@/components/scan/ReferenceSection';
-
+import { ScannerColors } from '@/constants/scannerTheme';
 
 type ConfidenceTier = 'high' | 'medium' | 'low';
 
@@ -62,19 +58,11 @@ function getConfidenceTier(confidence: number): ConfidenceTier {
   return 'low';
 }
 
-function getConfidenceLabel(tier: ConfidenceTier): string {
-  switch (tier) {
-    case 'high': return 'High Confidence';
-    case 'medium': return 'Partial Match';
-    case 'low': return 'Low Confidence';
-  }
-}
-
 function getConfidenceConfig(tier: ConfidenceTier) {
   switch (tier) {
-    case 'high': return { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', icon: CheckCircle2 };
-    case 'medium': return { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', icon: CircleDot };
-    case 'low': return { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', icon: AlertTriangle };
+    case 'high': return { color: '#059669', bg: '#ECFDF5', border: '#A7F3D0', label: 'High Confidence' };
+    case 'medium': return { color: '#D97706', bg: '#FFFBEB', border: '#FDE68A', label: 'Partial Match' };
+    case 'low': return { color: '#DC2626', bg: '#FEF2F2', border: '#FECACA', label: 'Low Confidence' };
   }
 }
 
@@ -85,48 +73,9 @@ function isRealValue(val: string | null | undefined): val is string {
   return !JUNK_VALUES.includes(val.trim().toLowerCase());
 }
 
-const TYPE_COLORS: Record<string, { color: string; bg: string; label: string }> = {
-  food: { color: '#059669', bg: '#ECFDF5', label: 'Food' },
-  grocery: { color: '#2563EB', bg: '#EFF6FF', label: 'Grocery' },
-  household: { color: '#7C3AED', bg: '#F5F3FF', label: 'Home' },
-  furniture: { color: '#0058A3', bg: '#EFF6FF', label: 'Furniture' },
-  fashion: { color: '#E11D48', bg: '#FFF1F2', label: 'Fashion' },
-  electronics: { color: '#0284C7', bg: '#F0F9FF', label: 'Electronics' },
-  general: { color: '#0D9488', bg: '#F0FDFA', label: 'Item' },
-  receipt: { color: '#DC2626', bg: '#FEF2F2', label: 'Receipt' },
-  document: { color: '#8B5CF6', bg: '#F5F3FF', label: 'Document' },
-  unknown: { color: '#6B7280', bg: '#F9FAFB', label: 'Unknown' },
-};
-
-function getCategoryLabel(result: SmartScanResult): string {
-  if (result.furniture_details) {
-    if (result.furniture_details.is_likely_ikea && isRealValue(result.furniture_details.ikea_category)) {
-      return result.furniture_details.ikea_category!;
-    }
-    return result.furniture_details.item_type_specific ?? 'Furniture';
-  }
-  if (result.household_details) {
-    const map: Record<string, string> = { tools: 'Tools', fitness: 'Fitness', kitchenware: 'Kitchenware', cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor', garden: 'Garden', storage: 'Storage', lighting: 'Lighting', small_appliance: 'Appliance', other: 'Household' };
-    return map[result.household_details.subcategory] ?? 'Household';
-  }
-  if (result.fashion_details) {
-    const map: Record<string, string> = { shoes: 'Shoes', clothing: 'Clothing', outerwear: 'Outerwear', accessories: 'Accessories', bags: 'Bags', jewelry: 'Jewelry', activewear: 'Activewear', other: 'Fashion' };
-    return map[result.fashion_details.subcategory] ?? 'Fashion';
-  }
-  if (result.electronics_details) return result.electronics_details.product_type ?? 'Electronics';
-  if (result.food_details) return 'Food';
-  if (result.grocery_details) return 'Grocery';
-  if (result.general_details) {
-    const sub = result.general_details.subcategory;
-    if (sub && sub.toLowerCase() !== 'other' && sub.toLowerCase() !== 'general') {
-      return sub.charAt(0).toUpperCase() + sub.slice(1).replace(/_/g, ' ');
-    }
-    return 'General';
-  }
-  if (result.category && result.category.toLowerCase() !== 'other' && result.category.toLowerCase() !== 'unknown') {
-    return result.category;
-  }
-  return 'Item';
+function isWeakItemName(name: string): boolean {
+  const weak = ['unidentified item', 'could not identify', 'unknown item', 'detected item', 'scanned item', 'item', 'other', 'general item'];
+  return weak.includes(name.trim().toLowerCase());
 }
 
 function getDescription(result: SmartScanResult): string {
@@ -144,20 +93,191 @@ function getRetailPrice(result: SmartScanResult): string | null {
     ?? result.household_details?.estimated_price
     ?? result.household_details?.price_range
     ?? result.fashion_details?.estimated_retail_price
-    ?? result.fashion_details?.price_range
     ?? result.electronics_details?.estimated_retail_price
-    ?? result.electronics_details?.price_range
     ?? result.general_details?.estimated_retail_price
-    ?? result.general_details?.price_range
     ?? result.food_details?.estimated_price
-    ?? result.food_details?.price_range
     ?? result.grocery_details?.estimated_price
-    ?? result.grocery_details?.price_range
     ?? null;
   if (!raw) return null;
   const trimmed = raw.trim();
   if (trimmed.length === 0) return null;
   return trimmed.startsWith('$') ? trimmed : `$${trimmed}`;
+}
+
+function getCategoryLabel(result: SmartScanResult): string {
+  if (result.furniture_details) {
+    if (result.furniture_details.is_likely_ikea && isRealValue(result.furniture_details.ikea_category)) {
+      return result.furniture_details.ikea_category!;
+    }
+    return result.furniture_details.item_type_specific ?? 'Furniture';
+  }
+  if (result.household_details) {
+    const map: Record<string, string> = { tools: 'Tools', fitness: 'Fitness', kitchenware: 'Kitchenware', cleaning: 'Cleaning', bathroom: 'Bathroom', decor: 'Decor', garden: 'Garden', storage: 'Storage', lighting: 'Lighting', small_appliance: 'Appliance', other: 'Household' };
+    return map[result.household_details.subcategory] ?? 'Household';
+  }
+  if (result.category && result.category.toLowerCase() !== 'other' && result.category.toLowerCase() !== 'unknown') {
+    return result.category;
+  }
+  return 'Item';
+}
+
+function getToolsNeeded(result: SmartScanResult): string[] {
+  const tools: string[] = [];
+  if (result.furniture_details?.likely_tools_needed?.length) {
+    tools.push(...result.furniture_details.likely_tools_needed);
+  }
+  if (result.furniture_details?.extra_purchase_items?.length) {
+    for (const item of result.furniture_details.extra_purchase_items) {
+      if (!tools.some(t => t.toLowerCase().includes(item.item.toLowerCase()))) {
+        tools.push(item.item);
+      }
+    }
+  }
+  if (result.household_details?.complementary_items?.length && tools.length === 0) {
+    const toolWords = ['screwdriver', 'drill', 'hammer', 'wrench', 'level', 'tape', 'allen', 'key', 'pliers'];
+    for (const item of result.household_details.complementary_items) {
+      if (toolWords.some(w => item.toLowerCase().includes(w))) {
+        tools.push(item);
+      }
+    }
+  }
+  return [...new Set(tools)].slice(0, 8);
+}
+
+function getAssemblyInfo(result: SmartScanResult) {
+  const fd = result.furniture_details;
+  if (!fd) return null;
+  const hasAssembly = fd.assembly_required || fd.assembly_summary || fd.assembly_difficulty || fd.estimated_build_time;
+  if (!hasAssembly) return null;
+  return {
+    difficulty: fd.assembly_difficulty ?? null,
+    buildTime: fd.estimated_build_time ?? null,
+    peopleNeeded: fd.people_needed ?? null,
+    wallAnchorNote: fd.wall_anchor_note ?? null,
+    setupNotes: fd.setup_notes ?? null,
+    summary: fd.assembly_summary ?? null,
+    mountingType: fd.mounting_type && fd.mounting_type !== 'unknown' ? fd.mounting_type : null,
+  };
+}
+
+function getMatchingProducts(result: SmartScanResult): string[] {
+  const items: string[] = [];
+  if (result.furniture_details?.matching_products?.length) {
+    items.push(...result.furniture_details.matching_products);
+  }
+  if (result.furniture_details?.complementary_items?.length) {
+    for (const ci of result.furniture_details.complementary_items) {
+      if (!items.some(i => i.toLowerCase() === ci.toLowerCase())) {
+        items.push(ci);
+      }
+    }
+  }
+  if (result.household_details?.complementary_items?.length && items.length === 0) {
+    items.push(...result.household_details.complementary_items);
+  }
+  if (result.general_details?.complementary_items?.length && items.length === 0) {
+    items.push(...result.general_details.complementary_items);
+  }
+  if (result.electronics_details?.complementary_items?.length && items.length === 0) {
+    items.push(...result.electronics_details.complementary_items);
+  }
+  if (result.fashion_details?.complementary_items?.length && items.length === 0) {
+    items.push(...result.fashion_details.complementary_items);
+  }
+  if (result.food_details?.complementary_items?.length && items.length === 0) {
+    items.push(...result.food_details.complementary_items);
+  }
+  if (result.grocery_details?.complementary_items?.length && items.length === 0) {
+    items.push(...result.grocery_details.complementary_items);
+  }
+  return [...new Set(items)].filter(i => isRealValue(i)).slice(0, 8);
+}
+
+function getRoomFitLabels(result: SmartScanResult): string[] {
+  const labels: string[] = [];
+  if (result.furniture_details?.room_fit_labels?.length) {
+    labels.push(...result.furniture_details.room_fit_labels);
+  }
+  if (result.furniture_details?.room_fit && labels.length === 0) {
+    labels.push(result.furniture_details.room_fit);
+  }
+  if (result.furniture_details?.use_case && labels.length < 3) {
+    labels.push(result.furniture_details.use_case);
+  }
+  return [...new Set(labels)].filter(l => isRealValue(l)).slice(0, 6);
+}
+
+function getValueInsights(result: SmartScanResult): { rating: string | null; insight: string | null; verdict: string | null } {
+  const rating = result.furniture_details?.value_rating
+    ?? result.household_details?.value_rating
+    ?? result.fashion_details?.value_rating
+    ?? result.electronics_details?.value_rating
+    ?? result.general_details?.value_rating
+    ?? result.food_details?.value_rating
+    ?? result.grocery_details?.value_rating
+    ?? null;
+  const insight = result.furniture_details?.value_insight
+    ?? result.household_details?.value_insight
+    ?? result.electronics_details?.value_insight
+    ?? result.fashion_details?.value_insight
+    ?? result.general_details?.value_insight
+    ?? result.food_details?.value_insight
+    ?? result.grocery_details?.value_insight
+    ?? null;
+  const verdict = result.furniture_details?.worth_it_verdict
+    ?? result.furniture_details?.value_reasoning
+    ?? result.household_details?.value_reasoning
+    ?? result.fashion_details?.value_reasoning
+    ?? result.electronics_details?.value_reasoning
+    ?? result.general_details?.value_reasoning
+    ?? null;
+  return {
+    rating: rating && isRealValue(rating) ? rating.charAt(0).toUpperCase() + rating.slice(1) : null,
+    insight: insight && isRealValue(insight) ? insight : null,
+    verdict: verdict && isRealValue(verdict) ? verdict : null,
+  };
+}
+
+function getDimensions(result: SmartScanResult): string | null {
+  return result.furniture_details?.estimated_dimensions ?? null;
+}
+
+function getMaterial(result: SmartScanResult): string | null {
+  return result.furniture_details?.material
+    ?? result.household_details?.material
+    ?? result.fashion_details?.material
+    ?? result.general_details?.material
+    ?? null;
+}
+
+function getColor(result: SmartScanResult): string | null {
+  return result.furniture_details?.finish_color
+    ?? result.fashion_details?.color
+    ?? result.general_details?.color
+    ?? null;
+}
+
+function getCareTip(result: SmartScanResult): string | null {
+  const tip = result.furniture_details?.care_tip
+    ?? result.household_details?.care_tip
+    ?? result.electronics_details?.care_tip
+    ?? result.fashion_details?.care_tip
+    ?? result.general_details?.care_tip
+    ?? null;
+  return tip && isRealValue(tip) ? tip : null;
+}
+
+function getTags(result: SmartScanResult): string[] {
+  const tags = result.furniture_details?.tags
+    ?? result.household_details?.tags
+    ?? result.fashion_details?.tags
+    ?? result.electronics_details?.tags
+    ?? result.general_details?.tags
+    ?? result.food_details?.tags
+    ?? result.grocery_details?.tags
+    ?? result.document_details?.tags
+    ?? [];
+  return tags.filter(t => t && t.trim().length > 0).slice(0, 12);
 }
 
 function getResaleValue(result: SmartScanResult): string | null {
@@ -184,143 +304,79 @@ function getDemandLevel(result: SmartScanResult): string | null {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
-function getBestPlatform(result: SmartScanResult): string | null {
-  return result.furniture_details?.best_selling_platform
-    ?? result.household_details?.best_selling_platform
-    ?? result.fashion_details?.best_selling_platform
-    ?? result.electronics_details?.best_selling_platform
-    ?? result.general_details?.best_selling_platform
-    ?? null;
-}
+function SavePhotoButton({ imageUri, label }: { imageUri: string; label?: string }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-function getValueRating(result: SmartScanResult): string | null {
-  const raw = result.furniture_details?.value_rating
-    ?? result.household_details?.value_rating
-    ?? result.fashion_details?.value_rating
-    ?? result.electronics_details?.value_rating
-    ?? result.general_details?.value_rating
-    ?? result.food_details?.value_rating
-    ?? result.grocery_details?.value_rating
-    ?? null;
-  if (!raw || !isRealValue(raw)) return null;
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
-
-function getCareTip(result: SmartScanResult): string | null {
-  const tip = result.furniture_details?.care_tip
-    ?? result.household_details?.care_tip
-    ?? result.electronics_details?.care_tip
-    ?? result.fashion_details?.care_tip
-    ?? result.general_details?.care_tip
-    ?? null;
-  return tip && isRealValue(tip) ? tip : null;
-}
-
-function getResaleTip(result: SmartScanResult): string | null {
-  const tip = result.furniture_details?.resale_suggestion
-    ?? result.household_details?.resale_suggestion
-    ?? result.fashion_details?.resale_suggestion
-    ?? result.electronics_details?.resale_suggestion
-    ?? result.general_details?.resale_suggestion
-    ?? null;
-  return tip && isRealValue(tip) ? tip : null;
-}
-
-function getValueInsightText(result: SmartScanResult): string | null {
-  const vi = result.furniture_details?.value_insight
-    ?? result.household_details?.value_insight
-    ?? result.electronics_details?.value_insight
-    ?? result.fashion_details?.value_insight
-    ?? result.general_details?.value_insight
-    ?? result.food_details?.value_insight
-    ?? result.grocery_details?.value_insight
-    ?? null;
-  return vi && isRealValue(vi) ? vi : null;
-}
-
-function getTags(result: SmartScanResult): string[] {
-  const tags = result.furniture_details?.tags
-    ?? result.household_details?.tags
-    ?? result.fashion_details?.tags
-    ?? result.electronics_details?.tags
-    ?? result.general_details?.tags
-    ?? result.food_details?.tags
-    ?? result.grocery_details?.tags
-    ?? result.document_details?.tags
-    ?? [];
-  return tags.filter(t => t && t.trim().length > 0).slice(0, 12);
-}
-
-function getRelatedItems(result: SmartScanResult): string[] {
-  const items = result.furniture_details?.complementary_items
-    ?? result.furniture_details?.matching_products
-    ?? result.household_details?.complementary_items
-    ?? result.fashion_details?.complementary_items
-    ?? result.electronics_details?.complementary_items
-    ?? result.general_details?.complementary_items
-    ?? result.food_details?.complementary_items
-    ?? result.grocery_details?.complementary_items
-    ?? [];
-  return items.filter(i => isRealValue(i)).slice(0, 6);
-}
-
-function isWeakItemName(name: string): boolean {
-  const weak = ['unidentified item', 'could not identify', 'unknown item', 'detected item', 'scanned item', 'item', 'other', 'general item'];
-  return weak.includes(name.trim().toLowerCase());
-}
-
-interface ScanResultViewProps {
-  result: SmartScanResult;
-  scannedImageUri: string | null;
-  referenceImageUrl: string | null;
-  generatingImage?: boolean;
-  resultFade: Animated.Value;
-  onScanAgain: () => void;
-  onScanGallery?: () => void;
-  isLowConfidence?: boolean;
-  viewingEntryId: string | null;
-  onDelete?: () => void;
-}
-
-function ConfidencePill({ tier, confidence }: { tier: ConfidenceTier; confidence: number }) {
-  const config = getConfidenceConfig(tier);
-  const IconComp = config.icon;
-  const pct = Math.round(confidence * 100);
+  const handleSave = useCallback(async () => {
+    if (saving || saved) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSaving(true);
+    try {
+      if (Platform.OS === 'web') {
+        const link = document.createElement('a');
+        link.href = imageUri;
+        link.download = `ikea-scan-${Date.now()}.jpg`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSaved(true);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setTimeout(() => setSaved(false), 2500);
+        return;
+      }
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow photo library access to save images.');
+        setSaving(false);
+        return;
+      }
+      let localUri = imageUri;
+      if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
+        console.log('[SavePhoto] Downloading remote image:', imageUri);
+        const downloadDir = new Directory(Paths.cache, 'scan-downloads');
+        try { downloadDir.create(); } catch { /* exists */ }
+        const downloadedFile = await File.downloadFileAsync(imageUri, downloadDir);
+        localUri = downloadedFile.uri;
+      }
+      await MediaLibrary.createAssetAsync(localUri);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error('[SavePhoto] Error:', err);
+      Alert.alert('Save Failed', 'Could not save the photo.');
+    } finally {
+      setSaving(false);
+    }
+  }, [imageUri, saving, saved]);
 
   return (
-    <View style={[st.confPill, { backgroundColor: config.bg, borderColor: config.border }]}>
-      <IconComp size={12} color={config.color} />
-      <Text style={[st.confPillText, { color: config.color }]}>{getConfidenceLabel(tier)}</Text>
-      <View style={[st.confPctChip, { backgroundColor: `${config.color}15` }]}>
-        <Text style={[st.confPctText, { color: config.color }]}>{pct}%</Text>
-      </View>
-    </View>
+    <Pressable
+      style={({ pressed }) => [st.savePhotoBtn, saved && st.savePhotoBtnSaved, pressed && { opacity: 0.8 }]}
+      onPress={handleSave}
+      disabled={saving}
+      testID="save-photo-btn"
+    >
+      {saving ? (
+        <ActivityIndicator size="small" color="#FFFFFF" />
+      ) : saved ? (
+        <>
+          <CheckCircle2 size={13} color="#FFFFFF" />
+          <Text style={st.savePhotoBtnText}>Saved</Text>
+        </>
+      ) : (
+        <>
+          <Download size={13} color="#FFFFFF" />
+          <Text style={st.savePhotoBtnText}>{label ?? 'Save'}</Text>
+        </>
+      )}
+    </Pressable>
   );
 }
 
-function CategoryPill({ itemType, label }: { itemType: string; label: string }) {
-  const tc = TYPE_COLORS[itemType] ?? TYPE_COLORS.general;
-  return (
-    <View style={[st.catPill, { backgroundColor: tc.bg }]}>
-      <View style={[st.catDot, { backgroundColor: tc.color }]} />
-      <Text style={[st.catPillText, { color: tc.color }]}>{label}</Text>
-    </View>
-  );
-}
-
-function DemandBadge({ level }: { level: string }) {
-  const lower = level.toLowerCase();
-  const color = lower === 'high' ? '#059669' : lower === 'moderate' ? '#D97706' : lower === 'low' ? '#DC2626' : '#6B7280';
-  const bg = lower === 'high' ? '#ECFDF5' : lower === 'moderate' ? '#FFFBEB' : lower === 'low' ? '#FEF2F2' : '#F9FAFB';
-  return (
-    <View style={[st.demandBadge, { backgroundColor: bg }]}>
-      <Zap size={10} color={color} />
-      <Text style={[st.demandText, { color }]}>{level} Demand</Text>
-    </View>
-  );
-}
-
-function SectionCard({ children, title, icon: Icon, iconColor, iconBg, collapsed, onToggle, testID }: {
+function IkeaSectionCard({ children, title, icon: Icon, iconColor, iconBg, collapsed, onToggle, testID }: {
   children: React.ReactNode;
   title: string;
   icon: React.ComponentType<{ size: number; color: string }>;
@@ -370,96 +426,62 @@ function DetailRow({ label, value, bold }: { label: string; value: string; bold?
   );
 }
 
-function PriceRow({ label, value, large }: { label: string; value: string; large?: boolean }) {
+function ToolChip({ name }: { name: string }) {
+  const lower = name.toLowerCase();
+  let IconComp: React.ComponentType<{ size: number; color: string }> = Wrench;
+  if (lower.includes('drill')) IconComp = Drill;
+  else if (lower.includes('hammer')) IconComp = Hammer;
+  else if (lower.includes('level') || lower.includes('measure') || lower.includes('tape')) IconComp = Ruler;
+  else if (lower.includes('people') || lower.includes('person') || lower.includes('helper')) IconComp = Users;
+
   return (
-    <View style={st.priceRow}>
-      <Text style={[st.priceLabel, large && st.priceLabelLg]}>{label}</Text>
-      <Text style={[st.priceValue, large && st.priceValueLg]}>{value}</Text>
+    <View style={st.toolChip}>
+      <IconComp size={14} color={ScannerColors.accent} />
+      <Text style={st.toolChipText}>{name}</Text>
     </View>
   );
 }
 
-function SavePhotoButton({ imageUri, label }: { imageUri: string; label?: string }) {
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+function DifficultyBadge({ level }: { level: string }) {
+  const lower = level.toLowerCase();
+  const color = lower === 'easy' ? '#059669' : lower === 'moderate' || lower === 'medium' ? '#D97706' : '#DC2626';
+  const bg = lower === 'easy' ? '#ECFDF5' : lower === 'moderate' || lower === 'medium' ? '#FFFBEB' : '#FEF2F2';
+  const label = lower === 'easy' ? 'Easy' : lower === 'moderate' || lower === 'medium' ? 'Medium' : 'Hard';
+  return (
+    <View style={[st.difficultyBadge, { backgroundColor: bg }]}>
+      <Gauge size={12} color={color} />
+      <Text style={[st.difficultyText, { color }]}>{label}</Text>
+    </View>
+  );
+}
 
-  const handleSave = useCallback(async () => {
-    if (saving || saved) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSaving(true);
+function GoodForChip({ label }: { label: string }) {
+  return (
+    <View style={st.goodForChip}>
+      <Home size={12} color="#7C3AED" />
+      <Text style={st.goodForChipText}>{label}</Text>
+    </View>
+  );
+}
 
-    try {
-      if (Platform.OS === 'web') {
-        const link = document.createElement('a');
-        link.href = imageUri;
-        link.download = `flips-scan-${Date.now()}.jpg`;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setSaved(true);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setTimeout(() => setSaved(false), 2500);
-        return;
-      }
-
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow photo library access to save images.');
-        setSaving(false);
-        return;
-      }
-
-      let localUri = imageUri;
-
-      if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
-        console.log('[SavePhoto] Downloading remote image:', imageUri);
-        const downloadDir = new Directory(Paths.cache, 'scan-downloads');
-        try { downloadDir.create(); } catch { /* already exists */ }
-        const downloadedFile = await File.downloadFileAsync(imageUri, downloadDir);
-        localUri = downloadedFile.uri;
-        console.log('[SavePhoto] Downloaded to:', localUri);
-      }
-
-      const asset = await MediaLibrary.createAssetAsync(localUri);
-      console.log('[SavePhoto] Saved to library:', asset.uri);
-
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    } catch (err) {
-      console.error('[SavePhoto] Error saving photo:', err);
-      Alert.alert('Save Failed', 'Could not save the photo. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  }, [imageUri, saving, saved]);
+function ValueLabel({ text }: { text: string }) {
+  const lower = text.toLowerCase();
+  const color = lower.includes('great') || lower.includes('good') || lower.includes('strong') || lower.includes('budget') || lower.includes('durable')
+    ? '#059669'
+    : lower.includes('average') || lower.includes('fair') || lower.includes('moderate')
+    ? '#D97706'
+    : '#6B7280';
+  const bg = lower.includes('great') || lower.includes('good') || lower.includes('strong') || lower.includes('budget') || lower.includes('durable')
+    ? '#ECFDF5'
+    : lower.includes('average') || lower.includes('fair') || lower.includes('moderate')
+    ? '#FFFBEB'
+    : '#F9FAFB';
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        st.savePhotoBtn,
-        saved && st.savePhotoBtnSaved,
-        pressed && { opacity: 0.8 },
-      ]}
-      onPress={handleSave}
-      disabled={saving}
-      testID="save-photo-btn"
-    >
-      {saving ? (
-        <ActivityIndicator size="small" color="#FFFFFF" />
-      ) : saved ? (
-        <>
-          <CheckCircle2 size={13} color="#FFFFFF" />
-          <Text style={st.savePhotoBtnText}>Saved</Text>
-        </>
-      ) : (
-        <>
-          <Download size={13} color="#FFFFFF" />
-          <Text style={st.savePhotoBtnText}>{label ?? 'Save'}</Text>
-        </>
-      )}
-    </Pressable>
+    <View style={[st.valueLabel, { backgroundColor: bg }]}>
+      <Star size={11} color={color} />
+      <Text style={[st.valueLabelText, { color }]}>{text}</Text>
+    </View>
   );
 }
 
@@ -512,6 +534,19 @@ function LowConfidenceFallback({ result, onScanAgain }: { result: SmartScanResul
   );
 }
 
+interface ScanResultViewProps {
+  result: SmartScanResult;
+  scannedImageUri: string | null;
+  referenceImageUrl: string | null;
+  generatingImage?: boolean;
+  resultFade: Animated.Value;
+  onScanAgain: () => void;
+  onScanGallery?: () => void;
+  isLowConfidence?: boolean;
+  viewingEntryId: string | null;
+  onDelete?: () => void;
+}
+
 export default function ScanResultView({
   result,
   scannedImageUri,
@@ -523,42 +558,43 @@ export default function ScanResultView({
   onDelete,
 }: ScanResultViewProps) {
   const tier = useMemo(() => getConfidenceTier(result.confidence), [result.confidence]);
+  const confConfig = useMemo(() => getConfidenceConfig(tier), [tier]);
   const categoryLabel = useMemo(() => getCategoryLabel(result), [result]);
   const description = useMemo(() => getDescription(result), [result]);
   const retailPrice = useMemo(() => getRetailPrice(result), [result]);
+  const toolsNeeded = useMemo(() => getToolsNeeded(result), [result]);
+  const assemblyInfo = useMemo(() => getAssemblyInfo(result), [result]);
+  const matchingProducts = useMemo(() => getMatchingProducts(result), [result]);
+  const roomFitLabels = useMemo(() => getRoomFitLabels(result), [result]);
+  const valueInsights = useMemo(() => getValueInsights(result), [result]);
+  const dimensions = useMemo(() => getDimensions(result), [result]);
+  const material = useMemo(() => getMaterial(result), [result]);
+  const color = useMemo(() => getColor(result), [result]);
+  const careTip = useMemo(() => getCareTip(result), [result]);
+  const tags = useMemo(() => getTags(result), [result]);
   const resaleValue = useMemo(() => getResaleValue(result), [result]);
   const demandLevel = useMemo(() => getDemandLevel(result), [result]);
-  const bestPlatform = useMemo(() => getBestPlatform(result), [result]);
-  const valueRating = useMemo(() => getValueRating(result), [result]);
-  const careTip = useMemo(() => getCareTip(result), [result]);
-  const resaleTip = useMemo(() => getResaleTip(result), [result]);
-  const valueInsight = useMemo(() => getValueInsightText(result), [result]);
-  const tags = useMemo(() => getTags(result), [result]);
-  const relatedItems = useMemo(() => getRelatedItems(result), [result]);
 
-  const isFood = result.item_type === 'food' || result.item_type === 'grocery';
-  const isDocument = result.item_type === 'document';
-  const isReceipt = result.item_type === 'receipt';
   const isIkea = result.furniture_details?.is_likely_ikea ?? false;
   const showFallback = tier === 'low';
-  const isResaleEligible = !isFood && !isDocument && !isReceipt && result.item_type !== 'unknown';
-
   const heroImageUri = referenceImageUrl ?? scannedImageUri;
   const hasBothImages = !!scannedImageUri && !!referenceImageUrl;
   const isGenerating = generatingImage === true && !referenceImageUrl;
 
-  const typeConfig = TYPE_COLORS[result.item_type] ?? TYPE_COLORS.general;
-
-  const [detailsOpen, setDetailsOpen] = useState(true);
-  const [referenceOpen] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(true);
+  const [assemblyOpen, setAssemblyOpen] = useState(true);
+  const [matchesOpen, setMatchesOpen] = useState(true);
 
   const toggleSection = useCallback((setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     void Haptics.selectionAsync();
     setter(prev => !prev);
   }, []);
 
-  const hasPriceSection = !!retailPrice || !!resaleValue || !!valueRating || !!demandLevel;
-  const hasResaleSection = isResaleEligible && (!!resaleValue || !!bestPlatform || !!resaleTip || !!demandLevel);
+  const hasToolsSection = toolsNeeded.length > 0;
+  const hasAssemblySection = assemblyInfo !== null;
+  const hasMatchesSection = matchingProducts.length > 0;
+  const hasGoodForSection = roomFitLabels.length > 0;
+  const hasValueSection = valueInsights.rating !== null || valueInsights.insight !== null || resaleValue !== null || demandLevel !== null;
 
   return (
     <Animated.View style={[st.root, { opacity: resultFade }]}>
@@ -646,25 +682,33 @@ export default function ScanResultView({
           <LowConfidenceFallback result={result} onScanAgain={onScanAgain} />
         ) : (
           <>
-            <View style={st.badgeRow}>
-              <ConfidencePill tier={tier} confidence={result.confidence} />
-              <CategoryPill itemType={result.item_type} label={typeConfig.label} />
-            </View>
-
-            {isIkea && (
-              <View style={st.ikeaRow}>
+            <View style={st.topBadgeRow}>
+              <View style={[st.confPill, { backgroundColor: confConfig.bg, borderColor: confConfig.border }]}>
+                <CheckCircle2 size={12} color={confConfig.color} />
+                <Text style={[st.confPillText, { color: confConfig.color }]}>{confConfig.label}</Text>
+                <View style={[st.confPctChip, { backgroundColor: `${confConfig.color}15` }]}>
+                  <Text style={[st.confPctText, { color: confConfig.color }]}>{Math.round(result.confidence * 100)}%</Text>
+                </View>
+              </View>
+              {isIkea && (
                 <View style={st.ikeaBadge}>
                   <Sofa size={11} color="#0058A3" />
                   <Text style={st.ikeaBadgeText}>IKEA</Text>
                 </View>
-                {result.furniture_details?.ikea_match_confidence && (
-                  <View style={st.ikeaConfChip}>
-                    <Text style={st.ikeaConfChipText}>
-                      {result.furniture_details.ikea_match_confidence === 'exact' ? 'Exact Match' :
-                       result.furniture_details.ikea_match_confidence === 'strong' ? 'Strong Match' :
-                       result.furniture_details.ikea_match_confidence === 'possible' ? 'Possible Match' : 'Possible'}
-                    </Text>
-                  </View>
+              )}
+            </View>
+
+            {isIkea && result.furniture_details?.ikea_match_confidence && (
+              <View style={st.ikeaConfRow}>
+                <View style={st.ikeaConfChip}>
+                  <Text style={st.ikeaConfChipText}>
+                    {result.furniture_details.ikea_match_confidence === 'exact' ? 'Exact Match' :
+                     result.furniture_details.ikea_match_confidence === 'strong' ? 'Strong Match' :
+                     result.furniture_details.ikea_match_confidence === 'possible' ? 'Possible Match' : 'Possible'}
+                  </Text>
+                </View>
+                {result.furniture_details.ikea_article_number && (
+                  <Text style={st.articleNumber}>Art. {result.furniture_details.ikea_article_number}</Text>
                 )}
               </View>
             )}
@@ -674,16 +718,16 @@ export default function ScanResultView({
             <View style={st.subHeaderRow}>
               <Text style={st.categoryLabel}>{categoryLabel}</Text>
               {retailPrice && (
-                <View style={st.inlinePriceBadge}>
-                  <DollarSign size={12} color={typeConfig.color} />
-                  <Text style={[st.inlinePriceText, { color: typeConfig.color }]}>{retailPrice}</Text>
+                <View style={st.priceBadge}>
+                  <DollarSign size={14} color="#0058A3" />
+                  <Text style={st.priceText}>{retailPrice}</Text>
                 </View>
               )}
             </View>
 
             {description.length > 0 && (
-              <View style={st.summaryCard}>
-                <Text style={st.summaryText}>{description}</Text>
+              <View style={st.descriptionCard}>
+                <Text style={st.descriptionText}>{description}</Text>
               </View>
             )}
 
@@ -697,119 +741,236 @@ export default function ScanResultView({
               </View>
             )}
 
-            <SectionCard
-              title="Product Details"
+            <IkeaSectionCard
+              title="Product Overview"
               icon={Info}
-              iconColor={typeConfig.color}
-              iconBg={typeConfig.bg}
-              collapsed={!detailsOpen}
-              onToggle={() => toggleSection(setDetailsOpen)}
-              testID="product-details-section"
+              iconColor="#0058A3"
+              iconBg="#0058A312"
+              testID="product-overview-section"
             >
-              <View style={st.rendererWrap}>
-                {result.item_type === 'food' && <FoodResultSection result={result} />}
-                {result.item_type === 'grocery' && <GroceryResultSection result={result} />}
-                {result.item_type === 'furniture' && <FurnitureResultSection result={result} />}
-                {result.item_type === 'fashion' && <FashionResultSection result={result} />}
-                {result.item_type === 'electronics' && <ElectronicsResultSection result={result} />}
-                {result.item_type === 'household' && <HouseholdResultSection result={result} />}
-                {result.item_type === 'general' && <GeneralResultSection result={result} />}
-                {result.item_type === 'document' && <DocumentResultSection result={result} />}
-                {result.item_type === 'unknown' && <UnknownResultSection result={result} />}
-                {result.item_type === 'receipt' && <DocumentResultSection result={result} />}
-              </View>
-            </SectionCard>
+              {result.furniture_details?.ikea_product_name && (
+                <DetailRow label="Product Name" value={result.furniture_details.ikea_product_name} bold />
+              )}
+              {result.furniture_details?.ikea_product_family && (
+                <DetailRow label="Product Family" value={result.furniture_details.ikea_product_family} />
+              )}
+              {result.furniture_details?.ikea_variant && (
+                <DetailRow label="Variant" value={result.furniture_details.ikea_variant} />
+              )}
+              {color && <DetailRow label="Color / Finish" value={color} />}
+              {material && <DetailRow label="Material" value={material} />}
+              {dimensions && <DetailRow label="Dimensions" value={dimensions} />}
+              {result.furniture_details?.style && <DetailRow label="Style" value={result.furniture_details.style} />}
+              {result.furniture_details?.value_level && (
+                <DetailRow label="Price Tier" value={result.furniture_details.value_level.charAt(0).toUpperCase() + result.furniture_details.value_level.slice(1)} />
+              )}
+              {result.furniture_details?.packaging_type && result.furniture_details.packaging_type !== 'unknown' && (
+                <DetailRow label="Packaging" value={result.furniture_details.packaging_type.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())} />
+              )}
+              {result.furniture_details?.condition_estimate && (
+                <DetailRow label="Condition" value={result.furniture_details.condition_estimate.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())} />
+              )}
+              {!result.furniture_details && result.household_details && (
+                <>
+                  {result.household_details.brand && <DetailRow label="Brand" value={result.household_details.brand} bold />}
+                  {result.household_details.model && <DetailRow label="Model" value={result.household_details.model} />}
+                  {result.household_details.condition && <DetailRow label="Condition" value={result.household_details.condition.charAt(0).toUpperCase() + result.household_details.condition.slice(1)} />}
+                </>
+              )}
+              {!result.furniture_details && !result.household_details && result.electronics_details && (
+                <>
+                  {result.electronics_details.brand && <DetailRow label="Brand" value={result.electronics_details.brand} bold />}
+                  {result.electronics_details.model && <DetailRow label="Model" value={result.electronics_details.model} />}
+                  {result.electronics_details.product_type && <DetailRow label="Type" value={result.electronics_details.product_type} />}
+                </>
+              )}
+              {!result.furniture_details && !result.household_details && !result.electronics_details && result.fashion_details && (
+                <>
+                  {result.fashion_details.brand && <DetailRow label="Brand" value={result.fashion_details.brand} bold />}
+                  {result.fashion_details.model && <DetailRow label="Model" value={result.fashion_details.model} />}
+                </>
+              )}
+              {!result.furniture_details && !result.household_details && !result.electronics_details && !result.fashion_details && result.general_details && (
+                <>
+                  {result.general_details.brand && <DetailRow label="Brand" value={result.general_details.brand} bold />}
+                  {result.general_details.model && <DetailRow label="Model" value={result.general_details.model} />}
+                </>
+              )}
+            </IkeaSectionCard>
 
-            {hasPriceSection && !isDocument && !isReceipt && (
-              <SectionCard
-                title="Price & Value"
-                icon={DollarSign}
-                iconColor="#059669"
-                iconBg="#ECFDF5"
-                testID="price-value-section"
+            {hasToolsSection && (
+              <IkeaSectionCard
+                title="Tools You'll Need"
+                icon={Wrench}
+                iconColor="#0058A3"
+                iconBg={ScannerColors.toolsBg}
+                collapsed={!toolsOpen}
+                onToggle={() => toggleSection(setToolsOpen)}
+                testID="tools-section"
               >
-                {retailPrice && <PriceRow label="Retail Price" value={retailPrice} large />}
-                {resaleValue && <PriceRow label="Resale Value" value={resaleValue} />}
-                {valueRating && <DetailRow label="Value Rating" value={valueRating} />}
-                {demandLevel && (
-                  <View style={st.demandRow}>
-                    <Text style={st.detailLabel}>Demand</Text>
-                    <DemandBadge level={demandLevel} />
+                <View style={st.toolsGrid}>
+                  {toolsNeeded.map((tool, i) => (
+                    <ToolChip key={`tool-${i}`} name={tool} />
+                  ))}
+                </View>
+                {assemblyInfo?.peopleNeeded && (assemblyInfo.peopleNeeded === '2' || assemblyInfo.peopleNeeded === '2+') && (
+                  <View style={st.peopleNote}>
+                    <Users size={14} color="#D97706" />
+                    <Text style={st.peopleNoteText}>2 people recommended for assembly</Text>
                   </View>
                 )}
-                {valueInsight && (
-                  <View style={st.insightCard}>
-                    <Lightbulb size={13} color="#D97706" />
-                    <Text style={st.insightText}>{valueInsight}</Text>
-                  </View>
-                )}
-              </SectionCard>
+              </IkeaSectionCard>
             )}
 
-            {hasResaleSection && (
-              <SectionCard
-                title="Resale Intel"
-                icon={TrendingUp}
-                iconColor="#10B981"
-                iconBg="#ECFDF5"
-                testID="resale-intel-section"
+            {hasAssemblySection && (
+              <IkeaSectionCard
+                title="Assembly Info"
+                icon={Hammer}
+                iconColor="#C27800"
+                iconBg={ScannerColors.assemblyBg}
+                collapsed={!assemblyOpen}
+                onToggle={() => toggleSection(setAssemblyOpen)}
+                testID="assembly-section"
               >
-                {bestPlatform && (
-                  <View style={st.platformRow}>
-                    <Store size={14} color="#0058A3" />
-                    <View style={st.platformInfo}>
-                      <Text style={st.platformLabel}>Best Platform</Text>
-                      <Text style={st.platformValue}>{bestPlatform}</Text>
-                    </View>
+                {assemblyInfo.difficulty && (
+                  <View style={st.assemblyTopRow}>
+                    <Text style={st.assemblyLabel}>Difficulty</Text>
+                    <DifficultyBadge level={assemblyInfo.difficulty} />
                   </View>
                 )}
-                {resaleTip && (
-                  <View style={st.insightCard}>
-                    <Award size={13} color="#059669" />
-                    <Text style={st.insightText}>{resaleTip}</Text>
+                {assemblyInfo.buildTime && (
+                  <View style={st.assemblyRow}>
+                    <Clock size={14} color={ScannerColors.textSecondary} />
+                    <Text style={st.assemblyRowLabel}>Est. Time</Text>
+                    <Text style={st.assemblyRowValue}>{assemblyInfo.buildTime}</Text>
                   </View>
                 )}
-              </SectionCard>
+                {assemblyInfo.peopleNeeded && (
+                  <View style={st.assemblyRow}>
+                    <Users size={14} color={ScannerColors.textSecondary} />
+                    <Text style={st.assemblyRowLabel}>People</Text>
+                    <Text style={st.assemblyRowValue}>{assemblyInfo.peopleNeeded} {assemblyInfo.peopleNeeded === '1' ? 'person' : 'people'}</Text>
+                  </View>
+                )}
+                {assemblyInfo.mountingType && (
+                  <View style={st.assemblyRow}>
+                    <ShieldCheck size={14} color={ScannerColors.textSecondary} />
+                    <Text style={st.assemblyRowLabel}>Mounting</Text>
+                    <Text style={st.assemblyRowValue}>{assemblyInfo.mountingType.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())}</Text>
+                  </View>
+                )}
+                {assemblyInfo.summary && (
+                  <View style={st.assemblyNote}>
+                    <Text style={st.assemblyNoteText}>{assemblyInfo.summary}</Text>
+                  </View>
+                )}
+                {assemblyInfo.wallAnchorNote && (
+                  <View style={st.warningNote}>
+                    <AlertTriangle size={13} color="#D97706" />
+                    <Text style={st.warningNoteText}>{assemblyInfo.wallAnchorNote}</Text>
+                  </View>
+                )}
+                {assemblyInfo.setupNotes && (
+                  <View style={st.tipNote}>
+                    <Lightbulb size={13} color="#0058A3" />
+                    <Text style={st.tipNoteText}>{assemblyInfo.setupNotes}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
             )}
 
-            {relatedItems.length > 0 && (
-              <SectionCard
-                title="Items That Go With This"
+            {hasMatchesSection && (
+              <IkeaSectionCard
+                title="What Goes With This?"
                 icon={Package}
-                iconColor="#6366F1"
-                iconBg="#EEF2FF"
-                testID="related-items-section"
+                iconColor="#059669"
+                iconBg={ScannerColors.matchesBg}
+                collapsed={!matchesOpen}
+                onToggle={() => toggleSection(setMatchesOpen)}
+                testID="matches-section"
               >
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.relatedScroll}>
-                  {relatedItems.map((item, i) => (
-                    <View key={`related-${i}`} style={st.relatedChip}>
-                      <Package size={14} color="#6366F1" />
-                      <Text style={st.relatedChipText} numberOfLines={2}>{item}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.matchesScroll}>
+                  {matchingProducts.map((item, i) => (
+                    <View key={`match-${i}`} style={st.matchChip}>
+                      <Package size={14} color="#059669" />
+                      <Text style={st.matchChipText} numberOfLines={2}>{item}</Text>
                     </View>
                   ))}
                 </ScrollView>
-              </SectionCard>
+              </IkeaSectionCard>
             )}
 
-            {careTip && !isFood && !isDocument && !isReceipt && (
-              <View style={st.tipCard}>
-                <View style={st.tipIconWrap}>
+            {hasGoodForSection && (
+              <IkeaSectionCard
+                title="Good For"
+                icon={Heart}
+                iconColor="#7C3AED"
+                iconBg={ScannerColors.goodForBg}
+                testID="good-for-section"
+              >
+                <View style={st.goodForGrid}>
+                  {roomFitLabels.map((label, i) => (
+                    <GoodForChip key={`gf-${i}`} label={label} />
+                  ))}
+                </View>
+              </IkeaSectionCard>
+            )}
+
+            {hasValueSection && (
+              <IkeaSectionCard
+                title="Value Insight"
+                icon={TrendingUp}
+                iconColor="#D97706"
+                iconBg={ScannerColors.valueBg}
+                testID="value-insight-section"
+              >
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
                   <Lightbulb size={14} color="#F59E0B" />
                 </View>
-                <View style={st.tipContent}>
-                  <Text style={st.tipTitle}>Care Tip</Text>
-                  <Text style={st.tipText}>{careTip}</Text>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
                 </View>
               </View>
             )}
-
-            <ReferenceSection
-              result={result}
-              referenceImageUrl={referenceImageUrl}
-              visible={referenceOpen}
-            />
-
-            <ResaleInsightsSection result={result} />
 
             {tags.length > 0 && (
               <View style={st.tagsSection}>
@@ -947,12 +1108,12 @@ const st = StyleSheet.create({
 
   content: { paddingBottom: 20 },
 
-  badgeRow: {
+  topBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   confPill: {
@@ -968,18 +1129,6 @@ const st = StyleSheet.create({
   confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
   confPctText: { fontSize: 9, fontWeight: '800' as const },
 
-  catPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  catDot: { width: 6, height: 6, borderRadius: 3 },
-  catPillText: { fontSize: 11, fontWeight: '700' as const },
-
-  ikeaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   ikeaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -990,8 +1139,11 @@ const st = StyleSheet.create({
     borderRadius: 6,
   },
   ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
   ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
 
   itemName: {
     fontSize: 26,
@@ -1008,18 +1160,18 @@ const st = StyleSheet.create({
     marginBottom: 14,
   },
   categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
-  inlinePriceBadge: {
+  priceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#F0F7FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
   },
-  inlinePriceText: { fontSize: 16, fontWeight: '800' as const, letterSpacing: -0.3 },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
 
-  summaryCard: {
+  descriptionCard: {
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 14,
@@ -1027,7 +1179,7 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  summaryText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
 
   partialNotice: {
     flexDirection: 'row',
@@ -1086,8 +1238,6 @@ const st = StyleSheet.create({
     paddingTop: 14,
   },
 
-  rendererWrap: {},
-
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1098,34 +1248,74 @@ const st = StyleSheet.create({
   detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
   detailValueBold: { fontWeight: '800' as const },
 
-  priceRow: {
+  toolsGrid: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  priceLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
-  priceLabelLg: { fontSize: 14, fontWeight: '700' as const, color: '#111111' },
-  priceValue: { fontSize: 16, fontWeight: '700' as const, color: '#111111' },
-  priceValueLg: { fontSize: 24, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.5 },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
 
-  demandRow: {
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
     paddingVertical: 5,
+    borderRadius: 8,
   },
-  demandBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  demandText: { fontSize: 11, fontWeight: '700' as const },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
 
-  insightCard: {
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
@@ -1136,33 +1326,97 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  insightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
 
-  platformRow: {
+  tipNote: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 6,
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
   },
-  platformInfo: { flex: 1 },
-  platformLabel: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
-  platformValue: { fontSize: 15, fontWeight: '800' as const, color: '#111111' },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
 
-  relatedScroll: { gap: 8, paddingRight: 4 },
-  relatedChip: {
-    width: 110,
-    backgroundColor: '#F5F3FF',
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
     borderRadius: 12,
     paddingVertical: 14,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: ScannerColors.matchesBorder,
   },
-  relatedChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center', lineHeight: 16 },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
 
-  tipCard: {
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
@@ -1173,7 +1427,7 @@ const st = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  tipIconWrap: {
+  careTipIconWrap: {
     width: 30,
     height: 30,
     borderRadius: 8,
@@ -1181,9 +1435,9 @@ const st = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tipContent: { flex: 1 },
-  tipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
-  tipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
 
   tagsSection: {
     marginTop: 4,
@@ -1276,13 +1530,13 @@ const st = StyleSheet.create({
     color: '#111111',
     letterSpacing: -0.3,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'center' as const,
   },
   lowConfDesc: {
     fontSize: 14,
     fontWeight: '500' as const,
     color: '#6B7280',
-    textAlign: 'center',
+    textAlign: 'center' as const,
     lineHeight: 20,
     paddingHorizontal: 8,
   },
