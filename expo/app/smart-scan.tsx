@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -33,6 +34,19 @@ import {
   Image as ImageIcon,
   Download,
   CheckCircle2,
+  Camera,
+  Search,
+  Wrench,
+  Ruler,
+  Users,
+  Hammer,
+  ShoppingBag,
+  ScanLine,
+  ArrowRight,
+  Armchair,
+  UtensilsCrossed,
+  Tag,
+  Box,
 } from 'lucide-react-native';
 import * as MediaLibrary from 'expo-media-library';
 import { File, Paths, Directory } from 'expo-file-system';
@@ -179,25 +193,31 @@ export default function SmartScanScreen() {
   const hasNavigatedRef = useRef(false);
   const historyLoadedRef = useRef(false);
 
+  const [showHome, setShowHome] = useState<boolean>(true);
+  const [searchText, setSearchText] = useState<string>('');
+  const homeEntryAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(homeEntryAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+  }, [homeEntryAnim]);
+
   useEffect(() => {
     if (hasAutoLaunched.current) return;
     if (params.historyEntryId) {
       console.log('[SmartScan] History entry param present, skipping auto-launch');
       hasAutoLaunched.current = true;
+      setShowHome(false);
       return;
     }
     if (viewingEntryId || result) {
       console.log('[SmartScan] Already viewing entry or have result, skipping auto-launch');
       hasAutoLaunched.current = true;
+      setShowHome(false);
       return;
     }
-    if (scanning) return;
-
     hasAutoLaunched.current = true;
-    console.log('[SmartScan] Auto-launching gallery immediately on open');
-    void handleCapture('gallery');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.historyEntryId, viewingEntryId, result, scanning]);
+    setShowHome(true);
+  }, [params.historyEntryId, viewingEntryId, result]);
 
   useEffect(() => {
     if (pendingReceiptNav) {
@@ -279,7 +299,20 @@ export default function SmartScanScreen() {
   const handleResetScan = useCallback(() => {
     resetScan();
     hasNavigatedRef.current = false;
+    setShowHome(true);
   }, [resetScan]);
+
+  const handleStartScan = useCallback((source: 'camera' | 'gallery', mode?: IkeaScanMode | null) => {
+    setShowHome(false);
+    void handleCapture(source, mode ?? scanMode);
+  }, [handleCapture, scanMode]);
+
+  const handleSearchSubmit = useCallback(() => {
+    if (!searchText.trim()) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowHome(false);
+    setSearchText('');
+  }, [searchText]);
 
   const saveImageUri = referenceImageUrl ?? scannedImageUri;
 
@@ -363,40 +396,129 @@ export default function SmartScanScreen() {
         contentContainerStyle={st.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {!result && (
-          <>
-            <ScannerActionButtons
-              onCamera={() => void handleCapture('camera', scanMode)}
-              onGallery={() => void handleCapture('gallery', scanMode)}
-              scanning={scanning}
-              cameraTestID="smart-scan-camera"
-              galleryTestID="smart-scan-gallery"
-            />
+        {showHome && !result && !scanning && (
+          <Animated.View style={{ opacity: homeEntryAnim, transform: [{ translateY: homeEntryAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }}>
+            <View style={st.homeHero}>
+              <View style={st.homeHeroIconRow}>
+                <View style={st.homeHeroIconCircle}>
+                  <ScanLine size={32} color="#FFFFFF" strokeWidth={2.2} />
+                </View>
+              </View>
+              <Text style={st.homeHeroTitle}>IKEA Scanner</Text>
+              <Text style={st.homeHeroSub}>
+                Scan any IKEA item to see price, details, tools needed, assembly info, and matching products.
+              </Text>
+            </View>
 
-            <ScanModeChips
-              activeMode={scanMode}
-              onSelect={(mode) => {
-                void Haptics.selectionAsync();
-                setScanMode(mode === scanMode ? null : mode);
-              }}
-              disabled={scanning}
-            />
+            <View style={st.homeSearchWrap}>
+              <View style={[st.homeSearchBar, searchText.length > 0 && st.homeSearchBarActive]}>
+                <Search size={16} color={searchText.length > 0 ? '#0058A3' : '#8E8E93'} />
+                <TextInput
+                  style={st.homeSearchInput}
+                  placeholder="Search product name or article number..."
+                  placeholderTextColor="#AEAEB2"
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  returnKeyType="search"
+                  onSubmitEditing={handleSearchSubmit}
+                  testID="scanner-search-input"
+                />
+                {searchText.length > 0 && (
+                  <Pressable onPress={() => setSearchText('')} hitSlop={8}>
+                    <View style={st.homeSearchClear}>
+                      <Text style={st.homeSearchClearText}>×</Text>
+                    </View>
+                  </Pressable>
+                )}
+              </View>
+            </View>
 
-            {scanning && (
-              <ScannerProgressCard
-                phaseMessage={PHASE_MESSAGES[scanPhase]}
-                phaseHint={
-                  scanPhase === 'preprocessing' ? 'Optimizing image for best results...' :
-                  scanPhase === 'analyzing' ? 'AI is analyzing your item...' :
-                  scanPhase === 'generating_image' ? 'Creating a reference image...' :
-                  scanPhase === 'done' ? 'Analysis complete!' : ''
-                }
-                progressWidth={progressWidth}
-                pulseAnim={pulseAnim}
-              />
-            )}
+            <View style={st.homePrimaryActions}>
+              <Pressable
+                style={({ pressed }) => [st.homeScanBtn, pressed && { opacity: 0.88, transform: [{ scale: 0.98 }] }]}
+                onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleStartScan('camera'); }}
+                testID="home-scan-camera"
+              >
+                <View style={st.homeScanBtnIcon}>
+                  <Camera size={22} color="#FFFFFF" strokeWidth={2} />
+                </View>
+                <View style={st.homeScanBtnContent}>
+                  <Text style={st.homeScanBtnTitle}>Scan Item</Text>
+                  <Text style={st.homeScanBtnSub}>Point camera at any IKEA product</Text>
+                </View>
+                <ArrowRight size={18} color="rgba(255,255,255,0.6)" />
+              </Pressable>
 
-            {!scanning && entries.length > 0 && (
+              <Pressable
+                style={({ pressed }) => [st.homeGalleryBtn, pressed && { opacity: 0.88, transform: [{ scale: 0.98 }] }]}
+                onPress={() => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleStartScan('gallery'); }}
+                testID="home-scan-gallery"
+              >
+                <View style={st.homeGalleryBtnIcon}>
+                  <ImageIcon size={20} color="#0058A3" strokeWidth={2} />
+                </View>
+                <View style={st.homeScanBtnContent}>
+                  <Text style={st.homeGalleryBtnTitle}>Upload Photo</Text>
+                  <Text style={st.homeGalleryBtnSub}>Choose from your photo library</Text>
+                </View>
+                <ArrowRight size={18} color="#AEAEB2" />
+              </Pressable>
+            </View>
+
+            <View style={st.homeScanModesSection}>
+              <Text style={st.homeScanModesTitle}>Quick Scan Modes</Text>
+              <View style={st.homeScanModesGrid}>
+                {[
+                  { mode: 'general_scan' as IkeaScanMode, label: 'Any Item', sub: 'Auto-detect', icon: Scan, color: '#0058A3', bg: '#0058A310' },
+                  { mode: 'assembled' as IkeaScanMode, label: 'Furniture', sub: 'Showroom', icon: Armchair, color: '#7C3AED', bg: '#7C3AED10' },
+                  { mode: 'product_tag' as IkeaScanMode, label: 'Price Tag', sub: 'Shelf labels', icon: Tag, color: '#D97706', bg: '#D9770610' },
+                  { mode: 'box_label' as IkeaScanMode, label: 'Box Label', sub: 'Warehouse', icon: Box, color: '#059669', bg: '#05966910' },
+                  { mode: 'household_scan' as IkeaScanMode, label: 'Home Items', sub: 'Decor & more', icon: Lamp, color: '#E11D48', bg: '#E11D4810' },
+                  { mode: 'food_scan' as IkeaScanMode, label: 'Food Court', sub: 'Swedish Market', icon: UtensilsCrossed, color: '#0284C7', bg: '#0284C710' },
+                ].map((item) => (
+                  <Pressable
+                    key={item.mode}
+                    style={({ pressed }) => [st.homeScanModeCard, pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] }]}
+                    onPress={() => {
+                      void Haptics.selectionAsync();
+                      setScanMode(item.mode);
+                      handleStartScan('camera', item.mode);
+                    }}
+                    testID={`home-mode-${item.mode}`}
+                  >
+                    <View style={[st.homeScanModeIconWrap, { backgroundColor: item.bg }]}>
+                      <item.icon size={20} color={item.color} />
+                    </View>
+                    <Text style={st.homeScanModeLabel}>{item.label}</Text>
+                    <Text style={st.homeScanModeSub}>{item.sub}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={st.homeCapabilitiesSection}>
+              <Text style={st.homeCapabilitiesTitle}>What You'll Get</Text>
+              {[
+                { icon: ShoppingBag, label: 'Product Details', desc: 'Price, dimensions, color, material', color: '#0058A3' },
+                { icon: Wrench, label: 'Tools Needed', desc: 'Allen key, drill, screwdriver & more', color: '#D97706' },
+                { icon: Hammer, label: 'Assembly Info', desc: 'Difficulty, time estimate, people needed', color: '#7C3AED' },
+                { icon: Package, label: 'Matching Products', desc: 'What goes well with your item', color: '#059669' },
+                { icon: Users, label: 'Room Fit', desc: 'Perfect for dorm, studio, family home', color: '#E11D48' },
+                { icon: Ruler, label: 'Value Insight', desc: 'Budget-friendly, durable, resale value', color: '#0284C7' },
+              ].map((cap, i) => (
+                <View key={`cap-${i}`} style={st.homeCapRow}>
+                  <View style={[st.homeCapIconWrap, { backgroundColor: `${cap.color}10` }]}>
+                    <cap.icon size={18} color={cap.color} />
+                  </View>
+                  <View style={st.homeCapTextCol}>
+                    <Text style={st.homeCapLabel}>{cap.label}</Text>
+                    <Text style={st.homeCapDesc}>{cap.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {entries.length > 0 && (
               <View style={st.historySection}>
                 <Pressable
                   style={st.historyHeaderRow}
@@ -428,6 +550,7 @@ export default function SmartScanScreen() {
                           style={st.historyItem}
                           onPress={() => {
                             void Haptics.selectionAsync();
+                            setShowHome(false);
                             loadHistoryEntry({ result: entry.result, imageUri: entry.imageUri, id: entry.id });
                             resultFade.setValue(1);
                           }}
@@ -480,8 +603,41 @@ export default function SmartScanScreen() {
                 )}
               </View>
             )}
+          </Animated.View>
+        )}
 
+        {!showHome && !result && (
+          <>
+            <ScannerActionButtons
+              onCamera={() => void handleCapture('camera', scanMode)}
+              onGallery={() => void handleCapture('gallery', scanMode)}
+              scanning={scanning}
+              cameraTestID="smart-scan-camera"
+              galleryTestID="smart-scan-gallery"
+            />
 
+            <ScanModeChips
+              activeMode={scanMode}
+              onSelect={(mode) => {
+                void Haptics.selectionAsync();
+                setScanMode(mode === scanMode ? null : mode);
+              }}
+              disabled={scanning}
+            />
+
+            {scanning && (
+              <ScannerProgressCard
+                phaseMessage={PHASE_MESSAGES[scanPhase]}
+                phaseHint={
+                  scanPhase === 'preprocessing' ? 'Optimizing image for best results...' :
+                  scanPhase === 'analyzing' ? 'AI is analyzing your item...' :
+                  scanPhase === 'generating_image' ? 'Creating a reference image...' :
+                  scanPhase === 'done' ? 'Analysis complete!' : ''
+                }
+                progressWidth={progressWidth}
+                pulseAnim={pulseAnim}
+              />
+            )}
           </>
         )}
 
@@ -596,7 +752,269 @@ export default function SmartScanScreen() {
 
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: ScannerColors.bg },
-  scrollContent: { paddingHorizontal: ScannerSpacing.xl, paddingTop: ScannerSpacing.xxl },
+  scrollContent: { paddingHorizontal: ScannerSpacing.xl, paddingTop: ScannerSpacing.lg },
+
+  homeHero: {
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingTop: 8,
+  },
+  homeHeroIconRow: {
+    marginBottom: 16,
+  },
+  homeHeroIconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: '#0058A3',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  homeHeroTitle: {
+    fontSize: 28,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.8,
+    marginBottom: 8,
+  },
+  homeHeroSub: {
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 22,
+    paddingHorizontal: 16,
+  },
+
+  homeSearchWrap: {
+    marginBottom: 20,
+  },
+  homeSearchBar: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  homeSearchBarActive: {
+    borderColor: '#0058A3',
+    backgroundColor: '#FAFCFF',
+  },
+  homeSearchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500' as const,
+    color: '#1C1C1E',
+    padding: 0,
+    margin: 0,
+    letterSpacing: -0.2,
+  },
+  homeSearchClear: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  homeSearchClearText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#6B7280',
+    lineHeight: 17,
+    marginTop: -1,
+  },
+
+  homePrimaryActions: {
+    gap: 10,
+    marginBottom: 24,
+  },
+  homeScanBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#0058A3',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 14,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  homeScanBtnIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  homeScanBtnContent: {
+    flex: 1,
+  },
+  homeScanBtnTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  homeScanBtnSub: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 2,
+  },
+  homeGalleryBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 14,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  homeGalleryBtnIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#0058A30D',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  homeGalleryBtnTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+  },
+  homeGalleryBtnSub: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+
+  homeScanModesSection: {
+    marginBottom: 24,
+  },
+  homeScanModesTitle: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
+    marginBottom: 12,
+  },
+  homeScanModesGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 10,
+  },
+  homeScanModeCard: {
+    width: '31%' as unknown as number,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  homeScanModeIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
+  },
+  homeScanModeLabel: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    textAlign: 'center' as const,
+  },
+  homeScanModeSub: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: '#AEAEB2',
+    marginTop: 2,
+    textAlign: 'center' as const,
+  },
+
+  homeCapabilitiesSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  homeCapabilitiesTitle: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase' as const,
+    marginBottom: 16,
+  },
+  homeCapRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 14,
+    marginBottom: 14,
+  },
+  homeCapIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  homeCapTextCol: {
+    flex: 1,
+  },
+  homeCapLabel: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  homeCapDesc: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
 
   heroSection: { alignItems: 'center', marginBottom: 28 },
   heroIllustration: { width: 80, height: 80, borderRadius: ScannerRadius.xxl, marginBottom: 14 },

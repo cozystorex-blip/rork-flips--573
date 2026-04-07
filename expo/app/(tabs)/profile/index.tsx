@@ -321,9 +321,7 @@ export default function ProfileScreen() {
           <View style={styles.searchSection}>
             <View style={styles.searchRow}>
               <View style={[styles.searchBar, searchQuery.length > 0 && styles.searchBarActive]}>
-                <View style={styles.searchIconWrap}>
-                  <Search size={15} color={searchQuery.length > 0 ? '#0058A3' : '#AEAEB2'} strokeWidth={2.2} />
-                </View>
+                <Search size={16} color={searchQuery.length > 0 ? '#0058A3' : '#AEAEB2'} strokeWidth={2.2} />
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Find people nearby..."
@@ -633,8 +631,8 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 14,
+    marginTop: 14,
+    marginBottom: 16,
   },
   onlineSection: {
     marginHorizontal: 16,
@@ -663,23 +661,28 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F7',
-    borderRadius: 14,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    gap: 0,
-    borderWidth: 1.5,
-    borderColor: '#E8E8ED',
+    backgroundColor: '#F8F8FA',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#ECECEE',
   },
   searchBarActive: {
     borderColor: '#0058A3',
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#F5F9FF',
+    shadowColor: '#0058A3',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   searchIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   },
@@ -690,23 +693,21 @@ const styles = StyleSheet.create({
     color: '#1C1C1E',
     padding: 0,
     margin: 0,
-    marginLeft: 8,
     letterSpacing: -0.2,
   },
   searchClearBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#DCDCE0',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0E0E4',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    marginRight: 4,
   },
   searchClearText: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#636366',
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    lineHeight: 18,
     marginTop: -1,
   },
   searchResultCount: {
@@ -718,14 +719,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   statusDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F7',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F8F8FA',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    borderWidth: 1.5,
-    borderColor: '#E8E8ED',
+    borderWidth: 1,
+    borderColor: '#ECECEE',
     position: 'relative' as const,
     overflow: 'visible' as const,
   },
@@ -735,9 +736,9 @@ const styles = StyleSheet.create({
   },
   statusDotPulse: {
     position: 'absolute' as const,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 2,
     borderColor: '#34C759',
   },
