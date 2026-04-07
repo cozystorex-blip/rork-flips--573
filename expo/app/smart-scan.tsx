@@ -9,6 +9,7 @@ import {
   Animated,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -30,7 +31,11 @@ import {
   Lamp,
   Trash2,
   Image as ImageIcon,
+  Download,
+  CheckCircle2,
 } from 'lucide-react-native';
+import * as MediaLibrary from 'expo-media-library';
+import { File, Paths, Directory } from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 
 import type { SmartScanItemType } from '@/services/smartScanService';
@@ -160,6 +165,8 @@ export default function SmartScanScreen() {
 
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [saved, setSaved] = useState<boolean>(false);
   const hasAutoLaunched = useRef(false);
 
   const { entries, totalCount, hiddenCount, hasHiddenEntries, isAtFreeLimit, deleteEntry, freeLimit } = useScanHistory();
@@ -274,6 +281,54 @@ export default function SmartScanScreen() {
     hasNavigatedRef.current = false;
   }, [resetScan]);
 
+  const saveImageUri = referenceImageUrl ?? scannedImageUri;
+
+  const handleSaveToPhone = useCallback(async () => {
+    if (saving || saved || !saveImageUri) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSaving(true);
+    try {
+      if (Platform.OS === 'web') {
+        const link = document.createElement('a');
+        link.href = saveImageUri;
+        link.download = `flips-scan-${Date.now()}.jpg`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setSaved(true);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setTimeout(() => setSaved(false), 2500);
+        return;
+      }
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow photo library access to save images.');
+        setSaving(false);
+        return;
+      }
+      let localUri = saveImageUri;
+      if (saveImageUri.startsWith('http://') || saveImageUri.startsWith('https://')) {
+        console.log('[SavePhoto] Downloading remote image:', saveImageUri);
+        const downloadDir = new Directory(Paths.cache, 'scan-downloads');
+        try { downloadDir.create(); } catch { /* already exists */ }
+        const downloadedFile = await File.downloadFileAsync(saveImageUri, downloadDir);
+        localUri = downloadedFile.uri;
+        console.log('[SavePhoto] Downloaded to:', localUri);
+      }
+      const asset = await MediaLibrary.createAssetAsync(localUri);
+      console.log('[SavePhoto] Saved to library:', asset.uri);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error('[SavePhoto] Error saving photo:', err);
+      Alert.alert('Save Failed', 'Could not save the photo. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }, [saveImageUri, saving, saved]);
+
 
 
   return (
@@ -285,6 +340,22 @@ export default function SmartScanScreen() {
         onClose={() => router.back()}
         paddingTop={insets.top}
         testID="close-smart-scan"
+        rightElement={result && saveImageUri ? (
+          <Pressable
+            style={[st.topBarSaveBtn, saved && st.topBarSaveBtnSaved]}
+            onPress={() => void handleSaveToPhone()}
+            disabled={saving}
+            testID="top-save-btn"
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : saved ? (
+              <CheckCircle2 size={18} color="#FFFFFF" />
+            ) : (
+              <Download size={18} color="#FFFFFF" />
+            )}
+          </Pressable>
+        ) : undefined}
       />
 
       <ScrollView
@@ -620,4 +691,16 @@ const st = StyleSheet.create({
   validationText: { fontSize: 12, fontWeight: '700' as const },
   validationDetail: { fontSize: 11, fontWeight: '500' as const, color: ScannerColors.textMuted },
   validationError: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.error ?? '#DC2626' },
+
+  topBarSaveBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#0058A3',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  topBarSaveBtnSaved: {
+    backgroundColor: '#059669',
+  },
 });
