@@ -48,26 +48,42 @@ export async function searchUsers(query: string, currentUserId: string): Promise
   if (trimmed.length < 2) return [];
 
   try {
+    const { data: onlineData, error: onlineError } = await supabase
+      .from('online_presence')
+      .select('user_id')
+      .eq('is_online', true);
+
+    if (onlineError) {
+      console.log('[ConnectionsService] Online presence check error:', onlineError.message);
+    }
+
+    const onlineUserIds = new Set<string>(
+      (onlineData ?? []).map((r: Record<string, unknown>) => (r.user_id as string) ?? '')
+    );
+    console.log('[ConnectionsService] Online user IDs:', onlineUserIds.size);
+
     const { data, error } = await supabase
       .from('profiles')
       .select('id, display_name, avatar_url, city')
       .neq('id', currentUserId)
       .ilike('display_name', `%${trimmed}%`)
-      .limit(20);
+      .limit(40);
 
     if (error) {
       console.log('[ConnectionsService] Search error:', error.message);
       return [];
     }
 
-    const results = (data ?? []).map((u: Record<string, unknown>) => ({
+    const allProfiles = (data ?? []).map((u: Record<string, unknown>) => ({
       id: (u.id as string) ?? '',
       display_name: (u.display_name as string) ?? 'User',
       avatar_url: (u.avatar_url as string) ?? '',
       city: (u.city as string) ?? '',
     }));
 
-    console.log('[ConnectionsService] Search found', results.length, 'users for:', trimmed);
+    const results = allProfiles.filter(p => onlineUserIds.has(p.id));
+
+    console.log('[ConnectionsService] Search found', results.length, 'online users for:', trimmed);
     return results;
   } catch (e) {
     console.log('[ConnectionsService] Search exception:', e);

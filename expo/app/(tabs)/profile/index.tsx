@@ -42,7 +42,7 @@ export default function ProfileScreen() {
   const { profile, saveProfile } = useProfile();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
-  const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
+  const { isUserOnline, handleToggleOnline, connectionState } = useOnlinePeople();
 
 
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -92,20 +92,7 @@ export default function ProfileScreen() {
     setSearchQuery('');
   }, []);
 
-  const dedupedOnlineUsers = useMemo(() => {
-    const seen = new Map<string, typeof onlineUsers[number]>();
-    for (const u of onlineUsers) {
-      if (seen.has(u.id)) {
-        const existing = seen.get(u.id)!;
-        if (u.lastActive > existing.lastActive) {
-          seen.set(u.id, u);
-        }
-      } else {
-        seen.set(u.id, u);
-      }
-    }
-    return Array.from(seen.values());
-  }, [onlineUsers]);
+
 
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -563,32 +550,6 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {isUserOnline && dedupedOnlineUsers.length > 0 ? (
-            <View style={styles.onlineSection}>
-              <View style={styles.onlineGrid}>
-                {dedupedOnlineUsers.map((u) => (
-                  <Pressable
-                    key={u.id}
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    }}
-                    style={({ pressed }) => [styles.onlineCard, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
-                  >
-                    <View style={styles.onlineAvatarWrap}>
-                      {u.avatar_url ? (
-                        <Image source={{ uri: u.avatar_url }} style={styles.onlineAvatar} contentFit="cover" />
-                      ) : (
-                        <Text style={styles.onlineAvatarInitial}>{(u.name || 'U').charAt(0).toUpperCase()}</Text>
-                      )}
-                      <View style={styles.onlineIndicator} />
-                    </View>
-                    <Text style={styles.onlineName} numberOfLines={1}>{u.name || 'User'}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : null}
-
           <View style={styles.adSection}>
             <AdMobBanner />
           </View>
@@ -935,24 +896,7 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     marginTop: 4,
   },
-  onlineSection: {
-    marginHorizontal: 16,
-    marginTop: 0,
-    marginBottom: 12,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  onlineSectionHeader: {
-    marginBottom: 14,
-  },
+
 
   statusDot: {
     width: 42,
@@ -994,93 +938,7 @@ const styles = StyleSheet.create({
   statusDotOffline: {
     backgroundColor: '#C7C7CC',
   },
-  onlineSectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  onlineDotSmall: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#34C759',
-  },
-  onlineHeaderLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-  },
-  onlineSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#0A0A0A',
-    letterSpacing: -0.3,
-  },
-  onlineEmptyText: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 6,
-  },
-  onlineGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  onlineCard: {
-    alignItems: 'center' as const,
-    width: 72,
-  },
-  onlineAvatarWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#F0F0F2',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    marginBottom: 6,
-    position: 'relative' as const,
-    overflow: 'visible' as const,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  onlineAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  onlineAvatarInitial: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#0A0A0A',
-  },
-  onlineIndicator: {
-    position: 'absolute' as const,
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#0A0A0A',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-  },
-  onlineName: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
-    textAlign: 'center' as const,
-    maxWidth: 72,
-  },
-  onlineActivity: {
-    fontSize: 10,
-    fontWeight: '500' as const,
-    color: '#3A3A3C',
-    marginTop: 1,
-  },
+
   profileResultsSection: {
     marginHorizontal: 16,
     marginBottom: 12,
