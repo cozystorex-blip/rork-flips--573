@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: "Flips",
   slug: "xrbl9oijjxu6ij41g3klq",
-  version: "0.000.00.001",
+  version: "0.0.0.0111",
   sdkVersion: "54.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
