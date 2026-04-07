@@ -318,31 +318,32 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {isUserOnline && dedupedOnlineUsers.length > 0 ? (
-            <View style={styles.onlineSection}>
-              <View style={styles.onlineSectionHeader}>
-                <View style={styles.searchRow}>
-                  <View style={styles.searchBar}>
-                    <Search size={16} color="#8E8E93" strokeWidth={2} />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Search people..."
-                      placeholderTextColor="#8E8E93"
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                      returnKeyType="search"
-                      testID="profile-search-input"
-                    />
-                  </View>
-                  <Pressable
-                    onPress={handleToggleOnline}
-                    style={({ pressed }) => [styles.statusDot, pressed && { opacity: 0.7 }]}
-                    testID="profile-status-dot"
-                  >
-                    <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
-                  </Pressable>
-                </View>
+          <View style={styles.searchSection}>
+            <View style={styles.searchRow}>
+              <View style={styles.searchBar}>
+                <Search size={16} color="#8E8E93" strokeWidth={2} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search people..."
+                  placeholderTextColor="#8E8E93"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                  testID="profile-search-input"
+                />
               </View>
+              <Pressable
+                onPress={handleToggleOnline}
+                style={({ pressed }) => [styles.statusDot, pressed && { opacity: 0.7 }]}
+                testID="profile-status-dot"
+              >
+                <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+              </Pressable>
+            </View>
+          </View>
+
+          {isUserOnline && filteredOnlineUsers.length > 0 ? (
+            <View style={styles.onlineSection}>
               <View style={styles.onlineGrid}>
                 {filteredOnlineUsers.map((u) => (
                   <Pressable
@@ -613,9 +614,14 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FF3B30',
   },
-  onlineSection: {
+  searchSection: {
     marginHorizontal: 16,
     marginTop: 8,
+    marginBottom: 12,
+  },
+  onlineSection: {
+    marginHorizontal: 16,
+    marginTop: 0,
     marginBottom: 12,
     backgroundColor: '#FAFAFA',
     borderRadius: 16,
