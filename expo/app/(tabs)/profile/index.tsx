@@ -9,7 +9,9 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  TextInput,
 } from 'react-native';
+import { Search } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
@@ -40,6 +42,8 @@ export default function ProfileScreen() {
   const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
 
 
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   const dedupedOnlineUsers = useMemo(() => {
     const seen = new Map<string, typeof onlineUsers[number]>();
     for (const u of onlineUsers) {
@@ -54,6 +58,12 @@ export default function ProfileScreen() {
     }
     return Array.from(seen.values());
   }, [onlineUsers]);
+
+  const filteredOnlineUsers = useMemo(() => {
+    if (!searchQuery.trim()) return dedupedOnlineUsers;
+    const q = searchQuery.trim().toLowerCase();
+    return dedupedOnlineUsers.filter((u) => (u.name || 'User').toLowerCase().includes(q));
+  }, [dedupedOnlineUsers, searchQuery]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -311,10 +321,30 @@ export default function ProfileScreen() {
           {isUserOnline && dedupedOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
               <View style={styles.onlineSectionHeader}>
-                <Text style={styles.onlineSectionTitle}>{dedupedOnlineUsers.length} People Online</Text>
+                <View style={styles.searchRow}>
+                  <View style={styles.searchBar}>
+                    <Search size={16} color="#8E8E93" strokeWidth={2} />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Search people..."
+                      placeholderTextColor="#8E8E93"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      returnKeyType="search"
+                      testID="profile-search-input"
+                    />
+                  </View>
+                  <Pressable
+                    onPress={handleToggleOnline}
+                    style={({ pressed }) => [styles.statusDot, pressed && { opacity: 0.7 }]}
+                    testID="profile-status-dot"
+                  >
+                    <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+                  </Pressable>
+                </View>
               </View>
               <View style={styles.onlineGrid}>
-                {dedupedOnlineUsers.map((u) => (
+                {filteredOnlineUsers.map((u) => (
                   <Pressable
                     key={u.id}
                     onPress={() => {
@@ -599,10 +629,49 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   onlineSectionHeader: {
+    marginBottom: 14,
+  },
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    gap: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDEDEF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '400' as const,
+    color: '#1C1C1E',
+    padding: 0,
+    margin: 0,
+  },
+  statusDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EDEDEF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDotInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  statusDotOnline: {
+    backgroundColor: '#34C759',
+  },
+  statusDotOffline: {
+    backgroundColor: '#8E8E93',
   },
   onlineSectionHeaderLeft: {
     flexDirection: 'row',
