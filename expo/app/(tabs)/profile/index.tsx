@@ -583,7 +583,6 @@ export default function ProfileScreen() {
                       <View style={styles.onlineIndicator} />
                     </View>
                     <Text style={styles.onlineName} numberOfLines={1}>{u.name || 'User'}</Text>
-                    <Text style={styles.onlineActivity}>{u.activity === 'scanning' ? 'Scanning' : u.activity === 'saving' ? 'Saving' : 'Browsing'}</Text>
                   </Pressable>
                 ))}
               </View>
