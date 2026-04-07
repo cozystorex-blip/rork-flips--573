@@ -11,9 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Package,
-  Camera,
   Tag,
-  ScanLine,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -221,27 +219,7 @@ export default function HomeScreen() {
             <View style={styles.emptyContainer}>
               <Text style={styles.loadingText}>Loading...</Text>
             </View>
-          ) : unifiedItems.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIconWrap}>
-                <ScanLine size={32} color="#16A34A" strokeWidth={1.5} />
-              </View>
-              <Text style={styles.emptyTitle}>No items scanned yet</Text>
-              <Text style={styles.emptySubtitle}>Scan items to see price, details, resale value, and matching products</Text>
-              <View style={styles.emptyActions}>
-                <Pressable
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/smart-scan');
-                  }}
-                  style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
-                >
-                  <Camera size={15} color="#FFFFFF" strokeWidth={2} />
-                  <Text style={styles.emptyBtnText}>Scan an Item</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
+          ) : unifiedItems.length === 0 ? null : (
             <View>
               <View style={styles.grid}>
                 {unifiedItems.map((item) => (
