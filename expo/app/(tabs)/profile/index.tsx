@@ -20,7 +20,6 @@ import {
   LogOut,
   Scan,
   Bookmark,
-  Camera,
   Wifi,
   WifiOff,
 } from 'lucide-react-native';
@@ -30,7 +29,7 @@ import { useProfile } from '@/contexts/ProfileContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import { useOnlinePeople } from '@/contexts/OnlinePeopleContext';
-import { useConnections } from '@/contexts/ConnectionsContext';
+import { useConnections, ConnectionWithProfile } from '@/contexts/ConnectionsContext';
 import type { SearchedUser } from '@/services/connectionsService';
 
 import { pickAndCropAvatar, uploadAvatarToSupabase } from '@/services/uploadService';
@@ -55,6 +54,7 @@ export default function ProfileScreen() {
     getConnectionStatus,
     sendRequest,
     isSendingRequest,
+    friends,
   } = useConnections();
 
   const handleSearchChange = useCallback((text: string) => {
@@ -290,9 +290,6 @@ export default function ProfileScreen() {
                   </Text>
                 )}
               </View>
-              <View style={styles.avatarCameraBadge}>
-                <Camera size={12} color="#FFFFFF" strokeWidth={2.5} />
-              </View>
             </Pressable>
 
             <Pressable
@@ -417,13 +414,56 @@ export default function ProfileScreen() {
               keyboardShouldPersistTaps="handled"
             >
               {!showSearchResults ? (
-                <View style={styles.searchModalEmpty}>
-                  <View style={styles.searchModalEmptyIcon}>
-                    <Search size={32} color="#C7C7CC" strokeWidth={1.5} />
+                friends.length > 0 ? (
+                  <View>
+                    <Text style={styles.followingSectionTitle}>Following</Text>
+                    {friends.map((f: ConnectionWithProfile) => (
+                      <Pressable
+                        key={f.connection.id}
+                        onPress={() => {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }}
+                        style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+                        testID={`following-${f.profile.id}`}
+                      >
+                        <View style={styles.profileCardLeft}>
+                          <View style={styles.profileCardAvatar}>
+                            {f.profile.avatar_url ? (
+                              <Image source={{ uri: f.profile.avatar_url }} style={styles.profileCardAvatarImg} contentFit="cover" />
+                            ) : (
+                              <Text style={styles.profileCardAvatarInitial}>
+                                {(f.profile.display_name || 'U').charAt(0).toUpperCase()}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.profileCardInfo}>
+                            <Text style={styles.profileCardName} numberOfLines={1}>
+                              {f.profile.display_name || 'User'}
+                            </Text>
+                            {f.profile.city ? (
+                              <View style={styles.profileCardCityRow}>
+                                <MapPin size={11} color="#8E8E93" strokeWidth={2} />
+                                <Text style={styles.profileCardCity} numberOfLines={1}>{f.profile.city}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                        <View style={styles.connectedBadge}>
+                          <UserCheck size={13} color="#16A34A" strokeWidth={2.5} />
+                          <Text style={styles.connectedBadgeText}>Connected</Text>
+                        </View>
+                      </Pressable>
+                    ))}
                   </View>
-                  <Text style={styles.searchModalEmptyTitle}>Find People</Text>
-                  <Text style={styles.searchModalEmptyText}>Search by name to find and connect</Text>
-                </View>
+                ) : (
+                  <View style={styles.searchModalEmpty}>
+                    <View style={styles.searchModalEmptyIcon}>
+                      <Search size={32} color="#C7C7CC" strokeWidth={1.5} />
+                    </View>
+                    <Text style={styles.searchModalEmptyTitle}>Find People</Text>
+                    <Text style={styles.searchModalEmptyText}>Search by name to find and connect</Text>
+                  </View>
+                )
               ) : isSearching ? (
                 <View style={styles.searchLoadingWrap}>
                   <ActivityIndicator size="small" color="#0058A3" />
@@ -622,23 +662,15 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
-  avatarCameraBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#1C1C1E',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+  followingSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    letterSpacing: -0.1,
+    textTransform: 'uppercase' as const,
+    marginBottom: 10,
+    marginTop: 4,
+    marginLeft: 4,
   },
   nameRow: {
     flexDirection: 'row',
