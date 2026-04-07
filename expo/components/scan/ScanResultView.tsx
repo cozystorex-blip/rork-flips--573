@@ -42,6 +42,9 @@ import {
   Hammer,
   Drill,
   Gauge,
+  BarChart3,
+  ArrowLeftRight,
+  ShoppingBag,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import * as MediaLibrary from 'expo-media-library';
@@ -455,6 +458,19 @@ function DifficultyBadge({ level }: { level: string }) {
   );
 }
 
+function ShoeVerdictBadge({ verdict }: { verdict: string }) {
+  const lower = verdict.toLowerCase();
+  const color = lower === 'strong' || lower === 'good' ? '#059669' : lower === 'fair' ? '#D97706' : '#6B7280';
+  const bg = lower === 'strong' || lower === 'good' ? '#ECFDF5' : lower === 'fair' ? '#FFFBEB' : '#F9FAFB';
+  const label = verdict.charAt(0).toUpperCase() + verdict.slice(1);
+  return (
+    <View style={[st.shoeVerdictBadge, { backgroundColor: bg }]}>
+      <TrendingUp size={11} color={color} />
+      <Text style={[st.shoeVerdictText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
 function GoodForChip({ label }: { label: string }) {
   return (
     <View style={st.goodForChip}>
@@ -576,6 +592,7 @@ export default function ScanResultView({
   const demandLevel = useMemo(() => getDemandLevel(result), [result]);
 
   const isIkea = result.furniture_details?.is_likely_ikea ?? false;
+  const isShoe = result.fashion_details?.subcategory === 'shoes';
   const showFallback = tier === 'low';
   const heroImageUri = referenceImageUrl ?? scannedImageUri;
   const hasBothImages = !!scannedImageUri && !!referenceImageUrl;
@@ -584,6 +601,8 @@ export default function ScanResultView({
   const [toolsOpen, setToolsOpen] = useState(true);
   const [assemblyOpen, setAssemblyOpen] = useState(true);
   const [matchesOpen, setMatchesOpen] = useState(true);
+  const [shoeValueOpen, setShoeValueOpen] = useState(true);
+  const [shoeContextOpen, setShoeContextOpen] = useState(true);
 
   const toggleSection = useCallback((setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     void Haptics.selectionAsync();
@@ -594,7 +613,29 @@ export default function ScanResultView({
   const hasAssemblySection = assemblyInfo !== null;
   const hasMatchesSection = matchingProducts.length > 0;
   const hasGoodForSection = roomFitLabels.length > 0;
-  const hasValueSection = valueInsights.rating !== null || valueInsights.insight !== null || resaleValue !== null || demandLevel !== null;
+  const hasValueSection = !isShoe && (valueInsights.rating !== null || valueInsights.insight !== null || resaleValue !== null || demandLevel !== null);
+
+  const shoeFd = result.fashion_details;
+  const shoeRetailPrice = shoeFd?.estimated_retail_price ?? null;
+  const shoeResaleValue = shoeFd?.estimated_resale_value ?? null;
+  const shoePriceRange = shoeFd?.price_range ?? null;
+  const shoeValueVerdict = shoeFd?.value_verdict ?? null;
+  const shoeValueRating = shoeFd?.value_rating ?? null;
+  const shoeValueReasoning = shoeFd?.value_reasoning ?? null;
+  const shoeComparable = shoeFd?.comparable_model ?? null;
+  const shoeResaleSuggestion = shoeFd?.resale_suggestion ?? null;
+  const shoeResaleDemand = shoeFd?.resale_demand ?? null;
+  const shoeBestPlatform = shoeFd?.best_selling_platform ?? null;
+  const shoeConditionNotes = shoeFd?.condition_notes ?? null;
+  const shoeCleaningRec = shoeFd?.cleaning_recommendation ?? null;
+  const shoeCleaningReason = shoeFd?.cleaning_reason ?? null;
+
+  const hasShoeValueSection = isShoe && (
+    shoeRetailPrice || shoeResaleValue || shoePriceRange || shoeValueVerdict || shoeValueRating || shoeValueReasoning
+  );
+  const hasShoeContextSection = isShoe && (
+    shoeComparable || shoeResaleSuggestion || shoeResaleDemand || shoeBestPlatform
+  );
 
   return (
     <Animated.View style={[st.root, { opacity: resultFade }]}>
@@ -784,10 +825,31 @@ export default function ScanResultView({
                   {result.electronics_details.product_type && <DetailRow label="Type" value={result.electronics_details.product_type} />}
                 </>
               )}
-              {!result.furniture_details && !result.household_details && !result.electronics_details && result.fashion_details && (
+              {!result.furniture_details && !result.household_details && !result.electronics_details && result.fashion_details && !isShoe && (
                 <>
                   {result.fashion_details.brand && <DetailRow label="Brand" value={result.fashion_details.brand} bold />}
                   {result.fashion_details.model && <DetailRow label="Model" value={result.fashion_details.model} />}
+                </>
+              )}
+              {isShoe && shoeFd && (
+                <>
+                  {shoeFd.brand && <DetailRow label="Brand" value={shoeFd.brand} bold />}
+                  {shoeFd.model && <DetailRow label="Model" value={shoeFd.model} bold />}
+                  <DetailRow label="Type" value="Footwear" />
+                  {shoeFd.color && <DetailRow label="Color" value={`${shoeFd.color}${shoeFd.secondary_color ? ` / ${shoeFd.secondary_color}` : ''}`} />}
+                  {shoeFd.material && isRealValue(shoeFd.material) && <DetailRow label="Material" value={shoeFd.material} />}
+                  {shoeFd.style && isRealValue(shoeFd.style) && <DetailRow label="Style" value={shoeFd.style} />}
+                  {shoeFd.pattern && isRealValue(shoeFd.pattern) && <DetailRow label="Pattern" value={shoeFd.pattern} />}
+                  {shoeFd.condition && <DetailRow label="Condition" value={shoeFd.condition.charAt(0).toUpperCase() + shoeFd.condition.slice(1)} />}
+                  {shoeFd.gender_target && isRealValue(shoeFd.gender_target) && <DetailRow label="For" value={shoeFd.gender_target.charAt(0).toUpperCase() + shoeFd.gender_target.slice(1)} />}
+                  {shoeFd.closure_type && isRealValue(shoeFd.closure_type) && <DetailRow label="Closure" value={shoeFd.closure_type} />}
+                  {shoeFd.fit && isRealValue(shoeFd.fit) && <DetailRow label="Fit" value={shoeFd.fit} />}
+                  {shoeConditionNotes && isRealValue(shoeConditionNotes) && (
+                    <View style={st.shoeConditionNote}>
+                      <Info size={12} color="#D97706" />
+                      <Text style={st.shoeConditionNoteText}>{shoeConditionNotes}</Text>
+                    </View>
+                  )}
                 </>
               )}
               {!result.furniture_details && !result.household_details && !result.electronics_details && !result.fashion_details && result.general_details && (
@@ -900,23 +962,20 @@ export default function ScanResultView({
               </IkeaSectionCard>
             )}
 
-            {hasGoodForSection && (
+            {hasShoeValueSection && shoeFd && (
               <IkeaSectionCard
-                title="Good For"
-                icon={Heart}
-                iconColor="#7C3AED"
-                iconBg={ScannerColors.goodForBg}
-                testID="good-for-section"
+                title="Price & Value"
+                icon={DollarSign}
+                iconColor="#059669"
+                iconBg="#05966912"
+                collapsed={!shoeValueOpen}
+                onToggle={() => toggleSection(setShoeValueOpen)}
+                testID="shoe-value-section"
               >
-                <View style={st.goodForGrid}>
-                  {roomFitLabels.map((label, i) => (
-                    <GoodForChip key={`gf-${i}`} label={label} />
-                  ))}
-                </View>
-              </IkeaSectionCard>
-            )}
-
-            {hasValueSection && (
+                {shoeRetailPrice && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Retail Price</Text>
+                    <Text style={st.shoePriceValue}>{shoeRetailPrice.startsWith('
               <IkeaSectionCard
                 title="Value Insight"
                 icon={TrendingUp}
@@ -1574,4 +1633,94 @@ const st = StyleSheet.create({
     color: '#374151',
     flex: 1,
   },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
 });
