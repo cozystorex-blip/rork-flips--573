@@ -976,6 +976,9083 @@ export default function ScanResultView({
                   <View style={st.shoePriceRow}>
                     <Text style={st.shoePriceLabel}>Retail Price</Text>
                     <Text style={st.shoePriceValue}>{shoeRetailPrice.startsWith('
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {shoeResaleValue && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Resale Value</Text>
+                    <Text style={st.shoeResaleValueText}>{shoeResaleValue.startsWith('
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeResaleValue : `${shoeResaleValue}`}</Text>
+                  </View>
+                )}
+                {shoePriceRange && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Price Range</Text>
+                    <Text style={st.shoePriceValue}>{shoePriceRange}</Text>
+                  </View>
+                )}
+                {shoeValueVerdict && (
+                  <View style={st.valueInsightCard}>
+                    <TrendingUp size={13} color="#059669" />
+                    <Text style={st.valueInsightText}>Verdict: {shoeValueVerdict}</Text>
+                  </View>
+                )}
+                {shoeValueRating && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Value Rating</Text>
+                    <ValueLabel text={shoeValueRating} />
+                  </View>
+                )}
+                {shoeValueReasoning && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{shoeValueReasoning}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {hasValueSection && (
+              <IkeaSectionCard
+                title="Value Insight"
+                icon={TrendingUp}
+                iconColor="#D97706"
+                iconBg={ScannerColors.valueBg}
+                testID="value-insight-section"
+              >
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {shoeResaleValue && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Resale Value</Text>
+                    <Text style={st.shoeResaleValueText}>{shoeResaleValue.startsWith('
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeResaleValue : `${shoeResaleValue}`}</Text>
+                  </View>
+                )}
+                {shoePriceRange && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Price Range</Text>
+                    <Text style={st.shoePriceValue}>{shoePriceRange}</Text>
+                  </View>
+                )}
+                {shoeValueVerdict && (
+                  <View style={st.valueInsightCard}>
+                    <TrendingUp size={13} color="#059669" />
+                    <Text style={st.valueInsightText}>Verdict: {shoeValueVerdict}</Text>
+                  </View>
+                )}
+                {shoeValueRating && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Value Rating</Text>
+                    <ValueLabel text={shoeValueRating} />
+                  </View>
+                )}
+                {shoeValueReasoning && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{shoeValueReasoning}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {hasValueSection && (
+              <IkeaSectionCard
+                title="Value Insight"
+                icon={TrendingUp}
+                iconColor="#D97706"
+                iconBg={ScannerColors.valueBg}
+                testID="value-insight-section"
+              >
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {shoeResaleValue && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Resale Value</Text>
+                    <Text style={st.shoeResaleValueText}>{shoeResaleValue.startsWith('
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeResaleValue : `${shoeResaleValue}`}</Text>
+                  </View>
+                )}
+                {shoePriceRange && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Price Range</Text>
+                    <Text style={st.shoePriceValue}>{shoePriceRange}</Text>
+                  </View>
+                )}
+                {shoeValueVerdict && (
+                  <View style={st.valueInsightCard}>
+                    <TrendingUp size={13} color="#059669" />
+                    <Text style={st.valueInsightText}>Verdict: {shoeValueVerdict}</Text>
+                  </View>
+                )}
+                {shoeValueRating && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Value Rating</Text>
+                    <ValueLabel text={shoeValueRating} />
+                  </View>
+                )}
+                {shoeValueReasoning && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{shoeValueReasoning}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {hasValueSection && (
+              <IkeaSectionCard
+                title="Value Insight"
+                icon={TrendingUp}
+                iconColor="#D97706"
+                iconBg={ScannerColors.valueBg}
+                testID="value-insight-section"
+              >
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
+                {shoeResaleValue && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Resale Value</Text>
+                    <Text style={st.shoeResaleValueText}>{shoeResaleValue.startsWith('
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeResaleValue : `${shoeResaleValue}`}</Text>
+                  </View>
+                )}
+                {shoePriceRange && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Price Range</Text>
+                    <Text style={st.shoePriceValue}>{shoePriceRange}</Text>
+                  </View>
+                )}
+                {shoeValueVerdict && (
+                  <View style={st.valueInsightCard}>
+                    <TrendingUp size={13} color="#059669" />
+                    <Text style={st.valueInsightText}>Verdict: {shoeValueVerdict}</Text>
+                  </View>
+                )}
+                {shoeValueRating && (
+                  <View style={st.shoePriceRow}>
+                    <Text style={st.shoePriceLabel}>Value Rating</Text>
+                    <ValueLabel text={shoeValueRating} />
+                  </View>
+                )}
+                {shoeValueReasoning && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{shoeValueReasoning}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {hasValueSection && (
+              <IkeaSectionCard
+                title="Value Insight"
+                icon={TrendingUp}
+                iconColor="#D97706"
+                iconBg={ScannerColors.valueBg}
+                testID="value-insight-section"
+              >
+                {valueInsights.rating && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Value Rating</Text>
+                    <ValueLabel text={valueInsights.rating} />
+                  </View>
+                )}
+                {resaleValue && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Secondhand Value</Text>
+                    <Text style={st.valueRowPrice}>{resaleValue}</Text>
+                  </View>
+                )}
+                {demandLevel && (
+                  <View style={st.valueRow}>
+                    <Text style={st.valueRowLabel}>Demand</Text>
+                    <View style={st.demandBadge}>
+                      <Zap size={10} color={demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280'} />
+                      <Text style={[st.demandText, { color: demandLevel.toLowerCase() === 'high' ? '#059669' : demandLevel.toLowerCase() === 'moderate' ? '#D97706' : '#6B7280' }]}>{demandLevel}</Text>
+                    </View>
+                  </View>
+                )}
+                {valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Lightbulb size={13} color="#D97706" />
+                    <Text style={st.valueInsightText}>{valueInsights.insight}</Text>
+                  </View>
+                )}
+                {valueInsights.verdict && !valueInsights.insight && (
+                  <View style={st.valueInsightCard}>
+                    <Info size={13} color="#0058A3" />
+                    <Text style={st.valueInsightText}>{valueInsights.verdict}</Text>
+                  </View>
+                )}
+              </IkeaSectionCard>
+            )}
+
+            {careTip && (
+              <View style={st.careTipCard}>
+                <View style={st.careTipIconWrap}>
+                  <Lightbulb size={14} color="#F59E0B" />
+                </View>
+                <View style={st.careTipContent}>
+                  <Text style={st.careTipTitle}>Care Tip</Text>
+                  <Text style={st.careTipText}>{careTip}</Text>
+                </View>
+              </View>
+            )}
+
+            {tags.length > 0 && (
+              <View style={st.tagsSection}>
+                <View style={st.tagsWrap}>
+                  {tags.map((tag, i) => (
+                    <View key={`tag-${i}`} style={st.tagChip}>
+                      <Text style={st.tagText}>#{tag.toLowerCase().replace(/\s+/g, '')}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.primaryBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+              onPress={onScanAgain}
+              testID="scan-another-btn"
+            >
+              <Camera size={18} color="#FFFFFF" />
+              <Text style={st.primaryBtnText}>Scan Another Item</Text>
+            </Pressable>
+          </>
+        )}
+
+        {onDelete && viewingEntryId && (
+          <Pressable
+            style={({ pressed }) => [st.deleteBtn, pressed && { opacity: 0.7 }]}
+            onPress={onDelete}
+            testID="delete-scan-result"
+          >
+            <Trash2 size={13} color="#EF4444" />
+            <Text style={st.deleteText}>Delete This Scan</Text>
+          </Pressable>
+        )}
+      </View>
+    </Animated.View>
+  );
+}
+
+const st = StyleSheet.create({
+  root: { flex: 1 },
+
+  heroImageWrap: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  heroImage: { width: '100%', height: '100%' },
+
+  dualImageRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  dualImageWrap: {
+    flex: 1,
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+    position: 'relative',
+  },
+  dualImage: { width: '100%', height: '100%' },
+  imageBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  imageBadgeText: { fontSize: 10, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  fallbackImageWrap: {
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  fallbackImage: { width: '100%', height: '100%', opacity: 0.6 },
+  fallbackImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  fallbackImageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(217,119,6,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  fallbackImageBadgeText: { fontSize: 12, fontWeight: '700' as const, color: '#FDE68A' },
+
+  genPlaceholder: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  genPlaceholderText: { fontSize: 13, fontWeight: '600' as const, color: '#0058A3' },
+
+  generatingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingVertical: 10,
+  },
+  generatingText: { fontSize: 12, fontWeight: '600' as const, color: '#FFFFFF' },
+
+  content: { paddingBottom: 20 },
+
+  topBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+
+  confPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confPillText: { fontSize: 11, fontWeight: '700' as const },
+  confPctChip: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
+  confPctText: { fontSize: 9, fontWeight: '800' as const },
+
+  ikeaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFDA1A',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  ikeaBadgeText: { fontSize: 11, fontWeight: '800' as const, color: '#0058A3' },
+
+  ikeaConfRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  ikeaConfChip: { backgroundColor: '#0058A312', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  ikeaConfChipText: { fontSize: 10, fontWeight: '600' as const, color: '#0058A3' },
+  articleNumber: { fontSize: 11, fontWeight: '600' as const, color: ScannerColors.textMuted },
+
+  itemName: {
+    fontSize: 26,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.6,
+    marginBottom: 4,
+    lineHeight: 32,
+  },
+  subHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  categoryLabel: { fontSize: 14, fontWeight: '500' as const, color: '#8E8E93' },
+  priceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#0058A30D',
+  },
+  priceText: { fontSize: 18, fontWeight: '900' as const, color: '#0058A3', letterSpacing: -0.3 },
+
+  descriptionCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  descriptionText: { fontSize: 14, color: '#475569', lineHeight: 21, fontWeight: '500' as const },
+
+  partialNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partialNoticeContent: { flex: 1 },
+  partialNoticeTitle: { fontSize: 13, fontWeight: '700' as const, color: '#92400E', marginBottom: 2 },
+  partialNoticeDesc: { fontSize: 12, fontWeight: '500' as const, color: '#A16207', lineHeight: 17 },
+
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  sectionCardIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionCardTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+  },
+  sectionCardBody: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 14,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  detailLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  detailValue: { fontSize: 13, fontWeight: '600' as const, color: '#111111', maxWidth: '55%' as unknown as number, textAlign: 'right' as const },
+  detailValueBold: { fontWeight: '800' as const },
+
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.toolsBg,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.toolsBorder,
+  },
+  toolChipText: { fontSize: 13, fontWeight: '600' as const, color: '#1E3A5F' },
+
+  peopleNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  peopleNoteText: { fontSize: 13, fontWeight: '600' as const, color: '#92400E', flex: 1 },
+
+  assemblyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  assemblyLabel: { fontSize: 13, fontWeight: '600' as const, color: '#6B7280' },
+  assemblyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  assemblyRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280', flex: 1 },
+  assemblyRowValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+
+  difficultyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  difficultyText: { fontSize: 12, fontWeight: '700' as const },
+
+  assemblyNote: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  assemblyNoteText: { fontSize: 13, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 19 },
+
+  warningNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  warningNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#92400E', lineHeight: 17 },
+
+  tipNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#B8D4F0',
+  },
+  tipNoteText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#1E3A5F', lineHeight: 17 },
+
+  matchesScroll: { gap: 8, paddingRight: 4 },
+  matchChip: {
+    width: 120,
+    backgroundColor: ScannerColors.matchesBg,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.matchesBorder,
+  },
+  matchChipText: { fontSize: 12, fontWeight: '600' as const, color: '#111111', textAlign: 'center' as const, lineHeight: 16 },
+
+  goodForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  goodForChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: ScannerColors.goodForBg,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: ScannerColors.goodForBorder,
+  },
+  goodForChipText: { fontSize: 12, fontWeight: '600' as const, color: '#5B21B6' },
+
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  valueRowLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  valueRowPrice: { fontSize: 16, fontWeight: '800' as const, color: '#111111' },
+
+  valueLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  valueLabelText: { fontSize: 12, fontWeight: '700' as const },
+
+  demandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: '#F9FAFB',
+  },
+  demandText: { fontSize: 11, fontWeight: '700' as const },
+
+  valueInsightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: ScannerColors.valueBg,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: ScannerColors.valueBorder,
+  },
+  valueInsightText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#78716C', lineHeight: 17 },
+
+  careTipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  careTipIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  careTipContent: { flex: 1 },
+  careTipTitle: { fontSize: 12, fontWeight: '700' as const, color: '#92400E', marginBottom: 3 },
+  careTipText: { fontSize: 13, fontWeight: '500' as const, color: '#78716C', lineHeight: 19 },
+
+  tagsSection: {
+    marginTop: 4,
+    marginBottom: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  tagsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  tagChip: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  tagText: { fontSize: 11, fontWeight: '500' as const, color: '#6B7280' },
+
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#0058A3',
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#003E75',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700' as const, color: '#FFFFFF' },
+
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 2,
+  },
+  deleteText: { fontSize: 13, fontWeight: '600' as const, color: '#EF4444' },
+
+  savePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  savePhotoBtnSaved: {
+    backgroundColor: 'rgba(5,150,105,0.85)',
+  },
+  savePhotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  savePhotoBtnWrap: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  savePhotoBtnWrapHero: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+
+  lowConfContainer: { paddingTop: 4 },
+  lowConfHeader: { alignItems: 'center', marginBottom: 20 },
+  lowConfIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+  },
+  lowConfTitle: {
+    fontSize: 20,
+    fontWeight: '800' as const,
+    color: '#111111',
+    letterSpacing: -0.3,
+    marginBottom: 8,
+    textAlign: 'center' as const,
+  },
+  lowConfDesc: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#6B7280',
+    textAlign: 'center' as const,
+    lineHeight: 20,
+    paddingHorizontal: 8,
+  },
+  scanTipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  scanTipsTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#111111',
+    letterSpacing: -0.2,
+    marginBottom: 14,
+  },
+  scanTipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  scanTipIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanTipText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#374151',
+    flex: 1,
+  },
+  shoePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+  },
+  shoePriceLabel: { fontSize: 13, fontWeight: '500' as const, color: '#6B7280' },
+  shoePriceValue: { fontSize: 20, fontWeight: '900' as const, color: '#111111', letterSpacing: -0.3 },
+  shoeResaleValueText: { fontSize: 18, fontWeight: '800' as const, color: '#059669', letterSpacing: -0.3 },
+  shoePriceRangeText: { fontSize: 13, fontWeight: '600' as const, color: '#111111' },
+  shoeVerdictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  shoeVerdictText: { fontSize: 12, fontWeight: '700' as const },
+  shoeReasoningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeReasoningText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeContextValue: { fontSize: 13, fontWeight: '700' as const, color: '#111111' },
+  shoeComparableCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#F5F3FF',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  shoeComparableLabel: { fontSize: 10, fontWeight: '700' as const, color: '#7C3AED', letterSpacing: 0.5, textTransform: 'uppercase' as const, marginBottom: 2 },
+  shoeComparableText: { fontSize: 13, fontWeight: '600' as const, color: '#374151', lineHeight: 18 },
+  shoeResaleSuggestionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  shoeResaleSuggestionText: { flex: 1, fontSize: 12, fontWeight: '500' as const, color: '#065F46', lineHeight: 17 },
+  shoeConditionNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  shoeConditionNoteText: { flex: 1, fontSize: 11, fontWeight: '500' as const, color: '#92400E', lineHeight: 16 },
+  shoeCleaningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  shoeCleaningIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shoeCleaningTitle: { fontSize: 12, fontWeight: '700' as const, color: '#1E40AF', marginBottom: 3 },
+  shoeCleaningText: { fontSize: 13, fontWeight: '500' as const, color: '#475569', lineHeight: 19 },
+});
+) ? shoeRetailPrice : `${shoeRetailPrice}`}</Text>
+                  </View>
+                )}
                 {resaleValue && (
                   <View style={st.valueRow}>
                     <Text style={st.valueRowLabel}>Secondhand Value</Text>
