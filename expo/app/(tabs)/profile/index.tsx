@@ -18,6 +18,7 @@ import {
   LogOut,
   Scan,
   Bookmark,
+  Camera,
   Wifi,
   WifiOff,
 } from 'lucide-react-native';
@@ -27,9 +28,8 @@ import { useProfile } from '@/contexts/ProfileContext';
 import { useScanHistory } from '@/contexts/ScanHistoryContext';
 import { useSavedItems } from '@/contexts/SavedItemsContext';
 import { useOnlinePeople } from '@/contexts/OnlinePeopleContext';
-import { useConnections } from '@/contexts/ConnectionsContext';
-import { router } from 'expo-router';
 
+import { pickAndCropAvatar, uploadAvatarToSupabase } from '@/services/uploadService';
 import AdMobBanner from '@/components/ads/AdMobBanner';
 
 
@@ -39,20 +39,36 @@ export default function ProfileScreen() {
   const { profile, saveProfile } = useProfile();
   const { entries: scanEntries } = useScanHistory();
   const { savedDeals } = useSavedItems();
-  const { isUserOnline, handleToggleOnline, connectionState } = useOnlinePeople();
-  const { friends } = useConnections();
+  const { isUserOnline, handleToggleOnline, connectionState, onlineUsers } = useOnlinePeople();
+
 
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const filteredFriends = useMemo(() => {
-    if (!searchQuery.trim()) return friends;
+  const dedupedOnlineUsers = useMemo(() => {
+    const seen = new Map<string, typeof onlineUsers[number]>();
+    for (const u of onlineUsers) {
+      if (seen.has(u.id)) {
+        const existing = seen.get(u.id)!;
+        if (u.lastActive > existing.lastActive) {
+          seen.set(u.id, u);
+        }
+      } else {
+        seen.set(u.id, u);
+      }
+    }
+    return Array.from(seen.values());
+  }, [onlineUsers]);
+
+  const filteredOnlineUsers = useMemo(() => {
+    if (!searchQuery.trim()) return dedupedOnlineUsers;
     const q = searchQuery.trim().toLowerCase();
-    return friends.filter((f) => (f.profile.display_name || 'User').toLowerCase().includes(q));
-  }, [friends, searchQuery]);
+    return dedupedOnlineUsers.filter((u) => (u.name || 'User').toLowerCase().includes(q));
+  }, [dedupedOnlineUsers, searchQuery]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [savingName, setSavingName] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   useEffect(() => {
     if (isUserOnline) {
@@ -94,11 +110,40 @@ export default function ProfileScreen() {
 
 
 
-  const handleTapAvatar = useCallback(() => {
+  const handleTapAvatar = useCallback(async () => {
+    if (savingAvatar) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    console.log('[Profile] Avatar tapped, navigating to edit-profile');
-    router.push('/edit-profile');
-  }, []);
+    console.log('[Profile] Avatar tapped, opening image picker');
+
+    try {
+      setSavingAvatar(true);
+      const picked = await pickAndCropAvatar();
+      if (!picked) {
+        console.log('[Profile] User cancelled avatar picker');
+        setSavingAvatar(false);
+        return;
+      }
+
+      console.log('[Profile] Avatar picked, persisting...');
+      const userId = user?.id ?? 'anonymous';
+      const persistedUri = await uploadAvatarToSupabase(picked.uri, userId);
+
+      console.log('[Profile] Avatar persisted, saving to profile:', persistedUri.substring(0, 60));
+      await saveProfile({ avatar_url: persistedUri });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      console.log('[Profile] Avatar saved successfully');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to update profile picture';
+      console.log('[Profile] Avatar update error:', msg);
+      if (msg.includes('Permission') || msg.includes('permission')) {
+        Alert.alert('Permission Needed', msg);
+      } else {
+        Alert.alert('Update Failed', msg);
+      }
+    } finally {
+      setSavingAvatar(false);
+    }
+  }, [savingAvatar, user, saveProfile]);
 
   const handleTapName = useCallback(() => {
     void Haptics.selectionAsync();
@@ -183,11 +228,14 @@ export default function ProfileScreen() {
           <View style={styles.profileSection}>
             <Pressable
               onPress={handleTapAvatar}
+              disabled={savingAvatar}
               style={({ pressed }) => [styles.avatarOuter, pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] }]}
               testID="profile-avatar-tap"
             >
               <View style={styles.avatar}>
-                {profile?.avatar_url ? (
+                {savingAvatar ? (
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                ) : profile?.avatar_url ? (
                   <Image
                     source={{ uri: profile.avatar_url }}
                     style={styles.avatarImage}
@@ -198,6 +246,9 @@ export default function ProfileScreen() {
                     {displayName.charAt(0).toUpperCase()}
                   </Text>
                 )}
+              </View>
+              <View style={styles.avatarCameraBadge}>
+                <Camera size={12} color="#FFFFFF" strokeWidth={2.5} />
               </View>
             </Pressable>
 
@@ -267,23 +318,13 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.whiteContent}>
-          {isUserOnline && (
-            <View style={styles.friendsSection}>
-              <View style={styles.friendsHeader}>
-                <Text style={styles.friendsTitle}>My People</Text>
-                <Pressable
-                  onPress={() => router.push('/connections')}
-                  style={({ pressed }) => [styles.manageFriendsBtn, pressed && { opacity: 0.7 }]}
-                >
-                  <Text style={styles.manageFriendsBtnText}>Manage</Text>
-                </Pressable>
-              </View>
-
-              <View style={styles.searchBarSimple}>
-                <Search size={15} color="#8E8E93" strokeWidth={2} />
+          <View style={styles.searchSection}>
+            <View style={styles.searchRow}>
+              <View style={[styles.searchBar, searchQuery.length > 0 && styles.searchBarActive]}>
+                <Search size={16} color={searchQuery.length > 0 ? '#0058A3' : '#AEAEB2'} strokeWidth={2.2} />
                 <TextInput
-                  style={styles.searchInputSimple}
-                  placeholder="Search friends"
+                  style={styles.searchInput}
+                  placeholder="Find people nearby..."
                   placeholderTextColor="#C7C7CC"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -293,55 +334,55 @@ export default function ProfileScreen() {
                 {searchQuery.length > 0 && (
                   <Pressable
                     onPress={() => setSearchQuery('')}
+                    style={({ pressed }) => [styles.searchClearBtn, pressed && { opacity: 0.6 }]}
                     hitSlop={8}
-                    style={({ pressed }) => [pressed && { opacity: 0.5 }]}
                   >
                     <Text style={styles.searchClearText}>×</Text>
                   </Pressable>
                 )}
               </View>
-
-              {filteredFriends.length > 0 ? (
-                <View style={styles.friendsList}>
-                  {filteredFriends.map((f) => (
-                    <Pressable
-                      key={f.connection.id}
-                      onPress={() => {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      style={({ pressed }) => [styles.friendRow, pressed && { opacity: 0.7, backgroundColor: '#F5F5F7' }]}
-                    >
-                      <View style={styles.friendAvatarWrap}>
-                        {f.profile.avatar_url ? (
-                          <Image source={{ uri: f.profile.avatar_url }} style={styles.friendAvatar} contentFit="cover" />
-                        ) : (
-                          <Text style={styles.friendAvatarInitial}>{(f.profile.display_name || 'U').charAt(0).toUpperCase()}</Text>
-                        )}
-                      </View>
-                      <View style={styles.friendInfo}>
-                        <Text style={styles.friendName} numberOfLines={1}>{f.profile.display_name || 'User'}</Text>
-                        {f.profile.city ? <Text style={styles.friendCity} numberOfLines={1}>{f.profile.city}</Text> : null}
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyFriends}>
-                  <Text style={styles.emptyFriendsText}>
-                    {searchQuery.trim() ? 'No friends match your search' : 'No connections yet'}
-                  </Text>
-                  {!searchQuery.trim() && (
-                    <Pressable
-                      onPress={() => router.push('/connections')}
-                      style={({ pressed }) => [styles.addFriendsBtn, pressed && { opacity: 0.7 }]}
-                    >
-                      <Text style={styles.addFriendsBtnText}>Find People</Text>
-                    </Pressable>
-                  )}
-                </View>
-              )}
+              <Pressable
+                onPress={handleToggleOnline}
+                style={({ pressed }) => [styles.statusDot, isUserOnline && styles.statusDotActiveWrap, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
+                testID="profile-status-dot"
+              >
+                <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+                {isUserOnline && <Animated.View style={[styles.statusDotPulse, { opacity: pulseAnim }]} />}
+              </Pressable>
             </View>
-          )}
+            {isUserOnline && filteredOnlineUsers.length > 0 && (
+              <Text style={styles.searchResultCount}>
+                {searchQuery.trim() ? `${filteredOnlineUsers.length} found` : `${filteredOnlineUsers.length} online now`}
+              </Text>
+            )}
+          </View>
+
+          {isUserOnline && filteredOnlineUsers.length > 0 ? (
+            <View style={styles.onlineSection}>
+              <View style={styles.onlineGrid}>
+                {filteredOnlineUsers.map((u) => (
+                  <Pressable
+                    key={u.id}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                    style={({ pressed }) => [styles.onlineCard, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
+                  >
+                    <View style={styles.onlineAvatarWrap}>
+                      {u.avatar_url ? (
+                        <Image source={{ uri: u.avatar_url }} style={styles.onlineAvatar} contentFit="cover" />
+                      ) : (
+                        <Text style={styles.onlineAvatarInitial}>{(u.name || 'U').charAt(0).toUpperCase()}</Text>
+                      )}
+                      <View style={styles.onlineIndicator} />
+                    </View>
+                    <Text style={styles.onlineName} numberOfLines={1}>{u.name || 'User'}</Text>
+                    <Text style={styles.onlineActivity}>{u.activity === 'scanning' ? 'Scanning' : u.activity === 'saving' ? 'Saving' : 'Browsing'}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.adSection}>
             <AdMobBanner />
@@ -415,7 +456,24 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#FFFFFF',
   },
-
+  avatarCameraBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#1C1C1E',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -571,120 +629,220 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FF3B30',
   },
-  friendsSection: {
+  searchSection: {
     marginHorizontal: 16,
     marginTop: 14,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  friendsHeader: {
+  onlineSection: {
+    marginHorizontal: 16,
+    marginTop: 0,
+    marginBottom: 12,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  onlineSectionHeader: {
+    marginBottom: 14,
+  },
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    gap: 10,
   },
-  friendsTitle: {
-    fontSize: 17,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-    letterSpacing: -0.3,
-  },
-  manageFriendsBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-  },
-  manageFriendsBtnText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#0058A3',
-  },
-  searchBarSimple: {
+  searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    gap: 8,
-    marginBottom: 12,
+    backgroundColor: '#F8F8FA',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#ECECEE',
   },
-  searchInputSimple: {
+  searchBarActive: {
+    borderColor: '#0058A3',
+    backgroundColor: '#F5F9FF',
+    shadowColor: '#0058A3',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  searchIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  searchInput: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '400' as const,
+    fontWeight: '500' as const,
     color: '#1C1C1E',
     padding: 0,
     margin: 0,
-  },
-  searchClearText: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    color: '#8E8E93',
-    lineHeight: 20,
-  },
-  friendsList: {
-    gap: 2,
-  },
-  friendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderRadius: 10,
-    gap: 12,
-  },
-  friendAvatarWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E8E8ED',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    overflow: 'hidden' as const,
-  },
-  friendAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  friendAvatarInitial: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#1C1C1E',
-  },
-  friendInfo: {
-    flex: 1,
-  },
-  friendName: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    color: '#1C1C1E',
     letterSpacing: -0.2,
   },
-  friendCity: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: '#8E8E93',
-    marginTop: 1,
-  },
-  emptyFriends: {
+  searchClearBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E0E0E4',
+    justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    paddingVertical: 24,
   },
-  emptyFriendsText: {
-    fontSize: 14,
+  searchClearText: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#8E8E93',
+    lineHeight: 18,
+    marginTop: -1,
+  },
+  searchResultCount: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#0058A3',
+    marginTop: 8,
+    marginLeft: 4,
+    letterSpacing: -0.1,
+  },
+  statusDot: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F8F8FA',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: '#ECECEE',
+    position: 'relative' as const,
+    overflow: 'visible' as const,
+  },
+  statusDotActiveWrap: {
+    backgroundColor: '#F0FFF4',
+    borderColor: '#86EFAC',
+  },
+  statusDotPulse: {
+    position: 'absolute' as const,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: '#34C759',
+  },
+  statusDotInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  statusDotOnline: {
+    backgroundColor: '#34C759',
+    shadowColor: '#34C759',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusDotOffline: {
+    backgroundColor: '#C7C7CC',
+  },
+  onlineSectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  onlineDotSmall: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34C759',
+  },
+  onlineHeaderLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+  },
+  onlineSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
+  },
+  onlineEmptyText: {
+    fontSize: 13,
     fontWeight: '400' as const,
     color: '#8E8E93',
+    marginTop: 6,
   },
-  addFriendsBtn: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    backgroundColor: '#0D0D0D',
-    borderRadius: 20,
+  onlineGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  addFriendsBtnText: {
-    fontSize: 14,
+  onlineCard: {
+    alignItems: 'center' as const,
+    width: 72,
+  },
+  onlineAvatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F0F0F2',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 6,
+    position: 'relative' as const,
+    overflow: 'visible' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  onlineAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  onlineAvatarInitial: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#0A0A0A',
+  },
+  onlineIndicator: {
+    position: 'absolute' as const,
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#0A0A0A',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+  },
+  onlineName: {
+    fontSize: 12,
     fontWeight: '600' as const,
-    color: '#FFFFFF',
+    color: '#1C1C1E',
+    textAlign: 'center' as const,
+    maxWidth: 72,
+  },
+  onlineActivity: {
+    fontSize: 10,
+    fontWeight: '500' as const,
+    color: '#3A3A3C',
+    marginTop: 1,
   },
 });
