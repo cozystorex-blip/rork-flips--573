@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   ScrollView,
   TextInput,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { Search, UserPlus, UserCheck, Clock, MapPin } from 'lucide-react-native';
+import { Search, UserPlus, UserCheck, Clock, MapPin, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
@@ -77,7 +79,18 @@ export default function ProfileScreen() {
     }
   }, [sendRequest]);
 
+  const [searchOpen, setSearchOpen] = useState<boolean>(false);
   const showSearchResults = searchQuery.trim().length >= 2;
+
+  const handleOpenSearch = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSearchOpen(true);
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery('');
+  }, []);
 
   const dedupedOnlineUsers = useMemo(() => {
     const seen = new Map<string, typeof onlineUsers[number]>();
@@ -94,11 +107,6 @@ export default function ProfileScreen() {
     return Array.from(seen.values());
   }, [onlineUsers]);
 
-  const filteredOnlineUsers = useMemo(() => {
-    if (!searchQuery.trim()) return dedupedOnlineUsers;
-    const q = searchQuery.trim().toLowerCase();
-    return dedupedOnlineUsers.filter((u) => (u.name || 'User').toLowerCase().includes(q));
-  }, [dedupedOnlineUsers, searchQuery]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -352,13 +360,21 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.whiteContent}>
-          <View style={styles.searchSection}>
-            <View style={styles.searchRow}>
-              <View style={[styles.searchBar, searchQuery.length > 0 && styles.searchBarActive]}>
-                <Search size={16} color={searchQuery.length > 0 ? '#0058A3' : '#AEAEB2'} strokeWidth={2.2} />
+        <Modal
+          visible={searchOpen}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={handleCloseSearch}
+        >
+          <KeyboardAvoidingView
+            style={styles.searchModalRoot}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View style={[styles.searchModalHeader, { paddingTop: Platform.OS === 'ios' ? 16 : insets.top + 8 }]}>
+              <View style={styles.searchModalBar}>
+                <Search size={17} color={searchQuery.length > 0 ? '#0058A3' : '#8E8E93'} strokeWidth={2.2} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={styles.searchModalInput}
                   placeholder="Search people..."
                   placeholderTextColor="#C7C7CC"
                   value={searchQuery}
@@ -366,82 +382,89 @@ export default function ProfileScreen() {
                   returnKeyType="search"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  autoFocus
                   testID="profile-search-input"
                 />
                 {searchQuery.length > 0 && (
                   <Pressable
                     onPress={() => setSearchQuery('')}
-                    style={({ pressed }) => [styles.searchClearBtn, pressed && { opacity: 0.6 }]}
+                    style={({ pressed }) => [styles.searchModalClear, pressed && { opacity: 0.6 }]}
                     hitSlop={8}
                   >
-                    <Text style={styles.searchClearText}>×</Text>
+                    <X size={14} color="#8E8E93" strokeWidth={2.5} />
                   </Pressable>
                 )}
               </View>
               <Pressable
-                onPress={handleToggleOnline}
-                style={({ pressed }) => [styles.statusDot, isUserOnline && styles.statusDotActiveWrap, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
-                testID="profile-status-dot"
+                onPress={handleCloseSearch}
+                style={({ pressed }) => [styles.searchModalCancel, pressed && { opacity: 0.6 }]}
+                hitSlop={8}
               >
-                <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
-                {isUserOnline && <Animated.View style={[styles.statusDotPulse, { opacity: pulseAnim }]} />}
+                <Text style={styles.searchModalCancelText}>Cancel</Text>
               </Pressable>
             </View>
-            {!showSearchResults && isUserOnline && filteredOnlineUsers.length > 0 && (
-              <Text style={styles.searchResultCount}>
-                {searchQuery.trim() ? `${filteredOnlineUsers.length} found` : `${filteredOnlineUsers.length} online now`}
-              </Text>
-            )}
+
             {showSearchResults && (
-              <Text style={styles.searchResultCount}>
+              <Text style={styles.searchModalResultCount}>
                 {isSearching ? 'Searching...' : `${searchResults.length} profile${searchResults.length !== 1 ? 's' : ''} found`}
               </Text>
             )}
-          </View>
 
-          {showSearchResults ? (
-            <View style={styles.profileResultsSection}>
-              {isSearching ? (
+            <ScrollView
+              style={styles.searchModalScroll}
+              contentContainerStyle={styles.searchModalScrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {!showSearchResults ? (
+                <View style={styles.searchModalEmpty}>
+                  <View style={styles.searchModalEmptyIcon}>
+                    <Search size={32} color="#C7C7CC" strokeWidth={1.5} />
+                  </View>
+                  <Text style={styles.searchModalEmptyTitle}>Find People</Text>
+                  <Text style={styles.searchModalEmptyText}>Search by name to find and connect</Text>
+                </View>
+              ) : isSearching ? (
                 <View style={styles.searchLoadingWrap}>
                   <ActivityIndicator size="small" color="#0058A3" />
                   <Text style={styles.searchLoadingText}>Finding people...</Text>
                 </View>
               ) : searchResults.length === 0 ? (
-                <View style={styles.searchEmptyWrap}>
+                <View style={styles.searchModalEmpty}>
                   <Search size={32} color="#C7C7CC" strokeWidth={1.5} />
-                  <Text style={styles.searchEmptyTitle}>No profiles found</Text>
-                  <Text style={styles.searchEmptyText}>Try a different name</Text>
+                  <Text style={styles.searchModalEmptyTitle}>No profiles found</Text>
+                  <Text style={styles.searchModalEmptyText}>Try a different name</Text>
                 </View>
               ) : (
-                searchResults.map((user: SearchedUser) => {
-                  const status = getConnectionStatus(user.id);
+                searchResults.map((u: SearchedUser) => {
+                  const status = getConnectionStatus(u.id);
                   return (
                     <Pressable
-                      key={user.id}
+                      key={u.id}
                       onPress={() => {
                         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       }}
                       style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-                      testID={`profile-result-${user.id}`}
+                      testID={`profile-result-${u.id}`}
                     >
                       <View style={styles.profileCardLeft}>
                         <View style={styles.profileCardAvatar}>
-                          {user.avatar_url ? (
-                            <Image source={{ uri: user.avatar_url }} style={styles.profileCardAvatarImg} contentFit="cover" />
+                          {u.avatar_url ? (
+                            <Image source={{ uri: u.avatar_url }} style={styles.profileCardAvatarImg} contentFit="cover" />
                           ) : (
                             <Text style={styles.profileCardAvatarInitial}>
-                              {(user.display_name || 'U').charAt(0).toUpperCase()}
+                              {(u.display_name || 'U').charAt(0).toUpperCase()}
                             </Text>
                           )}
                         </View>
                         <View style={styles.profileCardInfo}>
                           <Text style={styles.profileCardName} numberOfLines={1}>
-                            {user.display_name || 'User'}
+                            {u.display_name || 'User'}
                           </Text>
-                          {user.city ? (
+                          {u.city ? (
                             <View style={styles.profileCardCityRow}>
                               <MapPin size={11} color="#8E8E93" strokeWidth={2} />
-                              <Text style={styles.profileCardCity} numberOfLines={1}>{user.city}</Text>
+                              <Text style={styles.profileCardCity} numberOfLines={1}>{u.city}</Text>
                             </View>
                           ) : null}
                         </View>
@@ -458,10 +481,10 @@ export default function ProfileScreen() {
                         </View>
                       ) : (
                         <Pressable
-                          onPress={() => handleSendRequest(user.id)}
+                          onPress={() => handleSendRequest(u.id)}
                           disabled={isSendingRequest}
                           style={({ pressed }) => [styles.addUserBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.95 }] }]}
-                          testID={`add-user-${user.id}`}
+                          testID={`add-user-${u.id}`}
                         >
                           {isSendingRequest ? (
                             <ActivityIndicator size="small" color="#FFFFFF" />
@@ -477,11 +500,33 @@ export default function ProfileScreen() {
                   );
                 })
               )}
-            </View>
-          ) : isUserOnline && filteredOnlineUsers.length > 0 ? (
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        <View style={styles.whiteContent}>
+          <View style={styles.quickActions}>
+            <Pressable
+              onPress={handleOpenSearch}
+              style={({ pressed }) => [styles.searchIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.93 }] }]}
+              testID="profile-search-btn"
+            >
+              <Search size={18} color="#0058A3" strokeWidth={2.2} />
+            </Pressable>
+            <Pressable
+              onPress={handleToggleOnline}
+              style={({ pressed }) => [styles.statusDot, isUserOnline && styles.statusDotActiveWrap, pressed && { opacity: 0.7, transform: [{ scale: 0.92 }] }]}
+              testID="profile-status-dot"
+            >
+              <View style={[styles.statusDotInner, isUserOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+              {isUserOnline && <Animated.View style={[styles.statusDotPulse, { opacity: pulseAnim }]} />}
+            </Pressable>
+          </View>
+
+          {isUserOnline && dedupedOnlineUsers.length > 0 ? (
             <View style={styles.onlineSection}>
               <View style={styles.onlineGrid}>
-                {filteredOnlineUsers.map((u) => (
+                {dedupedOnlineUsers.map((u) => (
                   <Pressable
                     key={u.id}
                     onPress={() => {
@@ -750,10 +795,114 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#FF3B30',
   },
-  searchSection: {
-    marginHorizontal: 16,
-    marginTop: 14,
+  quickActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 18,
     marginBottom: 16,
+  },
+  searchIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EDF4FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D6E4F5',
+  },
+  searchModalRoot: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  searchModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+  },
+  searchModalBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchModalInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500' as const,
+    color: '#1C1C1E',
+    padding: 0,
+    margin: 0,
+  },
+  searchModalClear: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#D1D1D6',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  searchModalCancel: {
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  searchModalCancelText: {
+    fontSize: 16,
+    fontWeight: '500' as const,
+    color: '#0058A3',
+  },
+  searchModalResultCount: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#0058A3',
+    marginTop: 12,
+    marginLeft: 20,
+    marginBottom: 4,
+    letterSpacing: -0.1,
+  },
+  searchModalScroll: {
+    flex: 1,
+  },
+  searchModalScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 40,
+  },
+  searchModalEmpty: {
+    alignItems: 'center' as const,
+    paddingTop: 80,
+  },
+  searchModalEmptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 16,
+  },
+  searchModalEmptyTitle: {
+    fontSize: 17,
+    fontWeight: '600' as const,
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  searchModalEmptyText: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    color: '#8E8E93',
+    marginTop: 4,
   },
   onlineSection: {
     marginHorizontal: 16,
@@ -773,72 +922,7 @@ const styles = StyleSheet.create({
   onlineSectionHeader: {
     marginBottom: 14,
   },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F8FA',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#ECECEE',
-  },
-  searchBarActive: {
-    borderColor: '#0058A3',
-    backgroundColor: '#F5F9FF',
-    shadowColor: '#0058A3',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  searchIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500' as const,
-    color: '#1C1C1E',
-    padding: 0,
-    margin: 0,
-    letterSpacing: -0.2,
-  },
-  searchClearBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E0E0E4',
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-  },
-  searchClearText: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: '#8E8E93',
-    lineHeight: 18,
-    marginTop: -1,
-  },
-  searchResultCount: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: '#0058A3',
-    marginTop: 8,
-    marginLeft: 4,
-    letterSpacing: -0.1,
-  },
+
   statusDot: {
     width: 42,
     height: 42,
